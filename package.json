@@ -25,6 +25,7 @@
     "scripts": {
         "build": "npm run clean && webpack --mode production",
         "clean": "rm -rf dist && mkdir dist",
+        "test": "echo \"no tests specified\" && exit 0",
         "serve": "webpack serve --mode development"
     },
     "devDependencies": {
