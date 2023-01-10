@@ -1,8 +1,7 @@
 {
-    "name": "@tittel/shacl-form",
+    "name": "@ulb-darmstadt/shacl-form",
     "version": "1.0.8",
     "description": "SHACL form generator",
-    "private": false,
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -13,7 +12,7 @@
         "type": "git",
         "url": "https://gitlab.ulb.tu-darmstadt.de/tittel/shacl-form"
     },
-    "author": "ULB  Darmstadt",
+    "author": "ULB Darmstadt",
     "license": "Apache-2.0",
     "homepage": "https://gitlab.ulb.tu-darmstadt.de/tittel/shacl-form",
     "keywords": [
