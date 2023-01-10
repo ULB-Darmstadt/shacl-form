@@ -1,0 +1,15 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix schema: <http://schema.org/> .
+@prefix fidbau: <http://example.org/fidbau#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+
+<test> a dcat:Dataset, fidbau:ArchitectureModelDataset ;
+	dcterms:title "Einsteinturm" ;
+	dcterms:spatial [
+		a dcterms:Location ;
+		geo:asWKT "POINT(8.65,49.87)"^^geo:wktLiteral ;
+		dcterms:description "Building has been realized here" ;
+	] ;
+	schema:material "Holz" .

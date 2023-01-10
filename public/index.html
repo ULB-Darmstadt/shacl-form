@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHACL form demo</title>
+  <style>
+    html,
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 5px;
+    }
+
+    shacl-form {
+      width: 100%;
+    }
+
+    .grid {
+      display: grid;
+      grid-auto-columns: minmax(0, 1fr);
+      grid-auto-flow: column;
+      gap: 40px;
+    }
+
+    #shacl-output.valid {
+      color: green;
+    }
+
+    #shacl-output:not(.valid) {
+      color: red;
+    }
+  </style>
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"> -->
+  <!-- <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"> -->
+</head>
+
+<body>
+  <h3>SHACL form demo</h3>
+  <select id="shacl-shape-input-chooser">
+    <option value="./examples/shapes1.ttl">Shape 1</option>
+    <option value="./examples/shapes2.ttl">Shape 2</option>
+    <option value="./examples/shapes3.ttl">Shape 3</option>
+    <option value="./examples/shapes4.ttl">Shape 4</option>
+    <option value="./examples/shapes5.ttl">Shape 5</option>
+    <option value="./examples/shapes6.ttl">Shape 6</option>
+  </select>
+  <select id="shacl-data-input-chooser">
+    <option value="./examples/data1.ttl">Data 1</option>
+    <option value="./examples/data2.ttl">Data 2</option>
+    <option value="./examples/data3.ttl">Data 3</option>
+    <option value="./examples/data4.ttl">Data 4</option>
+    <option value="./examples/data5.ttl">Data 5</option>
+    <option value="./examples/data6.ttl">Data 6</option>
+  </select>
+  <div class="grid">
+    <textarea id="shacl-shape-input"></textarea>
+    <textarea id="shacl-data-input"></textarea>
+    <shacl-form id="shacl-form" class="bootstrap2"
+      data-language="de"
+      data-value-subject2="test"
+    >
+      <button type="submit" class="btn btn-primary" onclick="save()">Submit</button>
+    </shacl-form>
+  </div>
+  <pre id="shacl-output"></pre>
+  <script src="index.js" type="module"></script>
+  <script type="module">
+    import { BootstrapTheme } from './index.js'
+    const form = document.getElementById("shacl-form")
+    form.config.theme = new BootstrapTheme()
+    const shapes = document.getElementById("shacl-shape-input")
+    const data = document.getElementById("shacl-data-input")
+    const shapesChooser = document.getElementById("shacl-shape-input-chooser")
+    const dataChooser = document.getElementById("shacl-data-input-chooser")
+    const output = document.getElementById("shacl-output")
+    shapes.addEventListener('change', ev => {
+      form.dataset['shapes'] = shapes.value
+      form.dataset['values'] = data.value
+      output.innerText = ''
+    })
+    data.addEventListener('change', ev => {
+      shapes.dispatchEvent(new Event('change'))
+    })
+    shapesChooser.addEventListener('change', ev => {
+      fetch(shapesChooser.value).then(resp => resp.text()).then((text) => {
+        shapes.value = text
+        shapes.dispatchEvent(new Event('change'))
+      })
+    })
+    dataChooser.addEventListener('change', ev => {
+      fetch(dataChooser.value).then(resp => resp.text()).then((text) => {
+        data.value = text
+        data.dispatchEvent(new Event('change'))
+      })
+    })
+    form.addEventListener('changed', function (ev) {
+      output.classList.toggle('valid', ev.detail?.valid)
+      output.innerText = form.toRDFTurtle()
+      /*
+      const report = await window.validateShaclForm(shapes.value, output.innerText)
+      if (report.conforms) {
+        validation.classList.remove('invalid')
+        validation.classList.add('valid')
+      } else {
+        validation.classList.remove('valid')
+        validation.classList.add('invalid')
+      }
+      validation.innerText = 'conforms: ' + report.conforms + '\n'
+      for (const result of report.results) {
+        // See https://www.w3.org/TR/shacl/#results-validation-result for details
+        // about each property
+        validation.innerText += result.message + '\n'
+      }
+      */
+
+
+
+      // validation.innerText = JSON.stringify(report.results, getCircularReplacer())
+    })
+    shapesChooser.dispatchEvent(new Event('change'))
+    // loadMetadata('https://workbench-metadata.0pq.de/fid/sparql', '<https://doi.org/10.82319/3dh4-7935>')
+
+    function save() {
+      if (form.reportValidity()) {
+        console.log('--- data graph', form.toRDF())
+      }
+    }
+
+    function loadMetadata(endpoint, datasetID) {
+      const table = document.querySelector('#metadataTable tbody')
+      return fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/sparql-results+json'
+        },
+        body: 'query=' + encodeURIComponent(`SELECT ?s ?p ?o { ${datasetID} (<>|!<>)* ?s . ?s ?p ?o }`)
+      })
+      .then((response) => response.json())
+      .then((response) => {
+        data.value = JSON.stringify(response)
+      })
+      .catch((error) => {
+        data.value = `Failed loading metadata. Reason: ${error}`
+      });
+    }
+
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    const getCircularReplacer = () => {
+      const seen = new WeakSet();
+      return (key, value) => {
+        if (typeof value === "object" && value !== null) {
+          if (seen.has(value)) {
+            return;
+          }
+          seen.add(value);
+        }
+        return value;
+      }
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,108 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix schema: <http://schema.org/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dash: <http://datashapes.org/dash#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+
+@prefix ex: <http://example.com/> .
+@prefix lexvo: <http://lexvo.org/id/iso639-1/> .
+
+ex:PersonShape
+  a sh:NodeShape ;
+  sh:targetClass schema:Person ;
+  rdfs:label "Person", "Osoba"@pl ;
+  sh:property ex:NameProperty ,
+                 ex:KnowsProperty ,
+                 ex:AgeProperty ,
+                 ex:GenderProperty ,
+                 ex:SpokenLanguagesProperty  ,
+                 ex:DateOfBirthProperty ,
+                 ex:HomePageProperty ;
+.
+
+ex:SimplifiedPersonShape
+  a sh:NodeShape ;
+  sh:targetNode ex:Jane_Doe ;
+  rdfs:label "Person (name-only)", "Osoba (tylko imię)"@pl ;
+  sh:property ex:NameProperty ;
+.
+
+ex:NameProperty
+  sh:path schema:name ;
+  sh:name "Name" ;
+  sh:datatype xsd:string ;
+  dash:singleLine true ;
+  sh:maxCount 1 ;
+  sh:minCount 1 ;
+  sh:order 2 ;
+  sh:description "Enter the name of the person here. You should adhere to the scheme <firstname> <lastname>"
+.
+
+ex:KnowsProperty
+  sh:path schema:knows ;
+  sh:class schema:Person ;
+  sh:group ex:FriendGroup ;
+  sh:description "All the persons that this person knows"
+.
+
+ex:AgeProperty
+  sh:path schema:age ;
+  sh:name "Age", "Wiek"@pl ;
+  sh:datatype xsd:integer ;
+  sh:maxCount 1 ;
+  sh:defaultValue 21 ;
+  sh:order 2 ;
+  sh:minInclusive 18 ;
+.
+
+ex:GenderProperty
+  sh:path foaf:gender ;
+  sh:name "Gender", "Płeć"@pl ;
+  sh:in (
+    "Male" "Female" "Other" "Prefer not to tell"
+  ) ;
+  sh:defaultValue "Male" ;
+  sh:maxCount 1 ;
+  sh:order 3 ;
+  sh:message "Please select a valid gender" ;
+.
+
+ex:DateOfBirthProperty
+  sh:path schema:birthDate ;
+  sh:name "Date of birth", "Data urodzenia"@pl ;
+  sh:maxCount 1 ;
+  sh:order 4 ;
+  sh:datatype xsd:date ;
+.
+
+ex:SpokenLanguagesProperty
+  sh:path vcard:language ;
+  sh:name "Spoken languages", "Języki"@pl ;
+  sh:nodeKind sh:IRI ;
+  sh:in (
+    lexvo:en lexvo:de lexvo:fr lexvo:pl lexvo:es
+  ) ;
+  sh:order 5 ;
+  sh:minCount 1 ;
+  sh:maxCount 2 ;
+.
+
+ex:HomePageProperty
+  sh:path foaf:homepage ;
+  sh:name "Homepage URL", "Strona internetowa"@pl ;
+  sh:nodeKind sh:IRI ;
+  sh:order 6 ;
+.
+
+ex:FriendGroup
+  a sh:PropertyGroup ;
+  rdfs:label "Acquaintances", "Znajomi"@pl
+.
+
+lexvo:en rdfs:label "English", "angielski"@pl .
+lexvo:de rdfs:label "German", "niemiecki"@pl .
+lexvo:fr rdfs:label "French", "francuski"@pl .
+lexvo:pl rdfs:label "Polish", "polski"@pl .
+lexvo:es rdfs:label "Spanish", "hiszpański"@pl .
