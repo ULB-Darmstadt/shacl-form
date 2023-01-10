@@ -4,7 +4,7 @@
 
 ## Demo
 
-[See demo](https://gitlab.ulb.tu-darmstadt.de/tittel/shacl-form/-/raw/main/public/index.html)
+[See demo](https://ulb-darmstadt.github.io/shacl-form/)
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
