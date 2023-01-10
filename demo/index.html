@@ -95,7 +95,7 @@
         data.dispatchEvent(new Event('change'))
       })
     })
-    form.addEventListener('changed', function (ev) {
+    form.addEventListener('change', function (ev) {
       output.classList.toggle('valid', ev.detail?.valid)
       output.innerText = form.toRDFTurtle()
       /*

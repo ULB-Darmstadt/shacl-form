@@ -34,9 +34,17 @@ export class Config {
 
     async loadGraphs() {
         Config.abortController.abort()
-        this._shapesGraph = new Store(new Parser().parse(this.shapes ? this.shapes : this.shapesUrl ? await fetch(this.shapesUrl, { signal: Config.abortController.signal }).then(resp => resp.text()) : ''))
-        this._valuesGraph = new Store(new Parser().parse(this.values ? this.values : this.valuesUrl ? await fetch(this.valuesUrl, { signal: Config.abortController.signal }).then(resp => resp.text()) : ''))
+        this.shapesGraph = new Store(new Parser().parse(this.shapes ? this.shapes : this.shapesUrl ? await fetch(this.shapesUrl, { signal: Config.abortController.signal }).then(resp => resp.text()) : ''))
+        this.valuesGraph = new Store(new Parser().parse(this.values ? this.values : this.valuesUrl ? await fetch(this.valuesUrl, { signal: Config.abortController.signal }).then(resp => resp.text()) : ''))
 
+    }
+
+    get shapesGraph() {
+        return this._shapesGraph
+    }
+
+    set shapesGraph(graph: Store) {
+        this._shapesGraph = graph
         this._lists = this._shapesGraph.extractLists()
         this._groups = []
         this._shapesGraph.getQuads(null, `${PREFIX_RDF}type`, `${PREFIX_SHACL}PropertyGroup`, null).forEach(groupQuad => {
@@ -44,12 +52,12 @@ export class Config {
         })
     }
 
-    get shapesGraph() {
-        return this._shapesGraph
-    }
-
     get valuesGraph() {
         return this._valuesGraph
+    }
+
+    set valuesGraph(graph: Store) {
+        this._valuesGraph = graph
     }
 
     get lists() {

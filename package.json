@@ -13,7 +13,7 @@
         "url": "https://github.com/ULB-Darmstadt/shacl-form"
     },
     "author": "ULB Darmstadt",
-    "license": "Apache-2.0",
+    "license": "MIT",
     "homepage": "https://ulb-darmstadt.github.io/shacl-form/",
     "keywords": [
         "SHACL",

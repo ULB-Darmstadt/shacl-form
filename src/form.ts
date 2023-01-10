@@ -51,7 +51,7 @@ export class ShaclForm extends HTMLElement {
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
             this.validate().then(valid => {
-                this.dispatchEvent(new CustomEvent('changed', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': valid } }))
+                this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': valid } }))
             })
         })
     }
