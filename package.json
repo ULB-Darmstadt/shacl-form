@@ -10,17 +10,18 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://gitlab.ulb.tu-darmstadt.de/tittel/shacl-form"
+        "url": "https://github.com/ULB-Darmstadt/shacl-form"
     },
     "author": "ULB Darmstadt",
     "license": "Apache-2.0",
-    "homepage": "https://gitlab.ulb.tu-darmstadt.de/tittel/shacl-form",
+    "homepage": "https://ulb-darmstadt.github.io/shacl-form/",
     "keywords": [
         "SHACL",
         "form",
         "generator",
         "RDF",
-        "metadata"
+        "metadata",
+        "editor"
     ],
     "scripts": {
         "build": "npm run clean && webpack --mode production",
