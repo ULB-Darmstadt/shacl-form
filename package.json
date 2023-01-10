@@ -2,6 +2,7 @@
     "name": "@tittel/shacl-form",
     "version": "1.0.8",
     "description": "SHACL form generator",
+    "private": false,
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
