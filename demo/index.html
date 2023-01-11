@@ -66,10 +66,8 @@
   </div>
   <pre id="shacl-output"></pre>
   <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/index.js" type="module"></script>
-  <script type="module">
-    import { BootstrapTheme } from 'https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/index.js'
+  <script>
     const form = document.getElementById("shacl-form")
-    form.config.theme = new BootstrapTheme()
     const shapes = document.getElementById("shacl-shape-input")
     const data = document.getElementById("shacl-data-input")
     const shapesChooser = document.getElementById("shacl-shape-input-chooser")
