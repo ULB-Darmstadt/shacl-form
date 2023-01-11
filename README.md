@@ -2,6 +2,7 @@
 ```console
 npm i @ulb-darmstadt/shacl-form 
 ```
+This library provides an HTML5 custom element that renders SHACL shapes as a web form.
 
 ## Demo
 [Visit demo page](https://ulb-darmstadt.github.io/shacl-form/)
@@ -11,6 +12,7 @@ npm i @ulb-darmstadt/shacl-form
 <html>
   <head>
     ...
+    <!-- load webcomponent -->
     <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/index.js" type="module"></script>
   </head>
   <body>
