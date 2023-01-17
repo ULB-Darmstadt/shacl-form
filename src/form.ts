@@ -5,35 +5,8 @@ import { DEFAULT_PREFIXES, PREFIX_RDF, PREFIX_SHACL } from './prefixes'
 import { focusFirstInputElement } from './util'
 import SHACLValidator from 'rdf-validate-shacl'
 import factory from 'rdf-ext'
+import './styles.css'
 import { DefaultTheme, Theme } from './theme'
-
-const styles = `
-shacl-form form { padding-left: 1rem; }
-shacl-node shacl-node h1 { font-size: 1rem; color: #555; }
-shacl-node, shacl-group { display: flex; flex-direction: column; width: 100%; }
-shacl-node .control-button { cursor: pointer; }
-shacl-node .control-button:not(:hover) { border-color: transparent; background: 0; }
-shacl-node .remove-button { margin-left: 4px; }
-shacl-node .add-button { font-size: 0.7rem; color: #555;  margin-right: 24px; text-decoration:none; }
-shacl-node .add-button:before { content: '+'; margin-right: 0.2em; }
-shacl-node .add-button:hover { color: inherit; }
-shacl-node .prop-instance { display: flex; align-items: flex-start; margin-top: 8px; width: 100%; }
-shacl-node h1 { font-size: 1.1rem; border-bottom: 1px solid; margin-top: 0; }
-shacl-property { display: flex; flex-direction: column; align-items: end; }
-shacl-property .prop-instance:not(:first-child) > .prop > label { visibility: hidden; }
-shacl-group { margin-bottom: 1em; padding-bottom: 1em; }
-shacl-group h2 { font-size: 1rem; border-bottom: 1px solid; margin-top: 0; color: #555; }
-.prop { display: flex; flex-grow: 1; align-items: flex-start; }
-.prop label { display: inline-block; word-break: break-word; width: 7em; line-height: 1em; padding-top: 0.15em; flex-shrink: 0; position: relative; }
-.prop label[title] { cursor: help; text-decoration: underline dashed #AAA; }
-.prop label.required::before { color: red; content: '\u2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
-.prop .editor { flex-grow: 1; }
-.prop textarea.editor { resize: vertical; }
-.validation { align-self: flex-start; color: red; }
-
-shacl-form.bootstrap .prop label { padding-top: 0.7em; }
-shacl-form.bootstrap .prop label.required::before { top: 0.65rem; }
-`
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.keysAsDataAttributes }
@@ -57,9 +30,6 @@ export class ShaclForm extends HTMLElement {
     }
 
     connectedCallback() {
-        const stylesheet = document.createElement('style')
-        stylesheet.append(styles)
-        this.prepend(stylesheet)
         this.prepend(this.form)
     }
 

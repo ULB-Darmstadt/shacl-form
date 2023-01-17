@@ -98,6 +98,7 @@ ex:HomePageProperty
 
 ex:FriendGroup
   a sh:PropertyGroup ;
+  sh:order 17 ;
   rdfs:label "Acquaintances", "Znajomi"@pl
 .
 

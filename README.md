@@ -2,7 +2,7 @@
 ```console
 npm i @ulb-darmstadt/shacl-form 
 ```
-This library provides an HTML5 custom element that renders SHACL shapes as a web form.
+This library provides an HTML5 web component that renders [SHACL shapes](https://www.w3.org/TR/shacl/) as a web form, outputting the entered data as RDF triples validated against these shapes.
 
 ## Demo
 [Visit demo page](https://ulb-darmstadt.github.io/shacl-form/)
