@@ -4,9 +4,9 @@ import { ShaclProperty } from './property'
 import { Config } from './config'
 import { findObjectValueByPredicate } from './util'
 import { ShaclGroup } from './group'
+import { v4 as uuidv4 } from 'uuid'
 
 export class ShaclNode extends HTMLElement {
-    static blankNodeIdCtr = 0
     shaclSubject: NamedNode
     exportValueSubject: NamedNode | BlankNode
     targetClass: NamedNode | undefined
@@ -21,12 +21,12 @@ export class ShaclNode extends HTMLElement {
         const targetClass = findObjectValueByPredicate(quads, 'targetClass')
         if (targetClass) {
             this.targetClass = new NamedNode(targetClass)
-        } 
-        if (valueSubject instanceof NamedNode) {
+        }
+        if (valueSubject) {
             this.exportValueSubject = valueSubject
         }
         else {
-            this.exportValueSubject = new BlankNode(`sf${ShaclNode.blankNodeIdCtr++}`)
+            this.exportValueSubject = new BlankNode(uuidv4())
         }
         this.dataset.nodeId = this.exportValueSubject.id
 
