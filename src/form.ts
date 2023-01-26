@@ -88,7 +88,7 @@ export class ShaclForm extends HTMLElement {
         return this.form.reportValidity()
     }
 
-    private async validate(): Promise<boolean> {
+    public async validate(): Promise<boolean> {
         for (const elem of this.querySelectorAll(':scope .validation')) {
             elem.remove()
         }
@@ -98,14 +98,9 @@ export class ShaclForm extends HTMLElement {
         // const report = await validator.validate(data)
         const report = await validator.validate(factory.dataset(this.toRDF()))
     
+        console.log('--- validation results', report.results)
         for (const result of report.results) {
             // See https://www.w3.org/TR/shacl/#results-validation-result for details about each property
-            console.log('--- mesage', result.message)
-            console.log('--- path', result.path)
-            console.log('--- focusNode', result.focusNode)
-            console.log('--- severity', result.severity)
-            console.log('--- sourceConstraintComponent', result.sourceConstraintComponent)
-            console.log('--- sourceShape', result.sourceShape)
 
             const invalidElement = this.querySelector(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
             const messageElement = document.createElement('pre')
