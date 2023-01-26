@@ -35,8 +35,9 @@ export class Config {
     async loadGraphs() {
         Config.abortController.abort()
         this.shapesGraph = new Store(new Parser().parse(this.shapes ? this.shapes : this.shapesUrl ? await fetch(this.shapesUrl, { signal: Config.abortController.signal }).then(resp => resp.text()) : ''))
-        this.valuesGraph = new Store(new Parser().parse(this.values ? this.values : this.valuesUrl ? await fetch(this.valuesUrl, { signal: Config.abortController.signal }).then(resp => resp.text()) : ''))
-
+        this.valuesGraph = new Store(new Parser({
+            blankNodePrefix: ''
+        }).parse(this.values ? this.values : this.valuesUrl ? await fetch(this.valuesUrl, { signal: Config.abortController.signal }).then(resp => resp.text()) : ''))
     }
 
     get shapesGraph() {
@@ -70,7 +71,6 @@ export class Config {
 
     set theme(theme: Theme) {
         this._theme = theme
-        console.log('--- theme', this._theme)
     }
 
     static from(elem: HTMLElement): Config {
