@@ -87,6 +87,16 @@ export class InputDate extends InputBase {
         return input
     }
 
+    setValue(value: any) {
+        const date = new Date(value)
+        if ((this.editor as HTMLInputElement).type === 'datetime-local') {
+            value = date.toISOString().slice(0, 19)
+        } else {
+            value = date.toISOString().slice(0, 10)
+        }
+        this.editor['value'] = value
+    }
+
     toRDFObject(): Literal | undefined {
         const value = (this.editor as HTMLInputElement).value
         if (value) {
