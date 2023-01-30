@@ -2,10 +2,10 @@
   "compilerOptions": {
     "outDir": "./dist/",
     "noImplicitAny": false,
-    "module": "es6",
+    "module": "esnext",
     "target": "es6",
     "moduleResolution": "node",
-    "declaration": true,
-    "strict": true
-  }
+    "strict": true,
+    "declaration": true
+  },
 }

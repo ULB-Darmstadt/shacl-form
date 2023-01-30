@@ -1,7 +1,7 @@
 import { BlankNode, NamedNode, Store } from 'n3'
 import { PREFIX_SHACL, PREFIX_RDF, PREFIX_RDFS } from './prefixes'
 import { ShaclProperty } from './property'
-import { Config } from './config'
+import { ShaclForm } from './form'
 import { findObjectValueByPredicate } from './util'
 import { ShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
@@ -10,14 +10,16 @@ export class ShaclNode extends HTMLElement {
     shaclSubject: NamedNode
     exportValueSubject: NamedNode | BlankNode
     targetClass: NamedNode | undefined
-    parent: ShaclNode | ShaclProperty | null
+    parent: ShaclNode | ShaclProperty | undefined
+    form: ShaclForm
 
-    constructor(config: Config, shaclSubject: NamedNode, parent: ShaclNode | ShaclProperty | null, valueSubject?: NamedNode | BlankNode) {
+    constructor(form: ShaclForm, shaclSubject: NamedNode, parent: ShaclNode | ShaclProperty | undefined, valueSubject: NamedNode | BlankNode | undefined) {
         super()
 
+        this.form = form
         this.parent = parent
         this.shaclSubject = shaclSubject
-        const quads = config.shapesGraph.getQuads(shaclSubject, null, null, null)
+        const quads = form.config.shapesGraph.getQuads(shaclSubject, null, null, null)
         const targetClass = findObjectValueByPredicate(quads, 'targetClass')
         if (targetClass) {
             this.targetClass = new NamedNode(targetClass)
@@ -30,7 +32,7 @@ export class ShaclNode extends HTMLElement {
         }
         this.dataset.nodeId = this.exportValueSubject.id
 
-        const shaclProperties = config.shapesGraph.getQuads(shaclSubject, `${PREFIX_SHACL}property`, null, null)
+        const shaclProperties = form.config.shapesGraph.getQuads(shaclSubject, `${PREFIX_SHACL}property`, null, null)
         if (shaclProperties.length == 0) {
             console.warn('node shape', shaclSubject, 'has no shacl properties')
         }
@@ -38,7 +40,7 @@ export class ShaclNode extends HTMLElement {
             if (parent instanceof ShaclProperty) {
                 let label = parent.name
                 if (!label) {
-                    label = findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, config.language)
+                    label = findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, form.config.language)
                     if (!label) {
                         label = targetClass ? targetClass : shaclSubject.value
                     }
@@ -52,35 +54,35 @@ export class ShaclNode extends HTMLElement {
             // check shape inheritance via sh:and
             const listSubject = findObjectValueByPredicate(quads, 'and')
             if (listSubject) {
-                const list = config.lists[listSubject]
+                const list = form.config.lists[listSubject]
                 if (list) {
                     inheritedShapes.push(...list as NamedNode[])
                 }
                 else {
-                    console.error('list not found:', listSubject, 'existing lists:', config.lists)
+                    console.error('list not found:', listSubject, 'existing lists:', form.config.lists)
                 }
             }
             // check shape inheritance via sh:node
-            const nodes = config.shapesGraph.getQuads(shaclSubject, `${PREFIX_SHACL}node`, null, null)
+            const nodes = form.config.shapesGraph.getQuads(shaclSubject, `${PREFIX_SHACL}node`, null, null)
             for (const node of nodes) {
                 inheritedShapes.push(node.object as NamedNode)
             }
 
             for (const shape of inheritedShapes) {
-                this.appendChild(new ShaclNode(config, shape as NamedNode, this, valueSubject))
+                this.appendChild(new ShaclNode(form, shape as NamedNode, this, valueSubject))
             }
 
             for (const shaclProperty of shaclProperties) {
                 if (shaclProperty.object instanceof NamedNode || shaclProperty.object instanceof BlankNode) {
                     let parent: HTMLElement = this
                     // check if property belongs to a group
-                    const groupRef = config.shapesGraph.getQuads(shaclProperty.object, `${PREFIX_SHACL}group`, null, null)
+                    const groupRef = form.config.shapesGraph.getQuads(shaclProperty.object, `${PREFIX_SHACL}group`, null, null)
                     if (groupRef.length > 0) {
                         const groupSubject = groupRef[0].object.value
-                        if (config.groups.indexOf(groupSubject) > -1) {
+                        if (form.config.groups.indexOf(groupSubject) > -1) {
                             let group = this.querySelector(`:scope > shacl-group[data-subject='${groupSubject}']`) as ShaclGroup
                             if (!group) {
-                                group = new ShaclGroup(groupSubject, config)
+                                group = new ShaclGroup(groupSubject, form.config)
                                 this.appendChild(group)
                             }
                             parent = group
@@ -89,7 +91,7 @@ export class ShaclNode extends HTMLElement {
                         }
                     }
 
-                    parent.appendChild(new ShaclProperty(config, shaclProperty.object, valueSubject))
+                    parent.appendChild(new ShaclProperty(form, shaclProperty.object, valueSubject))
                 }
                 else {
                     console.warn('ignoring unexpected property type', shaclProperty.object)
@@ -115,5 +117,3 @@ export class ShaclNode extends HTMLElement {
         return subject
     }
 }
-
-window.customElements.define('shacl-node', ShaclNode)

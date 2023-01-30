@@ -111,6 +111,7 @@ fidbau:Dataset
 		sh:name "Issued" ;
 		sh:description "Date when this dataset has been issued" ;
 		sh:path dcterms:issued ;
+		sh:minCount 1 ;
 		sh:maxCount 1 ;
 		sh:datatype xsd:date ;
 	], [

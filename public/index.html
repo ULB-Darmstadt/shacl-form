@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SHACL form demo</title>
+  <!-- <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css"> -->
   <style>
     html,
     body {
@@ -55,21 +56,26 @@
     <option value="./data6.ttl">Data 6</option>
   </select>
   <div class="grid">
+    <!-- <iframe src="./example1.html"></iframe> -->
     <textarea id="shacl-shape-input"></textarea>
     <textarea id="shacl-data-input"></textarea>
     <shacl-form id="shacl-form" class="bootstrap2"
       data-language="de"
-      data-value-subject2="test"
+      data-shape-subject2="http://example.org/fidbau#ArchitectureModelDataset"
+      data-value-subject="http://example.org/fidbau#4f2a8de3-9fc8-40a9-9237-d5964520ec54"
     >
       <button type="submit" class="btn btn-primary" onclick="save()">Submit</button>
     </shacl-form>
   </div>
   <pre id="shacl-output"></pre>
-  <script src="./index.js" type="module"></script>
+  
+  <script src="./with-plugins.js" type="module"></script>
   <script type="module">
-    import { BootstrapTheme } from './index.js'
+    import { FixedListPlugin, MapBoxPlugin } from './with-plugins.js'
     const form = document.getElementById("shacl-form")
-    form.config.theme = new BootstrapTheme()
+    form.registerPlugin(new FixedListPlugin('http://purl.org/dc/terms/license', [{label:'CC-BY',value:'http://www.opendefinition.org/licenses/cc-by'}, {value:'http://license.org/2'}, {value:'http://license.org/3'}]))
+    form.registerPlugin(new MapBoxPlugin('http://www.opengis.net/ont/geosparql#asWKT', 'my-api-key'))
+    
     const shapes = document.getElementById("shacl-shape-input")
     const data = document.getElementById("shacl-data-input")
     const shapesChooser = document.getElementById("shacl-shape-input-chooser")

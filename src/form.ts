@@ -1,12 +1,16 @@
 import { ShaclNode } from './node'
+import { ShaclProperty } from './property'
+import { ShaclGroup } from './group'
+import { InputDate, InputList, InputNumber, InputText } from './inputs'
 import { Config } from './config'
-import { Writer, Quad, Store, DataFactory, NamedNode, Parser } from 'n3'
+import { Plugin, Plugins } from './plugin'
+import { Writer, Quad, Store, DataFactory, NamedNode } from 'n3'
 import { DEFAULT_PREFIXES, PREFIX_RDF, PREFIX_SHACL } from './prefixes'
 import { focusFirstInputElement } from './util'
 import SHACLValidator from 'rdf-validate-shacl'
 import factory from 'rdf-ext'
 import './styles.css'
-import { DefaultTheme, Theme } from './theme'
+import { DefaultTheme, Theme } from './theme.js'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.keysAsDataAttributes }
@@ -14,6 +18,7 @@ export class ShaclForm extends HTMLElement {
     config: Config = new Config()
     shape: ShaclNode | undefined
     form: HTMLFormElement
+    plugins: Plugins = {}
     initTimeout: ReturnType<typeof setTimeout> | undefined
 
     constructor() {
@@ -36,31 +41,33 @@ export class ShaclForm extends HTMLElement {
     attributeChangedCallback() {
         const newConfig = Config.from(this)
         if (!newConfig.equals(this.config)) {
-            clearTimeout(this.initTimeout)
-            this.initTimeout = setTimeout(() => {
-                this.config = newConfig
-                this.config.loadGraphs().then(_ => this.initialize()).catch(e => {
-                    console.log(e)
-                    if (this.shape && this.form.contains(this.shape)) {
-                        this.form.removeChild(this.shape)
-                    }
-                })
-            }, 20)
+            this.config = newConfig
+            this.initialize()
         }
     }
 
     private initialize() {
-        if (this.shape && this.form.contains(this.shape)) {
-            this.form.removeChild(this.shape)
-        }
+        clearTimeout(this.initTimeout)
+        this.initTimeout = setTimeout(() => {
+            this.config.loadGraphs().then(_ => {
+                if (this.shape && this.form.contains(this.shape)) {
+                    this.form.removeChild(this.shape)
+                }
 
-        // find root shacl shape
-        const rootShapeShaclSubject = this.findRootShaclShapeSubject()
-        if (rootShapeShaclSubject) {
-            this.shape = new ShaclNode(this.config, rootShapeShaclSubject, null, this.config.valueSubject ? new NamedNode(this.config.valueSubject) : undefined)
-            this.form.prepend(this.shape)
-            focusFirstInputElement(this.shape)
-        }
+                // find root shacl shape
+                const rootShapeShaclSubject = this.findRootShaclShapeSubject()
+                if (rootShapeShaclSubject) {
+                    this.shape = new ShaclNode(this, rootShapeShaclSubject, undefined, this.config.valueSubject ? new NamedNode(this.config.valueSubject) : undefined)
+                    this.form.prepend(this.shape)
+                    focusFirstInputElement(this.shape)
+                }
+            }).catch(e => {
+                console.log(e)
+                if (this.shape && this.form.contains(this.shape)) {
+                    this.form.removeChild(this.shape)
+                }
+            })
+        }, 20)
     }
 
     public toRDF(): Quad[] {
@@ -84,6 +91,11 @@ export class ShaclForm extends HTMLElement {
         return serialized
     }
 
+    public registerPlugin(plugin: Plugin) {
+        this.plugins[plugin.predicate] = plugin
+        this.initialize()
+    }
+
     public reportValidity(): boolean {
         return this.form.reportValidity()
     }
@@ -97,7 +109,7 @@ export class ShaclForm extends HTMLElement {
         const validator = new SHACLValidator(shapes, { factory })
         // const report = await validator.validate(data)
         const report = await validator.validate(factory.dataset(this.toRDF()))
-    
+
         console.log('--- validation results', report.results)
         for (const result of report.results) {
             // See https://www.w3.org/TR/shacl/#results-validation-result for details about each property
@@ -116,7 +128,7 @@ export class ShaclForm extends HTMLElement {
         }
         return report.conforms
     }
-    
+
 
     private findRootShaclShapeSubject(): NamedNode | undefined {
         let rootShapeShaclSubject: NamedNode | null = null
@@ -160,7 +172,7 @@ export class ShaclForm extends HTMLElement {
                     rootShapeShaclSubject = rootShapes[0].subject as NamedNode
                 }
             }
-            else {    
+            else {
                 // choose first of all defined root shapes
                 const rootShapes = this.config.shapesGraph.getQuads(null, `${PREFIX_RDF}type`, `${PREFIX_SHACL}NodeShape`, null)
                 if (rootShapes.length == 0) {
@@ -179,3 +191,6 @@ export class ShaclForm extends HTMLElement {
 }
 
 window.customElements.define('shacl-form', ShaclForm)
+window.customElements.define('shacl-node', ShaclNode)
+window.customElements.define('shacl-property', ShaclProperty)
+window.customElements.define('shacl-group', ShaclGroup)

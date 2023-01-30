@@ -5,11 +5,18 @@
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
 @prefix geo: <http://www.opengis.net/ont/geosparql#> .
 
-<test> a dcat:Dataset, fidbau:ArchitectureModelDataset ;
+<http://example.org/fidbau#4f2a8de3-9fc8-40a9-9237-d5964520ec54>
+  a dcat:Dataset, fidbau:ArchitectureModelDataset ;
 	dcterms:title "Einsteinturm" ;
 	dcterms:spatial [
 		a dcterms:Location ;
 		geo:asWKT "POINT(8.65,49.87)"^^geo:wktLiteral ;
 		dcterms:description "Building has been realized here" ;
 	] ;
-	schema:material "Holz" .
+	schema:material "Holz" ;
+  <http://purl.org/dc/terms/creator> _:n1150716783622461953 .
+_:n1150716783622461953
+  <http://xmlns.com/foaf/0.1/name> "Stephan Tittel" ;
+  <http://xmlns.com/foaf/0.1/mbox> "stephan.tittel@tu-darmstadt.de" ;
+  <http://purl.org/dc/terms/identifier> "https://orcid.org/0000-0002-0048-6835" ;
+  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
