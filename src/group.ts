@@ -23,3 +23,5 @@ export class ShaclGroup extends HTMLElement {
         this.appendChild(header)
     }
 }
+
+window.customElements.define('shacl-group', ShaclGroup)

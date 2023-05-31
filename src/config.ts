@@ -13,6 +13,7 @@ export class Config {
     valuesUrl: string | null = null
     valueSubject: string | null = null
     language: string | null = null
+    addEmptyElementToLists: string | null = null
 
     private _theme: Theme = new DefaultTheme()
     private _shapesGraph: Store = new Store()

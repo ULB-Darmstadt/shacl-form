@@ -159,3 +159,5 @@ export class ShaclProperty extends HTMLElement {
         }
     }
 }
+
+window.customElements.define('shacl-property', ShaclProperty)

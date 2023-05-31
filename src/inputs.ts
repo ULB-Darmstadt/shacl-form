@@ -193,7 +193,7 @@ export class InputList extends InputBase {
 
     setListEntries(list: InputListEntry[]) {
         const select = this.editor as HTMLSelectElement
-        if (!this.required) {
+        if (!this.required || this.config.addEmptyElementToLists !== undefined) {
             const option = document.createElement('option')
             option.value = ''
             //option.hidden = true

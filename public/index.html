@@ -62,16 +62,17 @@
     <shacl-form id="shacl-form" class="bootstrap2"
       data-language="de"
       data-shape-subject2="http://example.org/fidbau#ArchitectureModelDataset"
-      data-value-subject="http://example.org/fidbau#4f2a8de3-9fc8-40a9-9237-d5964520ec54"
+      data-value-subject3="http://example.org/fidbau#4f2a8de3-9fc8-40a9-9237-d5964520ec54"
     >
       <button type="submit" class="btn btn-primary" onclick="save()">Submit</button>
     </shacl-form>
   </div>
   <pre id="shacl-output"></pre>
   
-  <script src="./with-plugins.js" type="module"></script>
+  <!-- <script src="./index-with-plugins.js" type="module"></script> -->
   <script type="module">
-    import { FixedListPlugin, MapBoxPlugin } from './with-plugins.js'
+    import { FixedListPlugin, MapBoxPlugin } from './index-with-plugins.js'
+
     const form = document.getElementById("shacl-form")
     form.registerPlugin(new FixedListPlugin('http://purl.org/dc/terms/license', [{label:'CC-BY',value:'http://www.opendefinition.org/licenses/cc-by'}, {value:'http://license.org/2'}, {value:'http://license.org/3'}]))
     form.registerPlugin(new MapBoxPlugin('http://www.opengis.net/ont/geosparql#asWKT', 'my-api-key'))

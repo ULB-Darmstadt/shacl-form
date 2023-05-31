@@ -117,3 +117,5 @@ export class ShaclNode extends HTMLElement {
         return subject
     }
 }
+
+window.customElements.define('shacl-node', ShaclNode)

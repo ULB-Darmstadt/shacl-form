@@ -1,7 +1,4 @@
 import { ShaclNode } from './node'
-import { ShaclProperty } from './property'
-import { ShaclGroup } from './group'
-import { InputDate, InputList, InputNumber, InputText } from './inputs'
 import { Config } from './config'
 import { Plugin, Plugins } from './plugin'
 import { Writer, Quad, Store, DataFactory, NamedNode } from 'n3'
@@ -10,16 +7,15 @@ import { focusFirstInputElement } from './util'
 import SHACLValidator from 'rdf-validate-shacl'
 import factory from 'rdf-ext'
 import './styles.css'
-import { DefaultTheme, Theme } from './theme.js'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.keysAsDataAttributes }
 
     config: Config = new Config()
-    shape: ShaclNode | undefined
+    shape: ShaclNode | null = null
     form: HTMLFormElement
     plugins: Plugins = {}
-    initTimeout: ReturnType<typeof setTimeout> | undefined
+    initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 
     constructor() {
         super()
@@ -47,11 +43,11 @@ export class ShaclForm extends HTMLElement {
     }
 
     private initialize() {
-        clearTimeout(this.initTimeout)
-        this.initTimeout = setTimeout(() => {
+        clearTimeout(this.initDebounceTimeout)
+        setTimeout(() => {
             this.config.loadGraphs().then(_ => {
-                if (this.shape && this.form.contains(this.shape)) {
-                    this.form.removeChild(this.shape)
+                if (this.form.contains(this.shape)) {
+                    this.form.removeChild(this.shape as ShaclNode)
                 }
 
                 // find root shacl shape
@@ -63,8 +59,8 @@ export class ShaclForm extends HTMLElement {
                 }
             }).catch(e => {
                 console.log(e)
-                if (this.shape && this.form.contains(this.shape)) {
-                    this.form.removeChild(this.shape)
+                if (this.form.contains(this.shape)) {
+                    this.form.removeChild(this.shape as ShaclNode)
                 }
             })
         }, 20)
@@ -72,9 +68,7 @@ export class ShaclForm extends HTMLElement {
 
     public toRDF(): Quad[] {
         const graph = new Store()
-        if (this.shape) {
-            this.shape.toRDF(graph)
-        }
+        this.shape?.toRDF(graph)
         return graph.getQuads(null, null, null, null)
     }
 
@@ -100,31 +94,30 @@ export class ShaclForm extends HTMLElement {
         return this.form.reportValidity()
     }
 
-    public async validate(): Promise<boolean> {
+    public async validate(showHints = false): Promise<boolean> {
         for (const elem of this.querySelectorAll(':scope .validation')) {
             elem.remove()
         }
 
         const shapes = factory.dataset(this.config.shapesGraph)
         const validator = new SHACLValidator(shapes, { factory })
-        // const report = await validator.validate(data)
         const report = await validator.validate(factory.dataset(this.toRDF()))
 
-        console.log('--- validation results', report.results)
-        for (const result of report.results) {
-            // See https://www.w3.org/TR/shacl/#results-validation-result for details about each property
-
-            const invalidElement = this.querySelector(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
-            const messageElement = document.createElement('pre')
-            messageElement.classList.add('validation')
-            if (result.message.length > 0) {
-                for (const message of result.message) {
-                    messageElement.innerText += message + '\n'
+        if (showHints) {
+            for (const result of report.results) {
+                // See https://www.w3.org/TR/shacl/#results-validation-result for details about each property
+                const invalidElement = this.querySelector(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
+                const messageElement = document.createElement('pre')
+                messageElement.classList.add('validation')
+                if (result.message.length > 0) {
+                    for (const message of result.message) {
+                        messageElement.innerText += message + '\n'
+                    }
+                } else {
+                    messageElement.innerText += result.sourceConstraintComponent.value
                 }
-            } else {
-                messageElement.innerText += result.sourceConstraintComponent.value
+                invalidElement?.appendChild(messageElement)
             }
-            invalidElement?.appendChild(messageElement)
         }
         return report.conforms
     }
@@ -191,6 +184,3 @@ export class ShaclForm extends HTMLElement {
 }
 
 window.customElements.define('shacl-form', ShaclForm)
-window.customElements.define('shacl-node', ShaclNode)
-window.customElements.define('shacl-property', ShaclProperty)
-window.customElements.define('shacl-group', ShaclGroup)
