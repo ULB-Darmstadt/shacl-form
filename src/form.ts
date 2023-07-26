@@ -44,7 +44,7 @@ export class ShaclForm extends HTMLElement {
 
     private initialize() {
         clearTimeout(this.initDebounceTimeout)
-        setTimeout(() => {
+        this.initDebounceTimeout = setTimeout(() => {
             this.config.loadGraphs().then(_ => {
                 if (this.form.contains(this.shape)) {
                     this.form.removeChild(this.shape as ShaclNode)
@@ -63,7 +63,7 @@ export class ShaclForm extends HTMLElement {
                     this.form.removeChild(this.shape as ShaclNode)
                 }
             })
-        }, 20)
+        }, 50)
     }
 
     public toRDF(): Quad[] {

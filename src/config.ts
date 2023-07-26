@@ -1,4 +1,4 @@
-import { Store, Parser } from 'n3'
+import { Store, Parser, StreamParser } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, PREFIX_RDF } from './prefixes'
 import { DefaultTheme, Theme } from './theme'
@@ -35,10 +35,14 @@ export class Config {
 
     async loadGraphs() {
         Config.abortController.abort()
+        Config.abortController = new AbortController()
         this.shapesGraph = new Store(new Parser().parse(this.shapes ? this.shapes : this.shapesUrl ? await fetch(this.shapesUrl, { signal: Config.abortController.signal }).then(resp => resp.text()) : ''))
         this.valuesGraph = new Store(new Parser({
             blankNodePrefix: ''
         }).parse(this.values ? this.values : this.valuesUrl ? await fetch(this.valuesUrl, { signal: Config.abortController.signal }).then(resp => resp.text()) : ''))
+
+        // this.shapesGraph.addQuads(new Parser().parse(await fetch('https://nfdi4ing.pages.rwth-aachen.de/metadata4ing/metadata4ing/ontology.ttl', { signal: Config.abortController.signal }).then(resp => resp.text())))
+        // this.shapesGraph.addQuads(new Parser().parse(await fetch('m4i.ttl').then(resp => resp.text())))
     }
 
     get shapesGraph() {
