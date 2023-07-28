@@ -1,39 +1,49 @@
+@prefix dbo: <http://dbpedia.org/ontology/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix m4i: <http://w3id.org/nfdi4ing/metadata4ing#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
-@prefix sosa: <http://www.w3.org/ns/sosa/> .
-@prefix ssn: <http://www.w3.org/ns/ssn/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix aps: <https://w3id.org/nfdi4ing/profiles/> .
 
-<http://www.example.org/aims#SystemShape> dcterms:created "2022-04-07"^^xsd:date ;
-	dcterms:creator "Nils Preuß" ;
-	dcterms:description "A System is a unit of abstraction for pieces of infrastructure that implement Procedures. A System may have components, its subsystems, which are other Systems." ;
-	dcterms:rights "https://spdx.org/licenses/CC0-1.0.html" ;
-	dcterms:subject <https://github.com/tibonto/dfgfo/4> ;
-	dcterms:title "system"@en ;
+aps:c4eb5a0e-f314-44a6-9f9a-c6b6c9208297 dcterms:created "2022-04-07"^^xsd:date ;
+	dcterms:creator <https://orcid.org/0000-0002-9413-1874> ;
+	dcterms:description "Base Station (also called \"anchor\") of a LSM device."@en, "Basisstation (auch \"Anker\" genannt) eines LSM-Messsystems."@de ;
+	dcterms:license <https://spdx.org/licenses/CC0-1.0.html> ;
+	dcterms:subject <https://github.com/tibonto/dfgfo/407-02>, <https://github.com/tibonto/dfgfo/41> ;
+	dcterms:title "base station"@en, "Basisstation"@de ;
 	a sh:NodeShape ;
-	owl:imports <http://www.example.org/aims#HardwareShape>, <http://www.example.org/aims#ToolShape> ;
-	sh:node <http://www.example.org/aims#HardwareShape>, <http://www.example.org/aims#ToolShape> ;
+	owl:imports aps:0e43324b-78c2-4bc3-b7db-661b2b0ff1cb, aps:ae3cd8e6-645d-4652-a7f4-79b74c7aee8f, aps:ef8d75dd-4a14-4edd-9e4b-9b738fdb4d34 ;
 	sh:property [
-		sh:node <http://www.example.org/aims#SystemShape> ;
-		sh:name "Relation between a System and its component parts." ;
-		sh:path ssn:hasSubSystem ;
+		sh:qualifiedMinCount 1 ;
+		sh:qualifiedMaxCount 1 ;
+		sh:description "Three dimensional position of the base station in Cartesian coordinates in meters."@en ;
+		sh:name "position"@en ;
+		sh:qualifiedValueShape aps:0e43324b-78c2-4bc3-b7db-661b2b0ff1cb ;
+		sh:path m4i:hasParameter ;
+		sh:qualifiedValueShapesDisjoint true ;
 	], [
-		sh:name "mechanism of action the instrument operates under, piezoresistive, capacitive, optical"@en ;
-		sh:path <http://www.example.org/aims#mechanismOfAction> ;
+		sh:qualifiedMinCount 1 ;
+		sh:qualifiedMaxCount 1 ;
+		sh:description "Orientation of the base as quaternion."@en ;
+		sh:name "orientation"@en ;
+		sh:qualifiedValueShape aps:ae3cd8e6-645d-4652-a7f4-79b74c7aee8f ;
+		sh:path m4i:hasParameter ;
+		sh:qualifiedValueShapesDisjoint true ;
+	], [
+		sh:description "State of the base."@en ;
+		sh:name "state"@en ;
+		sh:path dbo:status ;
+		sh:maxCount 1 ;
+		sh:minCount 1 ;
 		sh:datatype xsd:string ;
 	], [
-		sh:node <http://www.example.org/aims#PlatformShape> ;
-		sh:name "Relation between a Sensor, or Actuator, Sampler, or Platform, and the Platform that it is mounted on or hosted by." ;
-		sh:path sosa:isHostedBy ;
-	], [
-		sh:name "timestamp of last calibration of the instrument"@en ;
-		sh:path <http://www.example.org/aims#calibrationTimestamp> ;
-		sh:datatype xsd:string ;
-	], [
-		sh:name "type of interface or connector for the instrument, e.g. analog, serial, or even more specific e.g. BNC, RS-232, OPC-UA"@en ;
-		sh:path <http://www.example.org/aims#interface> ;
-		sh:datatype xsd:string ;
-	] ;
-	sh:targetClass ssn:System .
+		sh:qualifiedMinCount 1 ;
+		sh:qualifiedMaxCount 1 ;
+		sh:description "Data about the last calibration of the device"@en ;
+		sh:name "calibration data"@en ;
+		sh:qualifiedValueShape aps:ef8d75dd-4a14-4edd-9e4b-9b738fdb4d34 ;
+		sh:path m4i:hasParameter ;
+		sh:qualifiedValueShapesDisjoint true ;
+	] .

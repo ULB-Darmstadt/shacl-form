@@ -1,109 +1,198 @@
-@prefix sh: <http://www.w3.org/ns/shacl#> .
-@prefix schema: <http://schema.org/> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix dash: <http://datashapes.org/dash#> .
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix dash:    <http://datashapes.org/dash#> .
+@prefix dbpedia: <http://dbpedia.org/ontology/> .
+@prefix dcat:    <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix fidbau:  <http://purl.org/fidbau/elements/1.1/> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+@prefix geo:     <http://www.opengis.net/ont/geosparql#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema:  <http://schema.org/> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
 
-@prefix ex: <http://example.com/> .
-@prefix lexvo: <http://lexvo.org/id/iso639-1/> .
+fidbau:ArchitectureModelDataset
+        rdf:type             sh:NodeShape ;
+        dcterms:description  "FID-BAU architecture model dataset with metadata fields for e.g. model dimensions and materials" ;
+        dcterms:title        "Architecture model" ;
+        sh:node              fidbau:BuildingDataset ;
+        sh:property          [ sh:datatype      xsd:integer ;
+                               sh:description   "Width [mm] of the model" ;
+                               sh:group         fidbau:PhysicalPropertiesGroup ;
+                               sh:maxCount      1 ;
+                               sh:minInclusive  1 ;
+                               sh:name          "Width" ;
+                               sh:path          schema:width
+                             ] ;
+        sh:property          [ sh:datatype      xsd:integer ;
+                               sh:description   "Height [mm] of the model" ;
+                               sh:group         fidbau:PhysicalPropertiesGroup ;
+                               sh:maxCount      1 ;
+                               sh:minInclusive  1 ;
+                               sh:name          "Height" ;
+                               sh:path          schema:height
+                             ] ;
+        sh:property          [ sh:datatype      xsd:integer ;
+                               sh:description   "Depth [mm] of the model" ;
+                               sh:group         fidbau:PhysicalPropertiesGroup ;
+                               sh:maxCount      1 ;
+                               sh:minInclusive  1 ;
+                               sh:name          "Depth" ;
+                               sh:path          schema:depth
+                             ] ;
+        sh:property          [ sh:datatype     xsd:string ;
+                               sh:description  "Scale of the model, e.g. 1:20" ;
+                               sh:group        fidbau:PhysicalPropertiesGroup ;
+                               sh:maxCount     1 ;
+                               sh:name         "Scale" ;
+                               sh:path         dbpedia:scale ;
+                               sh:pattern      "^1:\\d+$"
+                             ] ;
+        sh:property          [ sh:datatype     xsd:string ;
+                               sh:description  "Material used with this model" , "Beim Bau des Modells verwendetes Material"@de ;
+                               sh:group        fidbau:PhysicalPropertiesGroup ;
+                               sh:name         "Artwork material" ;
+                               sh:path         schema:artworkSurface
+                             ] ;
+        sh:property          [ sh:datatype     xsd:string ;
+                               sh:description  "Technique used building this model" ;
+                               sh:group        fidbau:PhysicalPropertiesGroup ;
+                               sh:name         "Technique" ;
+                               sh:path         schema:technique
+                             ] .
 
-ex:PersonShape
-  a sh:NodeShape ;
-  sh:targetClass schema:Person ;
-  rdfs:label "Person", "Osoba"@pl ;
-  sh:property ex:NameProperty ,
-                 ex:KnowsProperty ,
-                 ex:AgeProperty ,
-                 ex:GenderProperty ,
-                 ex:SpokenLanguagesProperty  ,
-                 ex:DateOfBirthProperty ,
-                 ex:HomePageProperty ;
-.
+fidbau:BuildingDataset
+        rdf:type             sh:NodeShape ;
+        dcterms:description  "FID-BAU building dataset with metadata fields for e.g. locations and materials" ;
+        dcterms:title        "Building" ;
+        sh:node              fidbau:Dataset ;
+        sh:property          [ sh:datatype     xsd:string ;
+                               sh:description  "Construction material (eg. concrete, steel, iron, stone, brick, wood)." ;
+                               sh:name         "Construction material" ;
+                               sh:path         dbpedia:constructionMaterial
+                             ] ;
+        sh:property          [ sh:description  "Location of the building" ;
+                               sh:name         "Location" ;
+                               sh:node         fidbau:Location ;
+                               sh:path         dcterms:spatial
+                             ] .
 
-ex:SimplifiedPersonShape
-  a sh:NodeShape ;
-  sh:targetNode ex:Jane_Doe ;
-  rdfs:label "Person (name-only)", "Osoba (tylko imię)"@pl ;
-  sh:property ex:NameProperty ;
-.
+fidbau:PhysicalPropertiesGroup
+        rdf:type    sh:PropertyGroup ;
+        rdfs:label  "Physical properties" .
 
-ex:NameProperty
-  sh:path schema:name ;
-  sh:name "Name" ;
-  sh:datatype xsd:string ;
-  dash:singleLine true ;
-  sh:maxCount 1 ;
-  sh:minCount 1 ;
-  sh:order 2 ;
-  sh:description "Enter the name of the person here. You should adhere to the scheme <firstname> <lastname>"
-.
 
-ex:KnowsProperty
-  sh:path schema:knows ;
-  sh:class schema:Person ;
-  sh:group ex:FriendGroup ;
-  sh:description "All the persons that this person knows"
-.
+fidbau:Dataset  rdf:type     sh:NodeShape ;
+        owl:imports          <https://w3id.org/nfdi4ing/metadata4ing/> ;
 
-ex:AgeProperty
-  sh:path schema:age ;
-  sh:name "Age", "Wiek"@pl ;
-  sh:datatype xsd:integer ;
-  sh:maxCount 1 ;
-  sh:defaultValue 21 ;
-  sh:order 2 ;
-  sh:minInclusive 18 ;
-.
+        dcterms:description  "FID-BAU base dataset with minimal metadata fields" ;
+        dcterms:title        "Generic" ;
+        sh:property          [ sh:datatype     xsd:string ;
+                               sh:description  "The name of the dataset" , "Der Name des Datensatzes"@de ;
+                               sh:maxCount     1 ;
+                               sh:minCount     1 ;
+                               sh:name         "Name" ;
+                               sh:path         dcterms:title
+                             ] ;
+        sh:property          [ dash:singleLine  false ;
+                               sh:datatype      xsd:string ;
+                               sh:description   "Description of the dataset" ;
+                               sh:maxCount      1 ;
+                               sh:minCount      1 ;
+                               sh:name          "Abstract" ;
+                               sh:path          dcterms:description
+                             ] ;
+        sh:property          [ sh:description  "License of the dataset" ;
+                               sh:maxCount     1 ;
+                               sh:minCount     1 ;
+                               sh:name         "License" ;
+                               sh:nodeKind     sh:IRI ;
+                               sh:path         dcterms:license ;
+                               sh:in (
+                                <http://creativecommons.org/licenses/by/4.0/>
+                                <http://creativecommons.org/licenses/by-nc/4.0/>
+                               )
+                             ] ;
+        sh:property          [ sh:datatype     xsd:date ;
+                               sh:description  "Date when this dataset has been issued" ;
+                               sh:maxCount     1 ;
+                               sh:minCount     1 ;
+                               sh:name         "Issued" ;
+                               sh:path         dcterms:issued
+                             ] ;
+        sh:property          [ sh:description  "Whether data is freely accessible" ;
+                               sh:in           ( "public" "private" ) ;
+                               sh:maxCount     1 ;
+                               sh:minCount     1 ;
+                               sh:name         "Access type" ;
+                               sh:path         dcterms:accessRights
+                             ] ;
+        sh:property          [
+                               sh:name "Creator" ;
+                               sh:description "Creator of the dataset" ;
+                               sh:path dcterms:creator ;
+                               sh:minCount 1 ;
+                               sh:node fidbau:Person ;
+                             ] ;
+        sh:property          [ sh:name         "Attributions" ;
+                               sh:node         fidbau:Attribution ;
+                               sh:path         prov:qualifiedAttribution
+                             ] ;
+        sh:targetClass       dcat:Dataset .
 
-ex:GenderProperty
-  sh:path foaf:gender ;
-  sh:name "Gender", "Płeć"@pl ;
-  sh:in (
-    "Male" "Female" "Other" "Prefer not to tell"
-  ) ;
-  sh:defaultValue "Male" ;
-  sh:maxCount 1 ;
-  sh:order 3 ;
-  sh:message "Please select a valid gender" ;
-.
+fidbau:Location  rdf:type  sh:NodeShape ;
+        rdfs:label      "Location" ;
+        sh:property     [ sh:datatype     geo:wktLiteral ;
+                          sh:description  "Format WKT, e.g. POINT(8.65,49.87)" ;
+                          sh:maxCount     1 ;
+                          sh:minCount     1 ;
+                          sh:name         "Coordinates" ;
+                          sh:path         geo:asWKT ;
+                          sh:pattern      "^POINT\\([+-]?([0-9]*[.])?[0-9]+,[+-]?([0-9]*[.])?[0-9]+\\)$"
+                        ] ;
+        sh:property     [ sh:description  "Description of the location" ;
+                          sh:maxCount     1 ;
+                          sh:name         "Description" ;
+                          sh:path         dcterms:description
+                        ] ;
+        sh:targetClass  dcterms:Location .
 
-ex:DateOfBirthProperty
-  sh:path schema:birthDate ;
-  sh:name "Date of birth", "Data urodzenia"@pl ;
-  sh:maxCount 1 ;
-  sh:order 4 ;
-  sh:datatype xsd:date ;
-.
+fidbau:Person  rdf:type  sh:NodeShape ;
+        rdfs:label      "Person" ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  1 ;
+                          sh:name      "Name" ;
+                          sh:path      foaf:name
+                        ] ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:name      "Email" ;
+                          sh:path      foaf:mbox
+                        ] ;
+        sh:property     [ sh:datatype  xsd:string ;
+                          sh:maxCount  1 ;
+                          sh:name      "ORCID ID" ;
+                          sh:path      dcterms:identifier ;
+                          sh:pattern   "^https://orcid.org/\\d{4}-\\d{4}-\\d{4}-\\d{4}$"
+                        ] ;
+        sh:targetClass  foaf:Agent .
 
-ex:SpokenLanguagesProperty
-  sh:path vcard:language ;
-  sh:name "Spoken languages", "Języki"@pl ;
-  sh:nodeKind sh:IRI ;
-  sh:in (
-    lexvo:en lexvo:de lexvo:fr lexvo:pl lexvo:es
-  ) ;
-  sh:order 5 ;
-  sh:minCount 1 ;
-  sh:maxCount 2 ;
-.
+fidbau:Attribution  rdf:type  sh:NodeShape ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  1 ;
+                          sh:name      "Person with role" ;
+                          sh:node      fidbau:Person ;
+                          sh:path      prov:agent
+                        ] ;
+        sh:property     [ sh:name      "Role" ;
+                          sh:minCount  1 ;
+                          sh:nodeKind  sh:IRI ;
+                          sh:path      dcat:hadRole ;
+                          sh:class     prov:Role
+                        ] ;
+        sh:targetClass  prov:Attribution .
 
-ex:HomePageProperty
-  sh:path foaf:homepage ;
-  sh:name "Homepage URL", "Strona internetowa"@pl ;
-  sh:nodeKind sh:IRI ;
-  sh:order 6 ;
-.
 
-ex:FriendGroup
-  a sh:PropertyGroup ;
-  sh:order 17 ;
-  rdfs:label "Acquaintances", "Znajomi"@pl
-.
-
-lexvo:en rdfs:label "English", "angielski"@pl .
-lexvo:de rdfs:label "German", "niemiecki"@pl .
-lexvo:fr rdfs:label "French", "francuski"@pl .
-lexvo:pl rdfs:label "Polish", "polski"@pl .
-lexvo:es rdfs:label "Spanish", "hiszpański"@pl .
+<http://creativecommons.org/licenses/by/4.0/> rdfs:label "CC-BY" .
+<http://creativecommons.org/licenses/by-nc/4.0/> rdfs:label "CC-BY-NC" .
