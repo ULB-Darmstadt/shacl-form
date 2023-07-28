@@ -2,8 +2,8 @@ import { ShaclNode } from './node'
 import { Config } from './config'
 import { Plugin, Plugins } from './plugin'
 import { Writer, Quad, Store, DataFactory, NamedNode } from 'n3'
-import { DEFAULT_PREFIXES, PREFIX_RDF, PREFIX_SHACL } from './prefixes'
-import { SHAPES_GRAPH, focusFirstInputElement } from './util'
+import { DEFAULT_PREFIXES, PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
+import { focusFirstInputElement } from './util'
 import SHACLValidator from 'rdf-validate-shacl'
 import factory from 'rdf-ext'
 import './styles.css'
@@ -13,7 +13,7 @@ export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.keysAsDataAttributes }
 
     config: Config = new Config()
-    loader: Loader = new Loader()
+    loader: Loader = new Loader(this)
     shape: ShaclNode | null = null
     form: HTMLFormElement
     plugins: Plugins = {}
@@ -47,7 +47,7 @@ export class ShaclForm extends HTMLElement {
     private initialize() {
         clearTimeout(this.initDebounceTimeout)
         this.initDebounceTimeout = setTimeout(() => {
-            this.loader.loadGraphs(this.config).then(_ => {
+            this.loader.loadGraphs().then(_ => {
                 if (this.form.contains(this.shape)) {
                     this.form.removeChild(this.shape as ShaclNode)
                 }
@@ -120,16 +120,18 @@ export class ShaclForm extends HTMLElement {
         if (showHints) {
             for (const result of report.results) {
                 const invalidElement = this.querySelector(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
-                const messageElement = document.createElement('pre')
-                messageElement.classList.add('validation')
-                if (result.message.length > 0) {
-                    for (const message of result.message) {
-                        messageElement.innerText += message + '\n'
+                if (invalidElement) {
+                    const messageElement = document.createElement('pre')
+                    messageElement.classList.add('validation')
+                    if (result.message.length > 0) {
+                        for (const message of result.message) {
+                            messageElement.innerText += message + '\n'
+                        }
+                    } else {
+                        messageElement.innerText += result.sourceConstraintComponent.value
                     }
-                } else {
-                    messageElement.innerText += result.sourceConstraintComponent.value
+                    invalidElement.appendChild(messageElement)
                 }
-                invalidElement?.appendChild(messageElement)
             }
         }
         return report.conforms

@@ -1,11 +1,16 @@
 import { Store, Parser, Quad, Prefixes, NamedNode } from 'n3'
-import { OWL_IMPORTS, SHAPES_GRAPH } from './util'
-import { Config } from './config'
+import { OWL_IMPORTS, SHAPES_GRAPH } from './constants'
+import { ShaclForm } from './form'
 
 export class Loader {
     private abortController: AbortController | null = null
+    private form: ShaclForm
 
-    async loadGraphs(config: Config) {
+    constructor(form: ShaclForm) {
+        this.form = form
+    }
+
+    async loadGraphs() {
         if (this.abortController) {
             this.abortController.abort()
         }
@@ -15,12 +20,12 @@ export class Loader {
         const valuesGraph = new Store()
 
         await Promise.all([
-            this.importRDF(config.shapes ? config.shapes : config.shapesUrl ? this.fetchRDF(config.shapesUrl) : '', graph, SHAPES_GRAPH),
-            this.importRDF(config.values ? config.values : config.valuesUrl ? this.fetchRDF(config.valuesUrl) : '', valuesGraph, undefined, new Parser({ blankNodePrefix: '' })),
+            this.importRDF(this.form.config.shapes ? this.form.config.shapes : this.form.config.shapesUrl ? this.fetchRDF(this.form.config.shapesUrl) : '', graph, SHAPES_GRAPH),
+            this.importRDF(this.form.config.values ? this.form.config.values : this.form.config.valuesUrl ? this.fetchRDF(this.form.config.valuesUrl) : '', valuesGraph, undefined, new Parser({ blankNodePrefix: '' })),
         ])
 
-        config.graph = graph
-        config.valuesGraph = valuesGraph
+        this.form.config.graph = graph
+        this.form.config.valuesGraph = valuesGraph
     }
     
     async importRDF(input: string | Promise<string>, store: Store, graph?: NamedNode, parser?: Parser): Promise<null> {
@@ -35,12 +40,12 @@ export class Loader {
                     if (quad) {
                         store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
                         // see if this is an owl:imports
-                        if (OWL_IMPORTS.equals(quad.predicate)) {
+                        if (this.form.config.loadOwlImports === 'true' && OWL_IMPORTS.equals(quad.predicate)) {
                             owlImports.push(quad.object.value)
                         }
                     }
                     else {
-                        if (prefixes) {
+                        if (this.form.config.loadOwlImports === 'true' && prefixes) {
                             for (const owlImport of owlImports) {
                                 const url = this.toURL(owlImport, prefixes)
                                 if (url) {

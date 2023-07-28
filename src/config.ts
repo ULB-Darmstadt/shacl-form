@@ -1,11 +1,9 @@
 import { Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { DefaultTheme, Theme } from './theme'
-import { PREFIX_RDF, PREFIX_SHACL } from './prefixes'
-import { SHAPES_GRAPH } from './util'
+import { PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
 
 export class Config {
-
     shapes: string | null = null
     shapesUrl: string | null = null
     shapeSubject: string | null = null
@@ -14,6 +12,7 @@ export class Config {
     valueSubject: string | null = null
     language: string | null = null
     addEmptyElementToLists: string | null = null
+    loadOwlImports: string = 'true'
 
     private _theme: Theme = new DefaultTheme()
     private _lists: Record<string, Term[]> = {}
@@ -69,7 +68,9 @@ export class Config {
     static from(elem: HTMLElement): Config {
         const config = new Config()
         for (const key of Object.keys(config)) {
-            config[key] = elem.dataset[key]
+            if (elem.dataset[key]) {
+                config[key] = elem.dataset[key]
+            }
         }
         if (!config.language) {
             config.language = navigator.language

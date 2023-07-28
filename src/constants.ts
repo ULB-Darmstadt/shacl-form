@@ -1,3 +1,5 @@
+import { NamedNode } from "n3"
+
 export const PREFIX_SHACL = 'http://www.w3.org/ns/shacl#'
 export const PREFIX_DASH = 'http://datashapes.org/dash#'
 export const PREFIX_XSD = 'http://www.w3.org/2001/XMLSchema#'
@@ -12,3 +14,7 @@ export const DEFAULT_PREFIXES = {
     'rdf': PREFIX_RDF,
     'schema': PREFIX_SCHEMA
 }
+
+export const SHAPES_GRAPH: NamedNode = new NamedNode("shapes")
+export const OWL_IMPORTS: NamedNode = new NamedNode(`${PREFIX_OWL}imports`)
+

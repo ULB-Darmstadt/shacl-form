@@ -1,9 +1,9 @@
 import { BlankNode, NamedNode, Quad, Store, Quad_Object } from 'n3'
 import { ShaclNode } from './node'
 import { inputFactory, InputBase, InputList, InputListEntry } from './inputs'
-import { SHAPES_GRAPH , findObjectValueByPredicate, focusFirstInputElement } from './util'
+import { findLabel, findObjectValueByPredicate, focusFirstInputElement } from './util'
 import { ShaclForm } from './form'
-import { PREFIX_RDF, PREFIX_SHACL, PREFIX_SKOS } from './prefixes'
+import { PREFIX_RDF, PREFIX_SHACL, PREFIX_SKOS, SHAPES_GRAPH } from './constants'
 
 export class ShaclProperty extends HTMLElement {
     name: string
@@ -39,7 +39,7 @@ export class ShaclProperty extends HTMLElement {
                         const ontologyInstanceQuads = form.config.graph.getQuads(ontologyInstance.subject, null, null, null)
                         this.classInstances.push({
                             value: ontologyInstance.subject.value,
-                            label: findObjectValueByPredicate(ontologyInstanceQuads, 'prefLabel', PREFIX_SKOS, form.config.language)
+                            label: findLabel(ontologyInstanceQuads, form.config.language)
                         })
                     }
                 }

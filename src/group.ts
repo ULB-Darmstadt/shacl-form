@@ -1,6 +1,6 @@
-import { PREFIX_RDFS } from './prefixes'
+import { PREFIX_RDFS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
-import { SHAPES_GRAPH, findObjectValueByPredicate } from './util'
+import { findObjectValueByPredicate } from './util'
 
 export class ShaclGroup extends HTMLElement {
     constructor(groupSubject: string, config: Config) {

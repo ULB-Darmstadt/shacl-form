@@ -1,7 +1,7 @@
 import { Quad, DataFactory, NamedNode } from 'n3'
 import { Term, Literal } from '@rdfjs/types'
-import { PREFIX_SHACL, PREFIX_XSD, PREFIX_DASH, PREFIX_RDFS } from './prefixes'
-import { findObjectValueByPredicate, findObjectByPredicate, SHAPES_GRAPH } from './util'
+import { PREFIX_SHACL, PREFIX_XSD, PREFIX_DASH, PREFIX_RDFS, SHAPES_GRAPH } from './constants'
+import { findObjectValueByPredicate, findObjectByPredicate, findLabel } from './util'
 import { Config } from './config'
 
 export type Editor = HTMLElement & { value: string }
@@ -202,7 +202,9 @@ export class InputList extends InputBase {
         for (const item of list) {
             let label: string | null = null
             if (isTerm(item)) {
-                label = item.termType === "NamedNode" ? this.findLabel(new NamedNode(item.value), this.config) : null
+                if (item.termType === "NamedNode") {
+                    label = findLabel(this.config.graph.getQuads(new NamedNode(item.value), null, null, SHAPES_GRAPH), this.config.language)
+                }
             } else {
                 label = item.label ? item.label : null
             }
@@ -213,11 +215,6 @@ export class InputList extends InputBase {
             }
             select.options.add(option)
         }
-    }
-
-    findLabel(subject: NamedNode, config: Config): string | null {
-        const quads = config.graph.getQuads(subject, null, null, SHAPES_GRAPH)
-        return findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, config.language)
     }
 
     createEditor(quads: Quad[]): Editor {

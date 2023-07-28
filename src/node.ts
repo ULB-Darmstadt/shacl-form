@@ -1,8 +1,8 @@
 import { BlankNode, NamedNode, Store } from 'n3'
-import { PREFIX_SHACL, PREFIX_RDF, PREFIX_RDFS } from './prefixes'
+import { PREFIX_SHACL, PREFIX_RDF, PREFIX_RDFS, SHAPES_GRAPH } from './constants'
 import { ShaclProperty } from './property'
 import { ShaclForm } from './form'
-import { SHAPES_GRAPH, findObjectValueByPredicate } from './util'
+import { findObjectValueByPredicate } from './util'
 import { ShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
 

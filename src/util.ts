@@ -1,8 +1,5 @@
-import { NamedNode, Quad, Quad_Object } from 'n3'
-import { PREFIX_SHACL, PREFIX_OWL } from './prefixes'
-
-export const SHAPES_GRAPH: NamedNode = new NamedNode("shapes")
-export const OWL_IMPORTS: NamedNode = new NamedNode(`${PREFIX_OWL}imports`)
+import { Quad, Quad_Object } from 'n3'
+import { PREFIX_RDF, PREFIX_SHACL, PREFIX_SKOS } from './constants'
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string | null): string {
     let result = ''
@@ -38,4 +35,12 @@ export function findObjectByPredicate(quads: Quad[], predicate: string, prefix: 
 
 export function focusFirstInputElement(context: HTMLElement) {
     (context.querySelector('input,select,textarea') as HTMLElement)?.focus()
+}
+
+export function findLabel(quads: Quad[], language: string | null): string {
+    let label = findObjectValueByPredicate(quads, 'label', PREFIX_RDF, language)
+    if (label) {
+        return label
+    }
+    return findObjectValueByPredicate(quads, 'prefLabel', PREFIX_SKOS, language)
 }
