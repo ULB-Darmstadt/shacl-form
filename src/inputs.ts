@@ -1,7 +1,7 @@
-import { Quad, DataFactory, NamedNode, Store } from 'n3'
+import { Quad, DataFactory, NamedNode } from 'n3'
 import { Term, Literal } from '@rdfjs/types'
 import { PREFIX_SHACL, PREFIX_XSD, PREFIX_DASH, PREFIX_RDFS } from './prefixes'
-import { findObjectValueByPredicate, findObjectByPredicate } from './util'
+import { findObjectValueByPredicate, findObjectByPredicate, SHAPES_GRAPH } from './util'
 import { Config } from './config'
 
 export type Editor = HTMLElement & { value: string }
@@ -181,7 +181,7 @@ export class InputNumber extends InputBase {
     }
 }
 
-export type InputListEntry = Term | { label?: string, value: string }
+export type InputListEntry = Term | { value: string, label?: string }
 const isTerm = (o: any): o is Term => {
     return o && typeof o.termType === "string";
 }
@@ -207,16 +207,16 @@ export class InputList extends InputBase {
                 label = item.label ? item.label : null
             }
             const option = document.createElement('option')
-            option.innerHTML = label ? label : item.value
+            option.innerHTML = label ? label : item.value.toString()
             if (label && item.value) {
-                option.value = item.value
+                option.value = item.value.toString()
             }
             select.options.add(option)
         }
     }
 
     findLabel(subject: NamedNode, config: Config): string | null {
-        const quads = config.shapesGraph.getQuads(subject, null, null, null)
+        const quads = config.graph.getQuads(subject, null, null, SHAPES_GRAPH)
         return findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, config.language)
     }
 

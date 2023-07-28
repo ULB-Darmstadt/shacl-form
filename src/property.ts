@@ -1,13 +1,14 @@
 import { BlankNode, NamedNode, Quad, Store, Quad_Object } from 'n3'
 import { ShaclNode } from './node'
-import { inputFactory, InputBase } from './inputs'
-import { findObjectValueByPredicate, focusFirstInputElement } from './util'
+import { inputFactory, InputBase, InputList, InputListEntry } from './inputs'
+import { SHAPES_GRAPH , findObjectValueByPredicate, focusFirstInputElement } from './util'
 import { ShaclForm } from './form'
-import { PREFIX_SHACL } from './prefixes'
+import { PREFIX_RDF, PREFIX_SHACL, PREFIX_SKOS } from './prefixes'
 
 export class ShaclProperty extends HTMLElement {
     name: string
     node: NamedNode | null = null
+    classInstances: Array<InputListEntry> | null = null
     minCount = 0
     maxCount = 0
     quads: Quad[]
@@ -18,17 +19,29 @@ export class ShaclProperty extends HTMLElement {
         super()
 
         this.form = form
-        this.quads = form.config.shapesGraph.getQuads(shaclSubject, null, null, null)
+        this.quads = form.config.graph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
         const node = findObjectValueByPredicate(this.quads, 'node')
         if (node) {
             this.node = new NamedNode(node)
         } else {
             const clazz = findObjectValueByPredicate(this.quads, 'class')
             if (clazz) {
-                // find node shape that has requested target class.
-                const nodeShapes = form.config.shapesGraph.getQuads(null, `${PREFIX_SHACL}targetClass`, clazz, null)
+                // try to find node shape that has requested target class.
+                const nodeShapes = form.config.graph.getQuads(null, `${PREFIX_SHACL}targetClass`, clazz, SHAPES_GRAPH)
                 if (nodeShapes.length > 0) {
                     this.node = new NamedNode(nodeShapes[0].subject.value)
+                }
+                else {
+                    // try to resolve class instances from loaded ontologies
+                    this.classInstances = []
+                    const ontologyInstances = form.config.graph.getQuads(null, `${PREFIX_RDF}type`, clazz, null)
+                    for (const ontologyInstance of ontologyInstances) {
+                        const ontologyInstanceQuads = form.config.graph.getQuads(ontologyInstance.subject, null, null, null)
+                        this.classInstances.push({
+                            value: ontologyInstance.subject.value,
+                            label: findObjectValueByPredicate(ontologyInstanceQuads, 'prefLabel', PREFIX_SKOS, form.config.language)
+                        })
+                    }
                 }
             }
         }
@@ -91,9 +104,17 @@ export class ShaclProperty extends HTMLElement {
                 editor = plugin.createInstance(this, value?.value)
             }
             else {
-                editor = inputFactory(this.quads, this.form.config)
-                if (value) {
-                    editor.setValue(value.value)
+                // if we have classInstances, use these as list values
+                if (this.classInstances) {
+                    editor = new InputList(this.quads, this.form.config)
+                    const listEditor = editor as InputList
+                    listEditor.setListEntries(this.classInstances)
+                }
+                else {
+                    editor = inputFactory(this.quads, this.form.config)
+                    if (value) {
+                        editor.setValue(value.value)
+                    }
                 }
             }
             instance.appendChild(editor)

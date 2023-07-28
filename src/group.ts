@@ -1,6 +1,6 @@
 import { PREFIX_RDFS } from './prefixes'
 import { Config } from './config'
-import { findObjectValueByPredicate } from './util'
+import { SHAPES_GRAPH, findObjectValueByPredicate } from './util'
 
 export class ShaclGroup extends HTMLElement {
     constructor(groupSubject: string, config: Config) {
@@ -9,7 +9,7 @@ export class ShaclGroup extends HTMLElement {
         this.dataset['subject'] = groupSubject
 
         let name = groupSubject
-        const quads = config.shapesGraph.getQuads(groupSubject, null, null, null)
+        const quads = config.graph.getQuads(groupSubject, null, null, SHAPES_GRAPH)
         const label = findObjectValueByPredicate(quads, "label", PREFIX_RDFS, config.language)
         if (label) {
             name = label

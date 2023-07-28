@@ -1,5 +1,8 @@
-import { Quad, Quad_Object, Store } from 'n3'
-import { PREFIX_SHACL } from './prefixes'
+import { NamedNode, Quad, Quad_Object } from 'n3'
+import { PREFIX_SHACL, PREFIX_OWL } from './prefixes'
+
+export const SHAPES_GRAPH: NamedNode = new NamedNode("shapes")
+export const OWL_IMPORTS: NamedNode = new NamedNode(`${PREFIX_OWL}imports`)
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string | null): string {
     let result = ''
