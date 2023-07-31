@@ -1,5 +1,5 @@
 import { Quad, Quad_Object } from 'n3'
-import { PREFIX_RDF, PREFIX_SHACL, PREFIX_SKOS } from './constants'
+import { PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS } from './constants'
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string | null): string {
     let result = ''
@@ -38,7 +38,7 @@ export function focusFirstInputElement(context: HTMLElement) {
 }
 
 export function findLabel(quads: Quad[], language: string | null): string {
-    let label = findObjectValueByPredicate(quads, 'label', PREFIX_RDF, language)
+    let label = findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, language)
     if (label) {
         return label
     }
