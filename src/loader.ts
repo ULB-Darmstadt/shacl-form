@@ -28,50 +28,48 @@ export class Loader {
         this.form.config.valuesGraph = valuesGraph
     }
     
-    async importRDF(input: string | Promise<string>, store: Store, graph?: NamedNode, parser?: Parser): Promise<null> {
+    async importRDF(input: string | Promise<string>, store: Store, graph?: NamedNode, parser?: Parser) {
         const p = parser ? parser : new Parser()
-        const parse = (text: string, resolve, reject) => {
+        const parse = async (text: string) => {
             const owlImports: Array<string> = []
-            p.parse(text, (error: Error, quad: Quad, prefixes: Prefixes) => {
-                if (error) {
-                    reject(error)
-                }
-                else {
-                    if (quad) {
-                        store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
-                        // see if this is an owl:imports
-                        if (this.form.config.loadOwlImports === 'true' && OWL_IMPORTS.equals(quad.predicate)) {
-                            owlImports.push(quad.object.value)
-                        }
+            let rdfPrefixes: Prefixes | undefined
+            await new Promise((resolve, reject) => {
+                p.parse(text, (error: Error, quad: Quad, prefixes: Prefixes) => {
+                    if (error) {
+                        reject(error)
                     }
                     else {
-                        if (this.form.config.loadOwlImports === 'true' && prefixes) {
-                            for (const owlImport of owlImports) {
-                                const url = this.toURL(owlImport, prefixes)
-                                if (url) {
-                                    this.fetchRDF(url).then(text => {
-                                        this.importRDF(text, store, graph, parser)
-                                    }).catch(e => {
-                                        console.log(e)
-                                    })
-                                }
+                        if (quad) {
+                            store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
+                            // see if this is an owl:imports
+                            if (this.form.config.loadOwlImports === 'true' && OWL_IMPORTS.equals(quad.predicate)) {
+                                owlImports.push(quad.object.value)
                             }
                         }
-                        resolve(null)
+                        else {
+                            if (prefixes) {
+                                rdfPrefixes = prefixes
+                            }
+                            resolve(null)
+                        }
+                    }
+                })
+            })
+
+            if (this.form.config.loadOwlImports === 'true') {
+                for (const owlImport of owlImports) {
+                    const url = this.toURL(owlImport, rdfPrefixes)
+                    if (url) {
+                        await this.importRDF(this.fetchRDF(url), store, graph, parser)
                     }
                 }
-            }, undefined)
+            }
         }
-        return new Promise<null>((resolve, reject) => {
-            if (input instanceof Promise) {
-                input.then(text => parse(text, resolve, reject)).catch(e => {
-                    reject(e)
-                })
-            }
-            else {
-                parse(input, resolve, reject)
-            }
-        })
+
+        if (input instanceof Promise) {
+            input = await input
+        }
+        await parse(input)
     }
 
     fetchRDF(url: string, accept = 'text/turtle'): Promise<string> {
@@ -92,19 +90,21 @@ export class Loader {
         })
     }
 
-    toURL(id: string, prefixes: Prefixes): string | null {
+    toURL(id: string, prefixes: Prefixes | undefined): string | null {
         if (this.isURL(id)) {
             return id
         }
-        const splitted = id.split(':')
-        if (splitted.length === 2) {
-            const prefix = prefixes[splitted[0]]
-            if (prefix) {
-                // need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
-                // @ts-ignore
-                id = id.replace(`${splitted[0]}:`, prefix)
-                if (this.isURL(id)) {
-                    return id
+        if (prefixes) {
+            const splitted = id.split(':')
+            if (splitted.length === 2) {
+                const prefix = prefixes[splitted[0]]
+                if (prefix) {
+                    // need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
+                    // @ts-ignore
+                    id = id.replace(`${splitted[0]}:`, prefix)
+                    if (this.isURL(id)) {
+                        return id
+                    }
                 }
             }
         }
