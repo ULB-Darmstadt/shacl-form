@@ -72,10 +72,10 @@ export class Loader {
         await parse(input)
     }
 
-    fetchRDF(url: string, accept = 'text/turtle'): Promise<string> {
+    fetchRDF(url: string): Promise<string> {
         return fetch(url, {
             headers: {
-                'Accept': accept
+                'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3'
             },
             signal: this.abortController?.signal
         }).then(resp => {
