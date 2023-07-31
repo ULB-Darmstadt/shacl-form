@@ -11,7 +11,7 @@
 	dcterms:title "Einsteinturm" ;
 	dcterms:description "333";
 	dcterms:issued "2023-07-27"^^xsd:date;
-	dcterms:license <http://www.opendefinition.org/licenses/cc-by>;
+	dcterms:license <http://creativecommons.org/licenses/by/4.0/>;
 	dcterms:spatial [
 		a dcterms:Location ;
 		geo:asWKT "POINT(8.65,49.87)"^^geo:wktLiteral ;

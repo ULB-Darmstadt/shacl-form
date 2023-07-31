@@ -112,11 +112,11 @@ export class ShaclProperty extends HTMLElement {
                 }
                 else {
                     editor = inputFactory(this.quads, this.form.config)
-                    if (value) {
-                        editor.setValue(value.value)
-                    }
                 }
-            }
+                if (value) {
+                    editor.setValue(value.value)
+                }
+        }
             instance.appendChild(editor)
         }
 
