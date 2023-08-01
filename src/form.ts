@@ -101,10 +101,10 @@ export class ShaclForm extends HTMLElement {
             elem.remove()
         }
 
-        const validator = new SHACLValidator(factory.dataset(this.config.graph), { factory })
-        this.config.graph.deleteGraph("")
-        this.config.graph.addQuads(this.toRDF())
-        const report = await validator.validate(factory.dataset(this.config.graph))
+        const validator = new SHACLValidator(factory.dataset(this.config.shapesGraph), { factory })
+        this.config.shapesGraph.deleteGraph("")
+        this.config.shapesGraph.addQuads(this.toRDF())
+        const report = await validator.validate(factory.dataset(this.config.shapesGraph))
 
         // for (const result of report.results) {
         //     // See https://www.w3.org/TR/shacl/#results-validation-result for details
@@ -143,7 +143,7 @@ export class ShaclForm extends HTMLElement {
         // if data-shape-subject is set, use that
         if (this.config.shapeSubject) {
             rootShapeShaclSubject = new NamedNode(this.config.shapeSubject)
-            if (!this.config.graph.has(new Quad(rootShapeShaclSubject, new NamedNode(`${PREFIX_RDF}type`), new NamedNode(`${PREFIX_SHACL}NodeShape`), SHAPES_GRAPH))) {
+            if (!this.config.shapesGraph.has(new Quad(rootShapeShaclSubject, new NamedNode(`${PREFIX_RDF}type`), new NamedNode(`${PREFIX_SHACL}NodeShape`), SHAPES_GRAPH))) {
                 console.warn(`shapes graph does not contain requested root shape ${this.config.shapeSubject}`)
                 return
             }
@@ -152,20 +152,20 @@ export class ShaclForm extends HTMLElement {
             // if data-value-subject is set, use shape of that
             if (this.config.valueSubject) {
                 const rootValueSubject = new NamedNode(this.config.valueSubject)
-                const rootValueSubjectTypes = this.config.valuesGraph.getQuads(rootValueSubject, new NamedNode(`${PREFIX_RDF}type`), null, null)
+                const rootValueSubjectTypes = this.config.dataGraph.getQuads(rootValueSubject, new NamedNode(`${PREFIX_RDF}type`), null, null)
                 if (rootValueSubjectTypes.length === 0) {
                     console.warn(`value subject '${this.config.valueSubject}' has no ${PREFIX_RDF}type statement`)
                     return
                 }
                 // if type refers to a node shape, prioritize that over targetClass resolution
                 for (const rootValueSubjectType of rootValueSubjectTypes) {
-                    if (this.config.graph.has(new Quad(rootValueSubjectType.object as NamedNode, new NamedNode(`${PREFIX_RDF}type`), new NamedNode(`${PREFIX_SHACL}NodeShape`), SHAPES_GRAPH))) {
+                    if (this.config.shapesGraph.has(new Quad(rootValueSubjectType.object as NamedNode, new NamedNode(`${PREFIX_RDF}type`), new NamedNode(`${PREFIX_SHACL}NodeShape`), SHAPES_GRAPH))) {
                         rootShapeShaclSubject = rootValueSubjectType.object as NamedNode
                         break
                     }
                 }
                 if (!rootShapeShaclSubject) {
-                    const rootShapes = this.config.graph.getQuads(null, `${PREFIX_SHACL}targetClass`, rootValueSubjectTypes[0].object, SHAPES_GRAPH)
+                    const rootShapes = this.config.shapesGraph.getQuads(null, `${PREFIX_SHACL}targetClass`, rootValueSubjectTypes[0].object, SHAPES_GRAPH)
                     if (rootShapes.length === 0) {
                         console.warn(`value subject '${this.config.valueSubject}' has no shacl shape definition in the shapes graph`)
                         return
@@ -173,7 +173,7 @@ export class ShaclForm extends HTMLElement {
                     if (rootShapes.length > 1) {
                         console.warn(`value subject '${this.config.valueSubject}' has multiple shacl shape definitions in the shapes graph, choosing the first found (${rootShapes[0].subject})`)
                     }
-                    if (this.config.graph.getQuads(rootShapes[0].subject, `${PREFIX_RDF}type`, `${PREFIX_SHACL}NodeShape`, SHAPES_GRAPH).length === 0) {
+                    if (this.config.shapesGraph.getQuads(rootShapes[0].subject, `${PREFIX_RDF}type`, `${PREFIX_SHACL}NodeShape`, SHAPES_GRAPH).length === 0) {
                         console.error(`value subject '${this.config.valueSubject}' references a shape which is not a NodeShape (${rootShapes[0].subject})`)
                         return
                     }
@@ -182,7 +182,7 @@ export class ShaclForm extends HTMLElement {
             }
             else {
                 // choose first of all defined root shapes
-                const rootShapes = this.config.graph.getQuads(null, `${PREFIX_RDF}type`, `${PREFIX_SHACL}NodeShape`, SHAPES_GRAPH)
+                const rootShapes = this.config.shapesGraph.getQuads(null, `${PREFIX_RDF}type`, `${PREFIX_SHACL}NodeShape`, SHAPES_GRAPH)
                 if (rootShapes.length == 0) {
                     console.warn('shapes graph does not contain any root shapes')
                     return

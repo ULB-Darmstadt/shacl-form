@@ -24,8 +24,8 @@ export class Loader {
             this.importRDF(this.form.config.values ? this.form.config.values : this.form.config.valuesUrl ? this.fetchRDF(this.form.config.valuesUrl) : '', valuesGraph, undefined, new Parser({ blankNodePrefix: '' })),
         ])
 
-        this.form.config.graph = graph
-        this.form.config.valuesGraph = valuesGraph
+        this.form.config.shapesGraph = graph
+        this.form.config.dataGraph = valuesGraph
     }
     
     async importRDF(input: string | Promise<string>, store: Store, graph?: NamedNode, parser?: Parser) {
@@ -36,23 +36,20 @@ export class Loader {
             await new Promise((resolve, reject) => {
                 p.parse(text, (error: Error, quad: Quad, prefixes: Prefixes) => {
                     if (error) {
-                        reject(error)
+                        return reject(error)
                     }
-                    else {
-                        if (quad) {
-                            store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
-                            // see if this is an owl:imports
-                            if (this.form.config.loadOwlImports === 'true' && OWL_IMPORTS.equals(quad.predicate)) {
-                                owlImports.push(quad.object.value)
-                            }
+                    if (quad) {
+                        store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
+                        // see if this is an owl:imports
+                        if (this.form.config.loadOwlImports === 'true' && OWL_IMPORTS.equals(quad.predicate)) {
+                            owlImports.push(quad.object.value)
                         }
-                        else {
-                            if (prefixes) {
-                                rdfPrefixes = prefixes
-                            }
-                            resolve(null)
-                        }
+                        return
                     }
+                    if (prefixes) {
+                        rdfPrefixes = prefixes
+                    }
+                    resolve(null)
                 })
             })
 

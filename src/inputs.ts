@@ -203,7 +203,7 @@ export class InputList extends InputBase {
             let label: string | null = null
             if (isTerm(item)) {
                 if (item.termType === "NamedNode") {
-                    label = findLabel(this.config.graph.getQuads(new NamedNode(item.value), null, null, SHAPES_GRAPH), this.config.language)
+                    label = findLabel(this.config.shapesGraph.getQuads(new NamedNode(item.value), null, null, SHAPES_GRAPH), this.config.language)
                 }
             } else {
                 label = item.label ? item.label : null

@@ -19,7 +19,7 @@ export class ShaclNode extends HTMLElement {
         this.form = form
         this.parent = parent
         this.shaclSubject = shaclSubject
-        const quads = form.config.graph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
+        const quads = form.config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
         const targetClass = findObjectValueByPredicate(quads, 'targetClass')
         if (targetClass) {
             this.targetClass = new NamedNode(targetClass)
@@ -32,7 +32,7 @@ export class ShaclNode extends HTMLElement {
         }
         this.dataset.nodeId = this.exportValueSubject.id
 
-        const shaclProperties = form.config.graph.getQuads(shaclSubject, `${PREFIX_SHACL}property`, null, SHAPES_GRAPH)
+        const shaclProperties = form.config.shapesGraph.getQuads(shaclSubject, `${PREFIX_SHACL}property`, null, SHAPES_GRAPH)
         if (parent instanceof ShaclProperty) {
             let label = parent.name
             if (!label) {
@@ -59,7 +59,7 @@ export class ShaclNode extends HTMLElement {
             }
         }
         // check shape inheritance via sh:node
-        const nodes = form.config.graph.getQuads(shaclSubject, `${PREFIX_SHACL}node`, null, SHAPES_GRAPH)
+        const nodes = form.config.shapesGraph.getQuads(shaclSubject, `${PREFIX_SHACL}node`, null, SHAPES_GRAPH)
         for (const node of nodes) {
             inheritedShapes.push(node.object as NamedNode)
         }
@@ -72,7 +72,7 @@ export class ShaclNode extends HTMLElement {
             if (shaclProperty.object instanceof NamedNode || shaclProperty.object instanceof BlankNode) {
                 let parent: HTMLElement = this
                 // check if property belongs to a group
-                const groupRef = form.config.graph.getQuads(shaclProperty.object, `${PREFIX_SHACL}group`, null, SHAPES_GRAPH)
+                const groupRef = form.config.shapesGraph.getQuads(shaclProperty.object, `${PREFIX_SHACL}group`, null, SHAPES_GRAPH)
                 if (groupRef.length > 0) {
                     const groupSubject = groupRef[0].object.value
                     if (form.config.groups.indexOf(groupSubject) > -1) {

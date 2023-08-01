@@ -9,7 +9,7 @@ export class ShaclGroup extends HTMLElement {
         this.dataset['subject'] = groupSubject
 
         let name = groupSubject
-        const quads = config.graph.getQuads(groupSubject, null, null, SHAPES_GRAPH)
+        const quads = config.shapesGraph.getQuads(groupSubject, null, null, SHAPES_GRAPH)
         const label = findObjectValueByPredicate(quads, "label", PREFIX_RDFS, config.language)
         if (label) {
             name = label

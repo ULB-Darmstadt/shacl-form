@@ -19,7 +19,7 @@ export class ShaclProperty extends HTMLElement {
         super()
 
         this.form = form
-        this.quads = form.config.graph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
+        this.quads = form.config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
         const node = findObjectValueByPredicate(this.quads, 'node')
         if (node) {
             this.node = new NamedNode(node)
@@ -27,16 +27,16 @@ export class ShaclProperty extends HTMLElement {
             const clazz = findObjectValueByPredicate(this.quads, 'class')
             if (clazz) {
                 // try to find node shape that has requested target class.
-                const nodeShapes = form.config.graph.getQuads(null, `${PREFIX_SHACL}targetClass`, clazz, SHAPES_GRAPH)
+                const nodeShapes = form.config.shapesGraph.getQuads(null, `${PREFIX_SHACL}targetClass`, clazz, SHAPES_GRAPH)
                 if (nodeShapes.length > 0) {
                     this.node = new NamedNode(nodeShapes[0].subject.value)
                 }
                 else {
                     // try to resolve class instances from loaded ontologies
                     this.classInstances = []
-                    const ontologyInstances = form.config.graph.getQuads(null, `${PREFIX_RDF}type`, clazz, null)
+                    const ontologyInstances = form.config.shapesGraph.getQuads(null, `${PREFIX_RDF}type`, clazz, null)
                     for (const ontologyInstance of ontologyInstances) {
-                        const ontologyInstanceQuads = form.config.graph.getQuads(ontologyInstance.subject, null, null, null)
+                        const ontologyInstanceQuads = form.config.shapesGraph.getQuads(ontologyInstance.subject, null, null, null)
                         this.classInstances.push({
                             value: ontologyInstance.subject.value,
                             label: findLabel(ontologyInstanceQuads, form.config.language)
@@ -82,7 +82,7 @@ export class ShaclProperty extends HTMLElement {
         });
         this.appendChild(this.addButton)
 
-        const values = valueSubject ? form.config.valuesGraph.getQuads(valueSubject, this.dataset.path, null, null) : []
+        const values = valueSubject ? form.config.dataGraph.getQuads(valueSubject, this.dataset.path, null, null) : []
         for (const value of values) {
             this.createPropertyInstance(value.object)
         }
@@ -104,11 +104,10 @@ export class ShaclProperty extends HTMLElement {
                 editor = plugin.createInstance(this, value?.value)
             }
             else {
-                // if we have classInstances, use these as list values
-                if (this.classInstances) {
-                    editor = new InputList(this.quads, this.form.config)
-                    const listEditor = editor as InputList
-                    listEditor.setListEntries(this.classInstances)
+                // if we have class instances, use these as list values
+                if (this.classInstances?.length) {
+                    editor = new InputList(this.quads, this.form.config);
+                    (editor as InputList).setListEntries(this.classInstances)
                 }
                 else {
                     editor = inputFactory(this.quads, this.form.config)

@@ -17,8 +17,8 @@ export class Config {
     private _theme: Theme = new DefaultTheme()
     private _lists: Record<string, Term[]> = {}
     private _groups: Array<string> = []
-    private _graph: Store = new Store()
-    private _valuesGraph: Store = new Store()
+    private _shapesGraph: Store = new Store()
+    private _dataGraph: Store = new Store()
 
     equals(other: Config): boolean {
         if (!other) {
@@ -32,12 +32,12 @@ export class Config {
         return true
     }
 
-    get graph() {
-        return this._graph
+    get shapesGraph() {
+        return this._shapesGraph
     }
 
-    set graph(graph: Store) {
-        this._graph = graph
+    set shapesGraph(graph: Store) {
+        this._shapesGraph = graph
         this._lists = graph.extractLists()
         this._groups = []
         graph.getQuads(null, `${PREFIX_RDF}type`, `${PREFIX_SHACL}PropertyGroup`, SHAPES_GRAPH).forEach(groupQuad => {
@@ -45,12 +45,12 @@ export class Config {
         })
     }
 
-    get valuesGraph() {
-        return this._valuesGraph
+    get dataGraph() {
+        return this._dataGraph
     }
 
-    set valuesGraph(graph: Store) {
-        this._valuesGraph = graph
+    set dataGraph(graph: Store) {
+        this._dataGraph = graph
     }
 
     get lists() {
