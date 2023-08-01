@@ -97,10 +97,11 @@ fidbau:Dataset  rdf:type     sh:NodeShape ;
                                sh:path         dcterms:title
                              ] ;
         sh:property          [ dash:singleLine  false ;
-                               sh:datatype      xsd:string ;
+                               sh:datatype      rdf:langString ;
                                sh:description   "Description of the dataset" ;
-                               sh:maxCount      1 ;
                                sh:minCount      1 ;
+                               sh:maxCount      2 ;
+                               sh:languageIn    ( "de" "en" ) ;
                                sh:name          "Abstract" ;
                                sh:path          dcterms:description
                              ] ;

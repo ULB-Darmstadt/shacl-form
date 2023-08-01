@@ -1,6 +1,7 @@
 import { Plugin } from '../plugin'
 import { ShaclProperty } from '../property'
 import { InputList, InputListEntry } from '../inputs'
+import { DataFactory } from 'n3'
 
 export class FixedListPlugin extends Plugin {
     entries: InputListEntry[] | Promise<InputListEntry[]>
@@ -10,12 +11,12 @@ export class FixedListPlugin extends Plugin {
     }
 
     createInstance(property: ShaclProperty, value?: string): InputList {
-        const instance = new InputList(property.quads, property.form.config)
+        const instance = new InputList(property)
         if (this.entries instanceof Promise) {
             this.entries.then(entries => {
                 instance.setListEntries(entries)
                 if (value) {
-                    instance.setValue(value)
+                    instance.setValue(DataFactory.literal(value))
                 }
             })
         } else {

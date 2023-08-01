@@ -13,12 +13,14 @@ shacl-property { display: flex; flex-direction: column; align-items: end; }
 shacl-property .prop-instance:not(:first-child) > .prop > label { visibility: hidden; }
 shacl-group { margin-bottom: 1em; padding-bottom: 1em; }
 shacl-group h2 { font-size: 1rem; border-bottom: 1px solid; margin-top: 0; color: #555; }
-.prop { display: flex; flex-grow: 1; align-items: flex-start; }
+.prop { display: flex; flex-grow: 1; align-items: flex-start; position: relative; }
 .prop label { display: inline-block; word-break: break-word; width: 7em; line-height: 1em; padding-top: 0.15em; flex-shrink: 0; position: relative; }
 .prop label[title] { cursor: help; text-decoration: underline dashed #AAA; }
 .prop label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
 .prop .editor { flex-grow: 1; border: 1px solid #DDD; padding: 2px 4px; }
 .prop textarea.editor { resize: vertical; }
+input-langstring .lang-chooser { position: absolute; top: 1px; right: 0; border: 0; background-color: #EEE; padding: 1px; max-width: 3em; }
+input-langstring.prop .editor { padding-right: 4em; }
 .validation { align-self: flex-start; color: red; }
 
 shacl-form.bootstrap .prop label { padding-top: 0.7em; }

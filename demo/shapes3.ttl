@@ -22,12 +22,12 @@ ex:PersonShape
                  ex:HomePageProperty ;
 .
 
-ex:SimplifiedPersonShape
-  a sh:NodeShape ;
-  sh:targetNode ex:Jane_Doe ;
-  rdfs:label "Person (name-only)", "Osoba (tylko imię)"@pl ;
-  sh:property ex:NameProperty ;
-.
+#ex:SimplifiedPersonShape
+#  a sh:NodeShape ;
+#  sh:targetNode ex:Jane_Doe ;
+#  rdfs:label "Person (name-only)", "Osoba (tylko imię)"@pl ;
+#  sh:property ex:NameProperty ;
+#.
 
 ex:NameProperty
   sh:path schema:name ;

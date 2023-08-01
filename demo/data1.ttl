@@ -9,8 +9,10 @@
 <http://example.org/fidbau#4f2a8de3-9fc8-40a9-9237-d5964520ec54>
   a dcat:Dataset, fidbau:ArchitectureModelDataset ;
 	dcterms:title "Einsteinturm" ;
-	dcterms:description "333";
+	dcterms:description "Modell des Einsteinturms"@de;
+	dcterms:description "Model of the Einstein tower"@en;
 	dcterms:issued "2023-07-27"^^xsd:date;
+	<http://purl.org/dc/terms/accessRights> "public";
 	dcterms:license <http://creativecommons.org/licenses/by/4.0/>;
 	dcterms:spatial [
 		a dcterms:Location ;
@@ -20,16 +22,16 @@
 	schema:material "Holz" ;
 	<http://www.w3.org/ns/prov#qualifiedAttribution> _:0706162f-c5a3-4954-8cf8-a9d324b313f4 ;
   <http://purl.org/dc/terms/creator> _:n1150716783622461953 .
+
 _:n1150716783622461953
   <http://xmlns.com/foaf/0.1/name> "Stephan Tittel" ;
   <http://xmlns.com/foaf/0.1/mbox> "stephan.tittel@tu-darmstadt.de" ;
   <http://purl.org/dc/terms/identifier> "https://orcid.org/0000-0002-0048-6835" ;
-  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+  a <http://xmlns.com/foaf/0.1/Agent> .
 
-_:b6b4cfca-6b02-43c0-a830-b2375dc4653e <http://xmlns.com/foaf/0.1/name> "123";
-    a <http://xmlns.com/foaf/0.1/Agent>.
 _:1c986e20-c685-47c4-83ca-c22068e07762 <http://xmlns.com/foaf/0.1/name> "123";
     a <http://xmlns.com/foaf/0.1/Agent>.
+
 _:0706162f-c5a3-4954-8cf8-a9d324b313f4 a <http://www.w3.org/ns/prov#Attribution>;
     <http://www.w3.org/ns/prov#agent> _:1c986e20-c685-47c4-83ca-c22068e07762;
-    <http://www.w3.org/ns/dcat#hadRole> <http://w3id.org/nfdi4ing/metadata4ing#RegistrationAgency>.
+    <http://www.w3.org/ns/dcat#hadRole> <http://w3id.org/nfdi4ing/metadata4ing#DataCollector>.

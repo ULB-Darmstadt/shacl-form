@@ -1,16 +1,25 @@
 import { BlankNode, NamedNode, Quad, Store, Quad_Object } from 'n3'
+import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { inputFactory, InputBase, InputList, InputListEntry } from './inputs'
-import { findLabel, findObjectValueByPredicate, focusFirstInputElement } from './util'
+import { findLabel, findObjectValueByPredicate, findObjectByPredicate, focusFirstInputElement } from './util'
 import { ShaclForm } from './form'
 import { PREFIX_RDF, PREFIX_SHACL, PREFIX_SKOS, SHAPES_GRAPH } from './constants'
 
 export class ShaclProperty extends HTMLElement {
     name: string
-    node: NamedNode | null = null
-    classInstances: Array<InputListEntry> | null = null
+    path: string
+    node: NamedNode | undefined
+    classInstances: Array<InputListEntry> | undefined
     minCount = 0
     maxCount = 0
+    description = ''
+    defaultValue = ''
+    pattern = ''
+    nodeKind: NamedNode | undefined
+    shaclIn: string | undefined
+    languageIn: Term[] | undefined
+    datatype: NamedNode | undefined
     quads: Quad[]
     form: ShaclForm
     addButton: HTMLElement
@@ -45,31 +54,39 @@ export class ShaclProperty extends HTMLElement {
                 }
             }
         }
-        // else {
-        //     const clazz = findObjectValueByPredicate(this.quads, 'class')
-        //     config.shapesGraph.forEach((quad) => {
-        //         if (config.shapesGraph.has(DataFactory.triple(quad.subject, new NamedNode(`${PREFIX_RDF}type`), new NamedNode(`${PREFIX_SHACL}NodeShape`)))) {
-        //             this.node = quad.subject as NamedNode
-        //         }
-        //     }, null, `${PREFIX_SHACL}targetClass`, clazz, null)
-
-        // }
-        this.dataset.path = findObjectValueByPredicate(this.quads, 'path')
+        this.path = findObjectValueByPredicate(this.quads, 'path')
+        this.dataset.path = this.path
         this.name = findObjectValueByPredicate(this.quads, 'name', PREFIX_SHACL, form.config.language)
         if (!this.name) {
-            this.name = this.dataset.path
+            this.name = this.path
+        }
+        this.defaultValue = findObjectValueByPredicate(this.quads, 'defaultValue')
+        this.description = findObjectValueByPredicate(this.quads, 'description', PREFIX_SHACL, this.form.config.language)
+        this.pattern = findObjectValueByPredicate(this.quads, 'pattern')
+        this.nodeKind = findObjectByPredicate(this.quads, 'nodeKind') as NamedNode
+
+        this.shaclIn = findObjectValueByPredicate(this.quads, 'in')
+        const languageListSubject = findObjectValueByPredicate(this.quads, 'languageIn')
+        if (languageListSubject) {
+            this.languageIn = this.form.config.lists[languageListSubject]
         }
         this.style.order = findObjectValueByPredicate(this.quads, 'order')
 
         const minCount = findObjectValueByPredicate(this.quads, 'minCount')
-        const maxCount = findObjectValueByPredicate(this.quads, 'maxCount')
         if (minCount) {
             this.minCount = parseInt(minCount)
         }
+
+        const maxCount = findObjectValueByPredicate(this.quads, 'maxCount')
         if (maxCount) {
             this.maxCount = parseInt(maxCount)
         }
-        
+
+        const datatype = findObjectByPredicate(this.quads, 'datatype') as NamedNode
+        if (datatype) {
+            this.datatype = datatype
+        }
+
         this.addButton = document.createElement('a')
         this.addButton.innerText = this.name
         this.addButton.title = 'Add ' + this.name
@@ -82,7 +99,7 @@ export class ShaclProperty extends HTMLElement {
         });
         this.appendChild(this.addButton)
 
-        const values = valueSubject ? form.config.dataGraph.getQuads(valueSubject, this.dataset.path, null, null) : []
+        const values = valueSubject ? form.config.dataGraph.getQuads(valueSubject, this.path, null, null) : []
         for (const value of values) {
             this.createPropertyInstance(value.object)
         }
@@ -90,7 +107,7 @@ export class ShaclProperty extends HTMLElement {
         this.updateControls()
     }
 
-    createPropertyInstance(value?: Quad_Object): HTMLElement {
+    createPropertyInstance(value?: Term): HTMLElement {
         const instance = document.createElement('div')
         instance.classList.add('prop-instance')
         // check if property value type is a node shape
@@ -99,21 +116,21 @@ export class ShaclProperty extends HTMLElement {
             instance.appendChild(newNode)
         } else {
             let editor: InputBase
-            const plugin = this.dataset.path ? this.form.plugins[this.dataset.path] : undefined
+            const plugin = this.form.plugins[this.path]
             if (plugin) {
                 editor = plugin.createInstance(this, value?.value)
             }
             else {
                 // if we have class instances, use these as list values
                 if (this.classInstances?.length) {
-                    editor = new InputList(this.quads, this.form.config);
+                    editor = new InputList(this);
                     (editor as InputList).setListEntries(this.classInstances)
                 }
                 else {
-                    editor = inputFactory(this.quads, this.form.config)
+                    editor = inputFactory(this)
                 }
                 if (value) {
-                    editor.setValue(value.value)
+                    editor.setValue(value)
                 }
         }
             instance.appendChild(editor)

@@ -101,10 +101,10 @@ export class ShaclForm extends HTMLElement {
             elem.remove()
         }
 
-        const validator = new SHACLValidator(factory.dataset(this.config.shapesGraph), { factory })
         this.config.shapesGraph.deleteGraph("")
         this.config.shapesGraph.addQuads(this.toRDF())
-        const report = await validator.validate(factory.dataset(this.config.shapesGraph))
+        const dataset = factory.dataset(this.config.shapesGraph)
+        const report = await new SHACLValidator(dataset, { factory }).validate(dataset)
 
         // for (const result of report.results) {
         //     // See https://www.w3.org/TR/shacl/#results-validation-result for details

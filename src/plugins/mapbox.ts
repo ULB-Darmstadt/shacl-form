@@ -1,3 +1,4 @@
+import { DataFactory } from 'n3'
 import { InputText } from '../inputs'
 import { Plugin } from '../plugin'
 import { ShaclProperty } from '../property'
@@ -11,9 +12,9 @@ export class MapBoxPlugin extends Plugin {
     }
 
     createInstance(property: ShaclProperty, value?: string): InputText {
-        const instance = new InputText(property.quads, property.form.config)
+        const instance = new InputText(property)
         if (value) {
-            instance.setValue(value)
+            instance.setValue(DataFactory.literal(value))
         }
         const button = document.createElement('button')
         button.type = 'button'
