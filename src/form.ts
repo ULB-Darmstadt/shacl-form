@@ -119,18 +119,21 @@ export class ShaclForm extends HTMLElement {
 
         if (showHints) {
             for (const result of report.results) {
-                const invalidElement = this.querySelector(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
-                if (invalidElement) {
-                    const messageElement = document.createElement('pre')
-                    messageElement.classList.add('validation')
-                    if (result.message.length > 0) {
-                        for (const message of result.message) {
-                            messageElement.innerText += message + '\n'
+                // result.path can be null, e.g. if a focus node does not contain a required property node
+                if (result.path) {
+                    const invalidElement = this.querySelector(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
+                    if (invalidElement) {
+                        const messageElement = document.createElement('pre')
+                        messageElement.classList.add('validation')
+                        if (result.message.length > 0) {
+                            for (const message of result.message) {
+                                messageElement.innerText += message + '\n'
+                            }
+                        } else {
+                            messageElement.innerText += result.sourceConstraintComponent.value
                         }
-                    } else {
-                        messageElement.innerText += result.sourceConstraintComponent.value
+                        invalidElement.appendChild(messageElement)
                     }
-                    invalidElement.appendChild(messageElement)
                 }
             }
         }
