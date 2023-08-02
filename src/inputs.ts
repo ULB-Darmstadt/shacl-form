@@ -85,7 +85,6 @@ export class InputDate extends InputBase {
 }
 
 export class InputText extends InputBase {
-
     constructor(property: ShaclProperty) {
         super(property)
 
@@ -165,6 +164,31 @@ export class InputLangString extends InputText {
         chooser.placeholder = chooser.title
         chooser.classList.add('lang-chooser')
         return chooser
+    }
+}
+
+export class InputBoolean extends InputBase {
+    constructor(property: ShaclProperty) {
+        super(property)
+    }
+
+    createEditor(): Editor {
+        const input = document.createElement('input')
+        input.type = 'checkbox'
+        return input
+    }
+
+    setValue(value: Term) {
+        super.setValue(value)
+        if (value instanceof Literal) {
+            const checkbox = this.editor as HTMLInputElement
+            checkbox.checked = value.value === 'true'
+        }
+    }
+
+    toRDFObject(): Literal | undefined {
+        const checkbox = this.editor as HTMLInputElement
+        return DataFactory.literal(checkbox.checked ? 'true' : 'false', this.property.datatype)
     }
 }
 
@@ -271,7 +295,9 @@ export function inputFactory(property: ShaclProperty): InputBase {
         case 'date':
         case 'dateTime':
             return new InputDate(property)
-    }
+        case 'boolean':
+            return new InputBoolean(property)
+        }
 
     // check if it is a list
     if (property.shaclIn) {
@@ -294,4 +320,5 @@ window.customElements.define('input-langstring', InputLangString)
 window.customElements.define('input-date', InputDate)
 window.customElements.define('input-text', InputText)
 window.customElements.define('input-number', InputNumber)
+window.customElements.define('input-boolean', InputBoolean)
 window.customElements.define('input-list', InputList)

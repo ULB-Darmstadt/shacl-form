@@ -17,7 +17,7 @@ shacl-group h2 { font-size: 1rem; border-bottom: 1px solid; margin-top: 0; color
 .prop label { display: inline-block; word-break: break-word; width: 7em; line-height: 1em; padding-top: 0.15em; flex-shrink: 0; position: relative; }
 .prop label[title] { cursor: help; text-decoration: underline dashed #AAA; }
 .prop label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
-.prop .editor { flex-grow: 1; border: 1px solid #DDD; padding: 2px 4px; }
+.prop .editor:not([type='checkbox']) { flex-grow: 1; border: 1px solid #DDD; padding: 2px 4px; }
 .prop textarea.editor { resize: vertical; }
 input-langstring .lang-chooser { position: absolute; top: 1px; right: 0; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
 input-langstring.prop .editor { padding-right: 55px; }
