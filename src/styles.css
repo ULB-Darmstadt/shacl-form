@@ -19,8 +19,8 @@ shacl-group h2 { font-size: 1rem; border-bottom: 1px solid; margin-top: 0; color
 .prop label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
 .prop .editor { flex-grow: 1; border: 1px solid #DDD; padding: 2px 4px; }
 .prop textarea.editor { resize: vertical; }
-input-langstring .lang-chooser { position: absolute; top: 1px; right: 0; border: 0; background-color: #EEE; padding: 1px; max-width: 3em; }
-input-langstring.prop .editor { padding-right: 4em; }
+input-langstring .lang-chooser { position: absolute; top: 1px; right: 0; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
+input-langstring.prop .editor { padding-right: 55px; }
 .validation { align-self: flex-start; color: red; }
 
 shacl-form.bootstrap .prop label { padding-top: 0.7em; }
