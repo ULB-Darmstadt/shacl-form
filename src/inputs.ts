@@ -161,7 +161,7 @@ export class InputLangString extends InputText {
             chooser.maxLength = 5 // e.g. en-US
         }
         chooser.title = 'Language of the text'
-        chooser.placeholder = chooser.title
+        chooser.placeholder = 'lang?'
         chooser.classList.add('lang-chooser')
         return chooser
     }
@@ -179,7 +179,6 @@ export class InputBoolean extends InputBase {
     }
 
     setValue(value: Term) {
-        super.setValue(value)
         if (value instanceof Literal) {
             const checkbox = this.editor as HTMLInputElement
             checkbox.checked = value.value === 'true'
@@ -188,7 +187,10 @@ export class InputBoolean extends InputBase {
 
     toRDFObject(): Literal | undefined {
         const checkbox = this.editor as HTMLInputElement
-        return DataFactory.literal(checkbox.checked ? 'true' : 'false', this.property.datatype)
+        // emit 'false' only when required
+        if (checkbox.checked || this.required) {
+            return DataFactory.literal(checkbox.checked ? 'true' : 'false', this.property.datatype)
+        }
     }
 }
 
@@ -279,6 +281,19 @@ export class InputList extends InputBase {
 }
 
 export function inputFactory(property: ShaclProperty): InputBase {
+    // check if it is a list
+    if (property.shaclIn) {
+        const list = property.form.config.lists[property.shaclIn]
+        if (list) {
+            const inputList = new InputList(property)
+            inputList.setListEntries(list)
+            return inputList
+        }
+        else {
+            console.error('list not found:', property.shaclIn, 'existing lists:', property.form.config.lists)
+        }
+    }
+
     // check if it a langstring
     if  (property.datatype?.value === `${PREFIX_RDF}langString` || property.languageIn?.length) {
         return new InputLangString(property)
@@ -298,19 +313,6 @@ export function inputFactory(property: ShaclProperty): InputBase {
         case 'boolean':
             return new InputBoolean(property)
         }
-
-    // check if it is a list
-    if (property.shaclIn) {
-        const list = property.form.config.lists[property.shaclIn]
-        if (list) {
-            const inputList = new InputList(property)
-            inputList.setListEntries(list)
-            return inputList
-        }
-        else {
-            console.error('list not found:', property.shaclIn, 'existing lists:', property.form.config.lists)
-        }
-    }
 
     // nothing found, fallback to 'text'
     return new InputText(property)

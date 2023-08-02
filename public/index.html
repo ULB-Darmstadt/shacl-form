@@ -46,6 +46,7 @@
     <option value="./shapes4.ttl">Shape 4</option>
     <option value="./shapes5.ttl">Shape 5</option>
     <option value="./shapes6.ttl">Shape 6</option>
+    <option value="./shapes7.ttl">Shape 7</option>
   </select>
   <select id="shacl-data-input-chooser">
     <option value="./data1.ttl">Data 1</option>
@@ -54,6 +55,7 @@
     <option value="./data4.ttl">Data 4</option>
     <option value="./data5.ttl">Data 5</option>
     <option value="./data6.ttl">Data 6</option>
+    <option value="./data7.ttl">Data 7</option>
   </select>
   <div class="grid">
     <!-- <iframe src="./example1.html"></iframe> -->
@@ -61,10 +63,10 @@
     <textarea id="shacl-data-input"></textarea>
     <shacl-form id="shacl-form" class="bootstrap2"
       data-language="en"
-      data-shape-subject="http://purl.org/fidbau/elements/1.1/ArchitectureModelDataset"
-      data-value-subject="http://example.org/fidbau#4f2a8de3-9fc8-40a9-9237-d5964520ec54"
+      data-shape-subject2="http://purl.org/fidbau/elements/1.1/ArchitectureModelDataset"
+      data-value-subject2="http://example.org/fidbau#4f2a8de3-9fc8-40a9-9237-d5964520ec54"
     >
-      <button type="submit" class="btn btn-primary" onclick="save()">Submit</button>
+      <button type="submit" class="btn btn-primary" id="save-btn">Submit</button>
     </shacl-form>
   </div>
   <pre id="shacl-output"></pre>
@@ -110,11 +112,12 @@
     shapesChooser.dispatchEvent(new Event('change'))
     // loadMetadata('https://workbench-metadata.0pq.de/fid/sparql', '<https://doi.org/10.82319/3dh4-7935>')
 
-    function save() {
+    document.getElementById("save-btn").click(() => {
+      form.validate(true)
       if (form.reportValidity()) {
         console.log('--- data graph', form.toRDF())
       }
-    }
+    })
 
     function loadMetadata(endpoint, datasetID) {
       const table = document.querySelector('#metadataTable tbody')

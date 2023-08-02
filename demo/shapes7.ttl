@@ -1,0 +1,97 @@
+@prefix dash:    <http://datashapes.org/dash#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:      <http://example.org/> .
+
+
+ex:Demo  rdf:type     sh:NodeShape ;
+    sh:property [
+        sh:datatype     xsd:string ;
+        sh:maxCount     1 ;
+        sh:name         "simple string" ;
+        sh:path         ex:mySimpleString
+    ] ;
+    sh:property [
+        sh:datatype     xsd:string ;
+        sh:maxCount     1 ;
+        sh:name         "string with default" ;
+        sh:defaultValue "default value of string" ;
+        sh:path         ex:mySimpleStringWithDefault
+    ] ;
+    sh:property [
+        sh:datatype     xsd:string ;
+        dash:singleLine  false ;
+        sh:maxCount     1 ;
+        sh:name         "multiline string" ;
+        sh:path         ex:myMultilineString
+    ] ;
+    sh:property [
+        sh:datatype     xsd:date ;
+        sh:maxCount     1 ;
+        sh:name         "date" ;
+        sh:path         ex:myDate
+    ] ;
+    sh:property [
+        sh:datatype     xsd:dateTime ;
+        sh:maxCount     1 ;
+        sh:name         "dateTime" ;
+        sh:path         ex:myDateTime
+    ] ;
+    sh:property [
+        sh:datatype     xsd:boolean ;
+        sh:maxCount     1 ;
+        sh:name         "boolean" ;
+        sh:path         ex:myBoolean
+    ] ;
+    sh:property [
+        sh:maxCount     1 ;
+        sh:name         "list" ;
+        sh:path         ex:myList ;
+        sh:in ( "option 1" "option 2" "option 3" ) ;
+    ] ;
+    sh:property [
+        sh:datatype     xsd:decimal ;
+        sh:maxCount     1 ;
+        sh:name         "decimal" ;
+        sh:path         ex:myDecimal ;
+    ] ;
+    sh:property [
+        sh:datatype     xsd:integer ;
+        sh:maxCount     1 ;
+        sh:name         "integer" ;
+        sh:path         ex:myInteger ;
+    ] ;
+    sh:property [
+        sh:datatype     rdf:langString ;
+        sh:languageIn   ( "en" "de" ) ;
+        sh:maxCount     1 ;
+        sh:name         "langstring 1" ;
+        sh:description  "simple langstring with fixed languages" ;
+        sh:path         ex:myLangstring1
+    ] ;
+    sh:property [
+        sh:datatype     rdf:langString ;
+        sh:languageIn   ( "en" "de" ) ;
+        sh:maxCount     1 ;
+        sh:name         "langstring 2" ;
+        sh:description  "multiline langstring with fixed languages" ;
+        dash:singleLine  false ;
+        sh:path          ex:myLangstring2
+    ] ;
+    sh:property [
+        sh:datatype     rdf:langString ;
+        sh:maxCount     1 ;
+        sh:name         "langstring 3" ;
+        sh:description  "simple langstring with no fixed languages" ;
+        sh:path         ex:myLangstring3
+    ] ;
+    sh:property [
+        sh:datatype     rdf:langString ;
+        sh:maxCount     1 ;
+        sh:name         "langstring 4" ;
+        sh:description  "multiline langstring with no fixed languages" ;
+        dash:singleLine  false ;
+        sh:path         ex:myLangstring4
+    ] .

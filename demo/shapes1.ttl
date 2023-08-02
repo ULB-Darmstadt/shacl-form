@@ -83,25 +83,27 @@ fidbau:PhysicalPropertiesGroup
         rdf:type    sh:PropertyGroup ;
         rdfs:label  "Physical properties" .
 
-
 fidbau:Dataset  rdf:type     sh:NodeShape ;
         owl:imports          <https://w3id.org/nfdi4ing/metadata4ing/> ;
 
         dcterms:description  "FID-BAU base dataset with minimal metadata fields" ;
         dcterms:title        "Generic" ;
-        sh:property          [ sh:datatype     xsd:string ;
+        sh:property          [ sh:datatype      rdf:langString ;
+                               sh:languageIn    ( "en" "de" ) ;
+                               sh:uniqueLang    true ;
                                sh:description  "The name of the dataset" , "Der Name des Datensatzes"@de ;
-                               sh:maxCount     1 ;
                                sh:minCount     1 ;
+                               sh:maxCount     2 ;
                                sh:name         "Name" ;
                                sh:path         dcterms:title
                              ] ;
         sh:property          [ dash:singleLine  false ;
                                sh:datatype      rdf:langString ;
+                               sh:languageIn    ( "en" "de" ) ;
+                               sh:uniqueLang    true ;
                                sh:description   "Description of the dataset" ;
                                sh:minCount      1 ;
                                sh:maxCount      2 ;
-                               sh:languageIn    ( "de" "en" ) ;
                                sh:name          "Abstract" ;
                                sh:path          dcterms:description
                              ] ;
@@ -177,6 +179,27 @@ fidbau:Person  rdf:type  sh:NodeShape ;
                           sh:path      dcterms:identifier ;
                           sh:pattern   "^https://orcid.org/\\d{4}-\\d{4}-\\d{4}-\\d{4}$"
                         ] ;
+        #sh:or (
+        #  [
+        #    sh:path foaf:firstName ;
+        #    sh:minCount 1 ;
+        #  ]
+        #  [
+        #    sh:path foaf:givenName ;
+        #    sh:minCount 1 ;
+        #  ]
+        #) ;
+        #sh:property [
+        #  sh:path foaf:address ;
+        #  sh:or (
+        #    [
+        #      sh:datatype xsd:string ;
+        #    ]
+        #    [
+        #      sh:class foaf:Address ;
+        #    ]
+        #  )
+        #] ;
         sh:targetClass  foaf:Agent .
 
 fidbau:Attribution  rdf:type  sh:NodeShape ;
@@ -193,7 +216,6 @@ fidbau:Attribution  rdf:type  sh:NodeShape ;
                           sh:class     prov:Role
                         ] ;
         sh:targetClass  prov:Attribution .
-
 
 <http://creativecommons.org/licenses/by/4.0/> rdfs:label "CC-BY" .
 <http://creativecommons.org/licenses/by-nc/4.0/> rdfs:label "CC-BY-NC" .
