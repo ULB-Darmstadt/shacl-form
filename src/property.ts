@@ -99,9 +99,17 @@ export class ShaclProperty extends HTMLElement {
         });
         this.appendChild(this.addButton)
 
+        const hasValue = findObjectByPredicate(this.quads, 'hasValue')
         const values = valueSubject ? form.config.dataGraph.getQuads(valueSubject, this.path, null, null) : []
+        let valuesContainHasValue = false
         for (const value of values) {
             this.createPropertyInstance(value.object)
+            if (hasValue && value.object.equals(hasValue)) {
+                valuesContainHasValue = true
+            }
+        }
+        if (hasValue && !valuesContainHasValue) {
+            this.createPropertyInstance(hasValue)
         }
 
         this.updateControls()
