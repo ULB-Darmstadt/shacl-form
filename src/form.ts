@@ -8,6 +8,7 @@ import SHACLValidator from 'rdf-validate-shacl'
 import factory from 'rdf-ext'
 import './styles.css'
 import { Loader } from './loader'
+import { Editor } from './inputs'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.keysAsDataAttributes }
@@ -25,7 +26,7 @@ export class ShaclForm extends HTMLElement {
         this.form.appendChild(document.createElement('slot'))
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
-            this.validate().then(valid => {
+            this.validate(true).then(valid => {
                 this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': valid } }))
             })
         })
@@ -96,9 +97,12 @@ export class ShaclForm extends HTMLElement {
         return this.form.reportValidity()
     }
 
-    public async validate(showHints = false): Promise<boolean> {
-        for (const elem of this.querySelectorAll(':scope .validation')) {
+    public async validate(showHints = false, showHintsForEmptyValues = false): Promise<boolean> {
+        for (const elem of this.querySelectorAll(':scope .validation-error')) {
             elem.remove()
+        }
+        for (const elem of this.querySelectorAll(':scope .invalid')) {
+            elem.classList.remove('invalid')
         }
 
         this.config.shapesGraph.deleteGraph("")
@@ -121,18 +125,22 @@ export class ShaclForm extends HTMLElement {
             for (const result of report.results) {
                 // result.path can be null, e.g. if a focus node does not contain a required property node
                 if (result.path) {
-                    const invalidElement = this.querySelector(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
+                    const invalidElement = this.querySelector(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`) as Editor
                     if (invalidElement) {
-                        const messageElement = document.createElement('pre')
-                        messageElement.classList.add('validation')
-                        if (result.message.length > 0) {
-                            for (const message of result.message) {
-                                messageElement.innerText += message + '\n'
+                        if (invalidElement.value || showHintsForEmptyValues) {
+                            invalidElement.classList.add('invalid')
+                            const messageElement = document.createElement('span')
+                            messageElement.classList.add('validation-error')
+                            messageElement.innerHTML = '&#9888;'
+                            if (result.message.length > 0) {
+                                for (const message of result.message) {
+                                    messageElement.title += message + '\n'
+                                }
+                            } else {
+                                messageElement.title += result.sourceConstraintComponent.value
                             }
-                        } else {
-                            messageElement.innerText += result.sourceConstraintComponent.value
+                            invalidElement.parentNode?.appendChild(messageElement)
                         }
-                        invalidElement.parentNode?.insertBefore(messageElement, invalidElement.nextSibling)
                     }
                 }
             }

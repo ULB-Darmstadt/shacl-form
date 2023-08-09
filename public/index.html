@@ -47,6 +47,7 @@
     <option value="./shapes5.ttl">Shape 5</option>
     <option value="./shapes6.ttl">Shape 6</option>
     <option value="./shapes7.ttl">Shape 7</option>
+    <option value="./Organization.shacl.ttl">Shape 8</option>
   </select>
   <select id="shacl-data-input-chooser">
     <option value="./data1.ttl">Data 1</option>
@@ -77,6 +78,7 @@
 
     const form = document.getElementById("shacl-form")
     form.registerPlugin(new MapBoxPlugin('http://www.opengis.net/ont/geosparql#asWKT', 'my-api-key'))
+    //form.registerPlugin(new FixedListPlugin('http://purl.org/dc/terms/license', [{ value: "11" }, { value: "22" }]))
     
     const shapes = document.getElementById("shacl-shape-input")
     const data = document.getElementById("shacl-data-input")
@@ -106,17 +108,17 @@
     form.addEventListener('change', function (ev) {
       output.classList.toggle('valid', ev.detail?.valid)
       output.innerText = form.toRDFTurtle()
-
-      form.validate(true)
     })
     shapesChooser.dispatchEvent(new Event('change'))
     // loadMetadata('https://workbench-metadata.0pq.de/fid/sparql', '<https://doi.org/10.82319/3dh4-7935>')
 
-    document.getElementById("save-btn").click(() => {
-      form.validate(true)
-      if (form.reportValidity()) {
-        console.log('--- data graph', form.toRDF())
-      }
+    document.getElementById("save-btn").addEventListener("click", () => {
+      form.reportValidity()
+      form.validate(true, true).then(conforms => {
+        if (conforms) {
+          console.log('--- data graph', form.toRDF())
+        }
+      })
     })
 
     function loadMetadata(endpoint, datasetID) {
