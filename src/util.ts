@@ -1,5 +1,7 @@
-import { Quad, Quad_Object } from 'n3'
+import { Quad, Store } from 'n3'
 import { KNOWN_PREFIXES, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS } from './constants'
+import { Term } from '@rdfjs/types'
+import { InputListEntry } from './inputs'
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string | null): string {
     let result = ''
@@ -10,8 +12,8 @@ export function findObjectValueByPredicate(quads: Quad[], predicate: string, pre
     return result
 }
 
-export function findObjectByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string | null): Quad_Object | undefined {
-    let candidate: Quad_Object | undefined
+export function findObjectByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string | null): Term | undefined {
+    let candidate: Term | undefined
     const prefixedPredicate = prefix + predicate
     for (const quad of quads) {
         if (quad.predicate.value === prefixedPredicate) {
@@ -43,6 +45,14 @@ export function findLabel(quads: Quad[], language?: string | null): string {
         return label
     }
     return findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, language)
+}
+
+export function createInputListEntries(subjects: Term[], shapesGraph: Store, language?: string | null): InputListEntry[] {
+    const entries: InputListEntry[] = []
+    for (const subject of subjects) {
+        entries.push({ value: subject, label: findLabel(shapesGraph.getQuads(subject, null, null, null), language) })
+    }
+    return entries
 }
 
 export function removeKnownPrefixes(id: string): string {

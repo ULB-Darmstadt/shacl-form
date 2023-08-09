@@ -1,7 +1,7 @@
 import { DataFactory, NamedNode, Literal } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, PREFIX_XSD, SHAPES_GRAPH, PREFIX_RDF } from './constants'
-import { findLabel } from './util'
+import { PREFIX_SHACL, PREFIX_XSD, PREFIX_RDF } from './constants'
+import { createInputListEntries } from './util'
 import { ShaclPropertySpec } from './property-spec'
 
 export type Editor = HTMLElement & { value: string }
@@ -27,12 +27,12 @@ export abstract class InputBase extends HTMLElement {
 
         const label = document.createElement('label')
         label.htmlFor = this.editor.id
-        label.innerText = property.name
+        label.innerText = property.label
         if (property.description) {
-            label.setAttribute('title', property.description)
+            label.setAttribute('title', property.description.value)
         }
 
-        const placeholder = property.description ? property.description : property.pattern ? property.pattern : null
+        const placeholder = property.description ? property.description.value : property.pattern ? property.pattern : null
         if (placeholder) {
             this.editor.setAttribute('placeholder', placeholder)
         }
@@ -223,10 +223,7 @@ export class InputNumber extends InputBase {
     }
 }
 
-export type InputListEntry = Term | { value: string, label?: string }
-const isTerm = (o: any): o is Term => {
-    return o && typeof o.termType === "string";
-}
+export type InputListEntry = { value: Term, label?: string }
 
 export class InputList extends InputBase {
     constructor(property: ShaclPropertySpec, listEntries?: InputListEntry[]) {
@@ -245,19 +242,9 @@ export class InputList extends InputBase {
             select.options.add(option)
         }
         for (const item of list) {
-            let label: string | null = null
-            if (isTerm(item)) {
-                if (item.termType === "NamedNode") {
-                    label = findLabel(this.property.config.shapesGraph.getQuads(item, null, null, SHAPES_GRAPH), this.property.config.language)
-                }
-            } else {
-                label = item.label ? item.label : null
-            }
             const option = document.createElement('option')
-            option.innerHTML = label ? label : item.value.toString()
-            if (label && item.value) {
-                option.value = item.value.toString()
-            }
+            option.innerHTML = item.label ? item.label : item.value.value
+            option.value = item.value.value
             select.options.add(option)
         }
     }
@@ -281,8 +268,8 @@ export function inputFactory(property: ShaclPropertySpec): InputBase {
     // check if it is a list
     if (property.shaclIn) {
         const list = property.config.lists[property.shaclIn]
-        if (list) {
-            return new InputList(property, list)
+        if (list?.length) {
+            return new InputList(property, createInputListEntries(list, property.config.shapesGraph, property.config.language))
         }
         else {
             console.error('list not found:', property.shaclIn, 'existing lists:', property.config.lists)

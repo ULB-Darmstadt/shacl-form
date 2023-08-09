@@ -1,8 +1,8 @@
-import { BlankNode, NamedNode, Quad, Store } from 'n3'
+import { BlankNode, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { inputFactory, InputBase, InputList } from './inputs'
-import { focusFirstInputElement } from './util'
+import { createInputListEntries, focusFirstInputElement } from './util'
 import { SHAPES_GRAPH } from './constants'
 import { ShaclOrConstraint } from './constraints'
 import { Config } from './config'
@@ -11,14 +11,11 @@ import { ShaclPropertySpec } from './property-spec'
 export class ShaclProperty extends HTMLElement {
     spec: ShaclPropertySpec
     addButton: HTMLElement
-    valueSubject: NamedNode | BlankNode | undefined
 
     constructor(shaclSubject: BlankNode | NamedNode, config: Config, valueSubject?: NamedNode | BlankNode) {
         super()
 
-        const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
-        this.spec = new ShaclPropertySpec(quads, config)
-        this.valueSubject = valueSubject
+        this.spec = new ShaclPropertySpec(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), config)
 
         if (this.spec.order) {
             this.style.order = this.spec.order
@@ -26,8 +23,8 @@ export class ShaclProperty extends HTMLElement {
 
         this.addButton = document.createElement('a')
         this.appendChild(this.addButton)
-        this.addButton.innerText = this.spec.name
-        this.addButton.title = 'Add ' + this.spec.name
+        this.addButton.innerText = this.spec.label
+        this.addButton.title = 'Add ' + this.spec.label
         this.addButton.classList.add('control-button', 'add-button')
         this.addButton.addEventListener('click', _ => {
             const instance = this.createPropertyInstance()
@@ -37,7 +34,7 @@ export class ShaclProperty extends HTMLElement {
 
         // bind existing values
         if (this.spec.path) {
-            const values = this.valueSubject ? config.dataGraph.getQuads(this.valueSubject, this.spec.path, null, null) : []
+            const values = valueSubject ? config.dataGraph.getQuads(valueSubject, this.spec.path, null, null) : []
             let valuesContainHasValue = false
             for (const value of values) {
                 this.createPropertyInstance(value.object)
@@ -108,17 +105,21 @@ export class ShaclPropertyInstance extends HTMLElement {
 
         this.spec = spec
 
-        if (this.spec.node) {
-            this.appendChild(new ShaclNode(this.spec.node, this.spec.config, this, value as NamedNode | BlankNode | undefined))
+        if (spec.node) {
+            this.appendChild(new ShaclNode(spec.node, spec.config, this, value as NamedNode | BlankNode | undefined))
         } else {
             let editor: InputBase
-            const plugin = this.spec.path ? this.spec.config.plugins[this.spec.path] : undefined
+            const plugin = spec.path ? spec.config.plugins[spec.path] : undefined
             if (plugin) {
-                editor = plugin.createInstance(this.spec, value?.value)
-            }
-            else {
+                editor = plugin.createInstance(spec, value?.value)
+            } else {
                 // if we have class instances, use these as list values
-                editor = this.spec.classInstances?.length ? new InputList(this.spec, this.spec.classInstances) : inputFactory(this.spec)
+                if (spec.classInstances?.length) {
+                    editor = new InputList(spec, createInputListEntries(spec.classInstances, spec.config.shapesGraph, spec.config.language))
+                    
+                } else {
+                    editor =  inputFactory(spec)
+                }
                 if (value) {
                     editor.setValue(value)
                 }
@@ -133,7 +134,7 @@ export class ShaclPropertyInstance extends HTMLElement {
         if (forceRemovable) {
             removeButton.classList.add('persistent')
         }
-        removeButton.title = 'Remove ' + this.spec.name
+        removeButton.title = 'Remove ' + spec.label
         removeButton.addEventListener('click', _ => {
             const parent = this.parentElement
             this.remove()

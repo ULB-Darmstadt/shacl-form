@@ -2,7 +2,6 @@ import { BlankNode, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, PREFIX_RDF, SHAPES_GRAPH } from './constants'
 import { ShaclProperty, ShaclPropertyInstance } from './property'
-import { findLabel } from './util'
 import { ShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
 import { ShaclOrConstraint } from './constraints'
@@ -79,7 +78,7 @@ export class ShaclNode extends HTMLElement {
 
         if (parent instanceof ShaclPropertyInstance) {
             const header = document.createElement('h1')
-            header.innerText = parent.spec.name || findLabel(quads, config.language) || this.targetClass?.value || shaclSubject.value
+            header.innerText = parent.spec.label
             this.prepend(header)
         }
     }

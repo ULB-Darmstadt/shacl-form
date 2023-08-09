@@ -3,11 +3,10 @@ import { Term } from '@rdfjs/types'
 import { PREFIX_DASH, PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { findLabel } from './util'
-import { InputListEntry } from './inputs'
 
 const mappers: Record<string, (spec: ShaclPropertySpec, term: Term) => void> = {
-    [`${PREFIX_SHACL}name`]:         (spec, term) => { if (!spec.names) {spec.names = []}; spec.names.push(term as Literal) },
-    [`${PREFIX_SHACL}description`]:  (spec, term) => { if (!spec.descriptions) {spec.descriptions = []}; spec.descriptions.push(term as Literal) },
+    [`${PREFIX_SHACL}name`]:         (spec, term) => { const literal = term as Literal; if (!spec.name || (spec.config.language && literal.language === spec.config.language)) { spec.name = literal } },
+    [`${PREFIX_SHACL}description`]:  (spec, term) => { const literal = term as Literal; if (!spec.description || (spec.config.language && literal.language === spec.config.language)) { spec.description = literal } },
     [`${PREFIX_SHACL}path`]:         (spec, term) => { spec.path = term.value },
     [`${PREFIX_SHACL}node`]:         (spec, term) => { spec.node = term as NamedNode },
     [`${PREFIX_SHACL}datatype`]:     (spec, term) => { spec.datatype = term as NamedNode },
@@ -25,27 +24,20 @@ const mappers: Record<string, (spec: ShaclPropertySpec, term: Term) => void> = {
     [`${PREFIX_DASH}singleLine`]:    (spec, term) => { spec.singleLine = term.value === 'true' },
     [`${PREFIX_SHACL}in`]:           (spec, term) => { spec.shaclIn = term.value },
     [`${PREFIX_SHACL}languageIn`]:   (spec, term) => { spec.languageIn = spec.config.lists[term.value] },
-    [`${PREFIX_SHACL}defaultValue`]:     (spec, term) => { spec.defaultValue = term },
+    [`${PREFIX_SHACL}defaultValue`]: (spec, term) => { spec.defaultValue = term },
     [`${PREFIX_SHACL}hasValue`]:     (spec, term) => { spec.hasValue = term },
     [`${PREFIX_SHACL}class`]:        (spec, term) => {
         spec.class = term as NamedNode
-        // try to find node shape that has requested target class.
-        const nodeShapes = spec.config.shapesGraph.getQuads(null, `${PREFIX_SHACL}targetClass`, term, SHAPES_GRAPH)
+        // try to find node shape that has requested target class
+        const nodeShapes = spec.config.shapesGraph.getSubjects(`${PREFIX_SHACL}targetClass`, term, SHAPES_GRAPH)
         if (nodeShapes.length > 0) {
-            spec.node = nodeShapes[0].subject as NamedNode
+            spec.node = nodeShapes[0] as NamedNode
         }
         else {
             // try to resolve class instances from loaded ontologies
-            const ontologyInstances = spec.config.shapesGraph.getQuads(null, `${PREFIX_RDF}type`, term, null)
+            const ontologyInstances = spec.classInstances = spec.config.shapesGraph.getSubjects(`${PREFIX_RDF}type`, term, null)
             if (ontologyInstances.length) {
-                spec.classInstances = []
-                for (const ontologyInstance of ontologyInstances) {
-                    const ontologyInstanceQuads = spec.config.shapesGraph.getQuads(ontologyInstance.subject, null, null, null)
-                    spec.classInstances.push({
-                        value: ontologyInstance.subject.value,
-                        label: findLabel(ontologyInstanceQuads, spec.config.language)
-                    })
-                }
+                spec.classInstances = ontologyInstances
             } else {
                 console.warn('class', spec.class.value, 'has no instances in the shapes graph. the generated RDF triples will not validate.')
             }
@@ -62,11 +54,10 @@ const mappers: Record<string, (spec: ShaclPropertySpec, term: Term) => void> = {
 }
 
 export class ShaclPropertySpec  {
-    name: string
-    description: string | undefined
-    names: Literal[] | undefined
-    descriptions: Literal[] | undefined
-    classInstances: Array<InputListEntry> | undefined
+    label: string
+    name: Literal | undefined
+    description: Literal | undefined
+    classInstances: Term[] | undefined
     path: string | undefined
     node: NamedNode | undefined
     class: NamedNode | undefined
@@ -93,40 +84,31 @@ export class ShaclPropertySpec  {
 
     constructor(quads: Quad[], config: Config) {
         this.config = config
-        mergeQuads(this, quads)
+        this.merge(quads)
 
-        let name = findLangstring(this.names, config.language)
-        if (!name) {
-            name = findLabel(quads, config.language)
+        // provide best fitting label for UI
+        this.label = this.name?.value || ''
+        if (!this.label) {
+            this.label = findLabel(quads, config.language)
         }
-        if (!name) {
-            name = this.path
+        if (!this.label) {
+            this.label = this.path || ''
         }
-        if (!name) {
-            name = 'unknown'
-        }
-        this.name = name
-
-        this.description = findLangstring(this.descriptions, config.language)
-    }
-}
-
-export function mergeQuads(spec: ShaclPropertySpec, quads: Quad[]) {
-    for (const quad of quads) {
-        mappers[quad.predicate.id]?.call(spec, spec, quad.object)
-    }
-}
-
-function findLangstring(options: Literal[] | undefined, language: string | null): string | undefined {
-    if (!options?.length) {
-        return
-    }
-    if (language) {
-        for (const literal of options) {
-            if (literal.language === language) {
-                return literal.value
-            }
+        if (!this.label) {
+            this.label = 'unknown'
         }
     }
-    return options[0].value
+
+    merge(quads: Quad[]): ShaclPropertySpec {
+        for (const quad of quads) {
+            mappers[quad.predicate.id]?.call(this, this, quad.object)
+        }
+        return this
+    }
+
+    cloneAndMerge(quads: Quad[]): ShaclPropertySpec {
+        const clone = Object.assign({}, this)
+        clone.merge = this.merge
+        return clone.merge(quads)
+    }
 }
