@@ -1,16 +1,17 @@
 import { Plugin } from '../plugin'
-import { ShaclProperty } from '../property'
+import { ShaclPropertySpec } from '../property-spec'
 import { InputList, InputListEntry } from '../inputs'
 import { DataFactory } from 'n3'
 
 export class FixedListPlugin extends Plugin {
     entries: InputListEntry[] | Promise<InputListEntry[]>
+    
     constructor(predicate: string, entries: InputListEntry[] | Promise<InputListEntry[]>) {
         super(predicate)
         this.entries = entries
     }
 
-    createInstance(property: ShaclProperty, value?: string): InputList {
+    createInstance(property: ShaclPropertySpec, value?: string): InputList {
         const instance = new InputList(property)
         if (this.entries instanceof Promise) {
             this.entries.then(entries => {

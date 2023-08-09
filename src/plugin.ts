@@ -1,4 +1,4 @@
-import { ShaclProperty } from './property'
+import { ShaclPropertySpec } from './property-spec'
 import { InputBase } from './inputs'
 
 export type Plugins = {
@@ -12,5 +12,5 @@ export abstract class Plugin {
         this.predicate = predicate
     }
 
-    abstract createInstance(property: ShaclProperty, value?: string): InputBase
+    abstract createInstance(property: ShaclPropertySpec, value?: string): InputBase
 }

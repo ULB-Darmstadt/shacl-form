@@ -1,33 +1,33 @@
 import { DataFactory, NamedNode, Literal } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, PREFIX_XSD, PREFIX_DASH, SHAPES_GRAPH, PREFIX_RDF } from './constants'
-import { findObjectValueByPredicate, findLabel } from './util'
-import { ShaclProperty } from './property'
+import { PREFIX_SHACL, PREFIX_XSD, SHAPES_GRAPH, PREFIX_RDF } from './constants'
+import { findLabel } from './util'
+import { ShaclPropertySpec } from './property-spec'
 
 export type Editor = HTMLElement & { value: string }
 
 export abstract class InputBase extends HTMLElement {
     static idCtr = 0
-    property: ShaclProperty
+    property: ShaclPropertySpec
     editor: Editor
     required = false
 
-    constructor(property: ShaclProperty) {
+    constructor(property: ShaclPropertySpec) {
         super()
 
         this.property = property
-        this.required = this.property.minCount > 0
+        this.required = this.property.minCount !== undefined && this.property.minCount > 0
 
         this.editor = this.createEditor()
         this.editor.id = `e${InputBase.idCtr++}`
-        this.editor.setAttribute('value', property.defaultValue ? property.defaultValue : '')
+        this.editor.setAttribute('value', property.defaultValue ? property.defaultValue.value : '')
         this.editor.classList.add('editor', 'form-control')
         // add path to editor to provide a hook to external apps
         this.editor.dataset.path = this.property.path
 
         const label = document.createElement('label')
         label.htmlFor = this.editor.id
-        label.innerText = property.name || property.path
+        label.innerText = property.name || property.path || 'unknown'
         if (property.description) {
             label.setAttribute('title', property.description)
         }
@@ -85,23 +85,21 @@ export class InputDate extends InputBase {
 }
 
 export class InputText extends InputBase {
-    constructor(property: ShaclProperty) {
+    constructor(property: ShaclPropertySpec) {
         super(property)
 
         const input = this.editor as HTMLInputElement
-        const minLength = findObjectValueByPredicate(this.property.quads, 'minLength')
-        if (minLength) {
-            input.minLength = parseInt(minLength)
+        if (property.minLength) {
+            input.minLength = property.minLength
         }
-        const maxLength = findObjectValueByPredicate(this.property.quads, 'maxLength')
-        if (maxLength) {
-            input.maxLength = parseInt(maxLength)
+        if (property.maxLength) {
+            input.maxLength = property.maxLength
         }
     }
 
     createEditor(): Editor {
         let input
-        if (findObjectValueByPredicate(this.property.quads, 'singleLine', PREFIX_DASH) === 'false') {
+        if (this.property.singleLine === false) {
             input = document.createElement('textarea')
             input.rows = 5
             // input.oninput = function () { this.parentNode.dataset.replicatedValue = this.value }
@@ -128,7 +126,7 @@ export class InputLangString extends InputText {
     language: string | undefined
     langChooser: HTMLInputElement | HTMLSelectElement
 
-    constructor(property: ShaclProperty) {
+    constructor(property: ShaclPropertySpec) {
         super(property)
         this.langChooser = this.createLangChooser()
         this.appendChild(this.langChooser)
@@ -168,7 +166,7 @@ export class InputLangString extends InputText {
 }
 
 export class InputBoolean extends InputBase {
-    constructor(property: ShaclProperty) {
+    constructor(property: ShaclPropertySpec) {
         super(property)
     }
 
@@ -195,21 +193,17 @@ export class InputBoolean extends InputBase {
 }
 
 export class InputNumber extends InputBase {
-    constructor(property: ShaclProperty) {
+    constructor(property: ShaclPropertySpec) {
         super(property)
 
         const input = this.editor as HTMLInputElement
-        const minExclusive = findObjectValueByPredicate(property.quads, 'minExclusive')
-        const minInclusive = findObjectValueByPredicate(property.quads, 'minInclusive')
-        const min = minInclusive ? minInclusive : minExclusive ? String(parseFloat(minExclusive) + 1) : undefined
-        const maxExclusive = findObjectValueByPredicate(property.quads, 'maxExclusive')
-        const maxInclusive = findObjectValueByPredicate(property.quads, 'maxInclusive')
-        const max = maxInclusive ? maxInclusive : maxExclusive ? String(parseFloat(maxExclusive) - 1) : undefined
+        const min = property.minInclusive ? property.minInclusive : property.minExclusive ? property.minExclusive + 1 : undefined
+        const max = property.maxInclusive ? property.maxInclusive : property.maxExclusive ? property.maxExclusive - 1 : undefined
         if (min) {
-            input.min = min
+            input.min = String(min)
         }
         if (max) {
-            input.max = max
+            input.max = String(max)
         }
         if (property.datatype?.value !== PREFIX_XSD + 'integer') {
             input.step = '0.1'
@@ -235,13 +229,16 @@ const isTerm = (o: any): o is Term => {
 }
 
 export class InputList extends InputBase {
-    constructor(property: ShaclProperty) {
+    constructor(property: ShaclPropertySpec, listEntries?: InputListEntry[]) {
         super(property)
+        if (listEntries) {
+            this.setListEntries(listEntries)
+        }
     }
 
     setListEntries(list: InputListEntry[]) {
         const select = this.editor as HTMLSelectElement
-        if (!this.required || this.property.form.config.addEmptyElementToLists !== undefined) {
+        if (!this.required || this.property.config.addEmptyElementToLists !== undefined) {
             const option = document.createElement('option')
             option.value = ''
             //option.hidden = true
@@ -251,7 +248,7 @@ export class InputList extends InputBase {
             let label: string | null = null
             if (isTerm(item)) {
                 if (item.termType === "NamedNode") {
-                    label = findLabel(this.property.form.config.shapesGraph.getQuads(item, null, null, SHAPES_GRAPH), this.property.form.config.language)
+                    label = findLabel(this.property.config.shapesGraph.getQuads(item, null, null, SHAPES_GRAPH), this.property.config.language)
                 }
             } else {
                 label = item.label ? item.label : null
@@ -280,17 +277,15 @@ export class InputList extends InputBase {
     }
 }
 
-export function inputFactory(property: ShaclProperty): InputBase {
+export function inputFactory(property: ShaclPropertySpec): InputBase {
     // check if it is a list
     if (property.shaclIn) {
-        const list = property.form.config.lists[property.shaclIn]
+        const list = property.config.lists[property.shaclIn]
         if (list) {
-            const inputList = new InputList(property)
-            inputList.setListEntries(list)
-            return inputList
+            return new InputList(property, list)
         }
         else {
-            console.error('list not found:', property.shaclIn, 'existing lists:', property.form.config.lists)
+            console.error('list not found:', property.shaclIn, 'existing lists:', property.config.lists)
         }
     }
 

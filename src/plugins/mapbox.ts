@@ -1,7 +1,7 @@
 import { DataFactory } from 'n3'
 import { InputText } from '../inputs'
 import { Plugin } from '../plugin'
-import { ShaclProperty } from '../property'
+import { ShaclPropertySpec } from '../property-spec'
 
 export class MapBoxPlugin extends Plugin {
     apiKey: string
@@ -11,7 +11,7 @@ export class MapBoxPlugin extends Plugin {
         this.apiKey = apiKey
     }
 
-    createInstance(property: ShaclProperty, value?: string): InputText {
+    createInstance(property: ShaclPropertySpec, value?: string): InputText {
         const instance = new InputText(property)
         if (value) {
             instance.setValue(DataFactory.literal(value))

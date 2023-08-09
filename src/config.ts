@@ -2,6 +2,7 @@ import { Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { DefaultTheme, Theme } from './theme'
 import { PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
+import { Plugins } from './plugin'
 
 export class Config {
     shapes: string | null = null
@@ -19,6 +20,7 @@ export class Config {
     private _groups: Array<string> = []
     private _shapesGraph: Store = new Store()
     private _dataGraph: Store = new Store()
+    private _plugins: Plugins = {}
 
     equals(other: Config): boolean {
         if (!other) {
@@ -63,6 +65,14 @@ export class Config {
 
     set theme(theme: Theme) {
         this._theme = theme
+    }
+
+    get plugins() {
+        return this._plugins
+    }
+
+    set plugins(plugins: Plugins) {
+        this._plugins = plugins
     }
 
     static from(elem: HTMLElement): Config {

@@ -1,7 +1,7 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
-import { Plugin, Plugins } from './plugin'
-import { Writer, Quad, Store, DataFactory, NamedNode } from 'n3'
+import { Plugin } from './plugin'
+import { Writer, Quad, Store, NamedNode } from 'n3'
 import { DEFAULT_PREFIXES, PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
 import { focusFirstInputElement } from './util'
 import SHACLValidator from 'rdf-validate-shacl'
@@ -16,7 +16,6 @@ export class ShaclForm extends HTMLElement {
     loader: Loader = new Loader(this)
     shape: ShaclNode | null = null
     form: HTMLFormElement
-    plugins: Plugins = {}
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 
     constructor() {
@@ -39,6 +38,7 @@ export class ShaclForm extends HTMLElement {
     attributeChangedCallback() {
         const newConfig = Config.from(this)
         if (!newConfig.equals(this.config)) {
+            newConfig.plugins = this.config.plugins
             this.config = newConfig
             this.initialize()
         }
@@ -55,14 +55,14 @@ export class ShaclForm extends HTMLElement {
                 // find root shacl shape
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
                 if (rootShapeShaclSubject) {
-                    this.shape = new ShaclNode(this, rootShapeShaclSubject, undefined, this.config.valueSubject ? new NamedNode(this.config.valueSubject) : undefined)
+                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, undefined, this.config.valueSubject ? new NamedNode(this.config.valueSubject) : undefined)
                     this.form.prepend(this.shape)
                     focusFirstInputElement(this.shape)
                 }
             }).catch(e => {
-                console.log(e)
-                if (this.form.contains(this.shape)) {
-                    this.form.removeChild(this.shape as ShaclNode)
+                console.error(e)
+                if (this.shape && this.form.contains(this.shape)) {
+                    this.form.removeChild(this.shape)
                 }
             })
         }, 50)
@@ -88,7 +88,7 @@ export class ShaclForm extends HTMLElement {
     }
 
     public registerPlugin(plugin: Plugin) {
-        this.plugins[plugin.predicate] = plugin
+        this.config.plugins[plugin.predicate] = plugin
         this.initialize()
     }
 
@@ -102,7 +102,7 @@ export class ShaclForm extends HTMLElement {
         }
 
         this.config.shapesGraph.deleteGraph("")
-        this.config.shapesGraph.addQuads(this.toRDF())
+        this.shape?.toRDF(this.config.shapesGraph)
         const dataset = factory.dataset(this.config.shapesGraph)
         const report = await new SHACLValidator(dataset, { factory }).validate(dataset)
 
@@ -132,7 +132,7 @@ export class ShaclForm extends HTMLElement {
                         } else {
                             messageElement.innerText += result.sourceConstraintComponent.value
                         }
-                        invalidElement.appendChild(messageElement)
+                        invalidElement.parentNode?.insertBefore(messageElement, invalidElement.nextSibling)
                     }
                 }
             }
