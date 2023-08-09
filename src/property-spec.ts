@@ -1,4 +1,4 @@
-import { NamedNode, Quad } from 'n3'
+import { Literal, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_DASH, PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
@@ -6,10 +6,12 @@ import { findLabel } from './util'
 import { InputListEntry } from './inputs'
 
 const mappers: Record<string, (spec: ShaclPropertySpec, term: Term) => void> = {
+    [`${PREFIX_SHACL}name`]:         (spec, term) => { if (!spec.names) {spec.names = []}; spec.names.push(term as Literal) },
+    [`${PREFIX_SHACL}description`]:  (spec, term) => { if (!spec.descriptions) {spec.descriptions = []}; spec.descriptions.push(term as Literal) },
     [`${PREFIX_SHACL}path`]:         (spec, term) => { spec.path = term.value },
+    [`${PREFIX_SHACL}node`]:         (spec, term) => { spec.node = term as NamedNode },
     [`${PREFIX_SHACL}datatype`]:     (spec, term) => { spec.datatype = term as NamedNode },
     [`${PREFIX_SHACL}nodeKind`]:     (spec, term) => { spec.nodeKind = term as NamedNode },
-    [`${PREFIX_SHACL}node`]:         (spec, term) => { spec.node = term as NamedNode },
     [`${PREFIX_SHACL}minCount`]:     (spec, term) => { spec.minCount = parseInt(term.value) },
     [`${PREFIX_SHACL}maxCount`]:     (spec, term) => { spec.maxCount = parseInt(term.value) },
     [`${PREFIX_SHACL}minLength`]:    (spec, term) => { spec.minLength = parseInt(term.value) },
@@ -23,6 +25,7 @@ const mappers: Record<string, (spec: ShaclPropertySpec, term: Term) => void> = {
     [`${PREFIX_DASH}singleLine`]:    (spec, term) => { spec.singleLine = term.value === 'true' },
     [`${PREFIX_SHACL}in`]:           (spec, term) => { spec.shaclIn = term.value },
     [`${PREFIX_SHACL}languageIn`]:   (spec, term) => { spec.languageIn = spec.config.lists[term.value] },
+    [`${PREFIX_SHACL}defaultValue`]:     (spec, term) => { spec.defaultValue = term },
     [`${PREFIX_SHACL}hasValue`]:     (spec, term) => { spec.hasValue = term },
     [`${PREFIX_SHACL}class`]:        (spec, term) => {
         spec.class = term as NamedNode
@@ -58,42 +61,15 @@ const mappers: Record<string, (spec: ShaclPropertySpec, term: Term) => void> = {
     }
 }
 
-const unmappers: Record<string, (spec: ShaclPropertySpec) => void> = {
-    [`${PREFIX_SHACL}path`]:         (spec) => { delete spec.path },
-    [`${PREFIX_SHACL}datatype`]:     (spec) => { delete spec.datatype },
-    [`${PREFIX_SHACL}nodeKind`]:     (spec) => { delete spec.nodeKind },
-    [`${PREFIX_SHACL}node`]:         (spec) => { delete spec.node },
-    [`${PREFIX_SHACL}minCount`]:     (spec) => { delete spec.minCount },
-    [`${PREFIX_SHACL}maxCount`]:     (spec) => { delete spec.maxCount },
-    [`${PREFIX_SHACL}minLength`]:    (spec) => { delete spec.minLength },
-    [`${PREFIX_SHACL}maxLength`]:    (spec) => { delete spec.maxLength },
-    [`${PREFIX_SHACL}minInclusive`]: (spec) => { delete spec.minInclusive },
-    [`${PREFIX_SHACL}maxInclusive`]: (spec) => { delete spec.maxInclusive },
-    [`${PREFIX_SHACL}minExclusive`]: (spec) => { delete spec.minExclusive },
-    [`${PREFIX_SHACL}maxExclusive`]: (spec) => { delete spec.maxExclusive },
-    [`${PREFIX_SHACL}pattern`]:      (spec) => { delete spec.pattern },
-    [`${PREFIX_SHACL}order`]:        (spec) => { delete spec.order },
-    [`${PREFIX_DASH}singleLine`]:    (spec) => { delete spec.singleLine },
-    [`${PREFIX_SHACL}in`]:           (spec) => { delete spec.shaclIn },
-    [`${PREFIX_SHACL}languageIn`]:   (spec) => { delete spec.languageIn },
-    [`${PREFIX_SHACL}hasValue`]:     (spec) => { delete spec.hasValue },
-    [`${PREFIX_SHACL}class`]:        (spec) => {
-        delete spec.class
-        delete spec.classInstances
-        // TODO: somehow unmap this mapping logic:
-        // const nodeShapes = spec.config.shapesGraph.getQuads(null, `${PREFIX_SHACL}targetClass`, term, SHAPES_GRAPH)
-        // if (nodeShapes.length > 0) {
-        //     prop.node = nodeShapes[0].subject as NamedNode
-        // }
-    },
-}
-
 export class ShaclPropertySpec  {
-    name: string | undefined
+    name: string
+    description: string | undefined
+    names: Literal[] | undefined
+    descriptions: Literal[] | undefined
+    classInstances: Array<InputListEntry> | undefined
     path: string | undefined
     node: NamedNode | undefined
     class: NamedNode | undefined
-    classInstances: Array<InputListEntry> | undefined
     minCount: number | undefined
     maxCount: number | undefined
     minLength: number | undefined
@@ -103,7 +79,6 @@ export class ShaclPropertySpec  {
     minExclusive: number | undefined
     maxExclusive: number | undefined
     singleLine: boolean | undefined
-    description: string | undefined
     defaultValue: Term | undefined
     pattern: string | undefined
     order: string | undefined
@@ -116,19 +91,42 @@ export class ShaclPropertySpec  {
 
     config: Config
 
-    constructor(config: Config) {
+    constructor(quads: Quad[], config: Config) {
         this.config = config
+        mergeQuads(this, quads)
+
+        let name = findLangstring(this.names, config.language)
+        if (!name) {
+            name = findLabel(quads, config.language)
+        }
+        if (!name) {
+            name = this.path
+        }
+        if (!name) {
+            name = 'unknown'
+        }
+        this.name = name
+
+        this.description = findLangstring(this.descriptions, config.language)
     }
 }
 
-export function addQuads(spec: ShaclPropertySpec, quads: Quad[]) {
+export function mergeQuads(spec: ShaclPropertySpec, quads: Quad[]) {
     for (const quad of quads) {
         mappers[quad.predicate.id]?.call(spec, spec, quad.object)
     }
 }
 
-export function removeQuads(spec: ShaclPropertySpec, quads: Quad[]) {
-    for (const quad of quads) {
-        unmappers[quad.predicate.id]?.call(spec, spec)
+function findLangstring(options: Literal[] | undefined, language: string | null): string | undefined {
+    if (!options?.length) {
+        return
     }
+    if (language) {
+        for (const literal of options) {
+            if (literal.language === language) {
+                return literal.value
+            }
+        }
+    }
+    return options[0].value
 }

@@ -27,7 +27,7 @@ export abstract class InputBase extends HTMLElement {
 
         const label = document.createElement('label')
         label.htmlFor = this.editor.id
-        label.innerText = property.name || property.path || 'unknown'
+        label.innerText = property.name
         if (property.description) {
             label.setAttribute('title', property.description)
         }
@@ -113,7 +113,7 @@ export class InputText extends InputBase {
 
     toRDFObject(): Literal | NamedNode | undefined {
         if (this.editor.value) {
-            if (this.property.nodeKind?.id === `${PREFIX_SHACL}IRI`) {
+            if (this.property.class || this.property.nodeKind?.id === `${PREFIX_SHACL}IRI`) {
                 return DataFactory.namedNode(this.editor.value)
             } else {
                 return DataFactory.literal(this.editor.value, this.property.datatype)
@@ -268,7 +268,7 @@ export class InputList extends InputBase {
 
     toRDFObject(): Literal | NamedNode | undefined {
         if (this.editor.value) {
-            if (this.property.nodeKind?.id === `${PREFIX_SHACL}IRI`) {
+            if (this.property.class || this.property.nodeKind?.id === `${PREFIX_SHACL}IRI`) {
                 return DataFactory.namedNode(this.editor.value)
             } else {
                 return DataFactory.literal(this.editor.value, this.property.datatype)

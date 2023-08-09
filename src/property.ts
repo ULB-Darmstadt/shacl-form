@@ -1,12 +1,12 @@
 import { BlankNode, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
-import { inputFactory, InputBase, InputList, InputListEntry } from './inputs'
-import { findLabel, findObjectValueByPredicate, focusFirstInputElement } from './util'
-import { PREFIX_DASH, PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
+import { inputFactory, InputBase, InputList } from './inputs'
+import { focusFirstInputElement } from './util'
+import { SHAPES_GRAPH } from './constants'
 import { ShaclOrConstraint } from './constraints'
 import { Config } from './config'
-import { ShaclPropertySpec, addQuads, removeQuads } from './property-spec'
+import { ShaclPropertySpec } from './property-spec'
 
 export class ShaclProperty extends HTMLElement {
     spec: ShaclPropertySpec
@@ -16,27 +16,17 @@ export class ShaclProperty extends HTMLElement {
     constructor(shaclSubject: BlankNode | NamedNode, config: Config, valueSubject?: NamedNode | BlankNode) {
         super()
 
-        this.spec = new ShaclPropertySpec(config)
-        this.valueSubject = valueSubject
         const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
-        addQuads(this.spec, quads)
+        this.spec = new ShaclPropertySpec(quads, config)
+        this.valueSubject = valueSubject
 
         if (this.spec.order) {
             this.style.order = this.spec.order
         }
 
-        this.spec.name = findObjectValueByPredicate(quads, 'name', PREFIX_SHACL, config.language)
-        if (!this.spec.name) {
-            this.spec.name = this.spec.path
-        }
-        const description = findObjectValueByPredicate(quads, 'description', PREFIX_SHACL, config.language)
-        if (description.length) {
-            this.spec.description = description
-        }
-
         this.addButton = document.createElement('a')
         this.appendChild(this.addButton)
-        this.addButton.innerText = this.spec.name || 'unknown'
+        this.addButton.innerText = this.spec.name
         this.addButton.title = 'Add ' + this.spec.name
         this.addButton.classList.add('control-button', 'add-button')
         this.addButton.addEventListener('click', _ => {
@@ -59,7 +49,7 @@ export class ShaclProperty extends HTMLElement {
                 this.createPropertyInstance(this.spec.hasValue)
             }
         }
-        this.addEventListener('change', () => { console.log('--- got change event'); this.updateControls() })
+        this.addEventListener('change', () => { this.updateControls() })
         this.updateControls()
     }
 
