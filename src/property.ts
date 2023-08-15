@@ -1,9 +1,9 @@
-import { BlankNode, NamedNode, Store } from 'n3'
+import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { inputFactory, InputBase, InputList } from './inputs'
 import { createInputListEntries, focusFirstInputElement } from './util'
-import { SHAPES_GRAPH } from './constants'
+import { RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
 import { ShaclOrConstraint } from './constraints'
 import { Config } from './config'
 import { ShaclPropertySpec } from './property-spec'
@@ -74,9 +74,12 @@ export class ShaclProperty extends HTMLElement {
     toRDF(graph: Store, subject: NamedNode | BlankNode) {
         // for (const instance of this.querySelectorAll(':scope > shacl-property-instance > *:first-child')) {
         for (const instance of this.querySelectorAll(':scope > shacl-property-instance')) {
-            const path = (instance as ShaclPropertyInstance).spec.path
-            if (path) {
-                const pathNode = new NamedNode(path)
+            const spec = (instance as ShaclPropertyInstance).spec
+            if (spec.class) {
+                graph.addQuad(subject, RDF_PREDICATE_TYPE, spec.class)
+            }
+            if (spec.path) {
+                const pathNode = DataFactory.namedNode(spec.path)
                 const child = instance.querySelector(':scope > *:first-child')
                 if (child instanceof ShaclNode) {
                     const quadCount = graph.size

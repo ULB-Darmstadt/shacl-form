@@ -1,6 +1,6 @@
-import { BlankNode, NamedNode, Store } from 'n3'
+import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, PREFIX_RDF, SHAPES_GRAPH } from './constants'
+import { PREFIX_SHACL, SHAPES_GRAPH, RDF_PREDICATE_TYPE } from './constants'
 import { ShaclProperty, ShaclPropertyInstance } from './property'
 import { ShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
@@ -12,17 +12,19 @@ export class ShaclNode extends HTMLElement {
     exportValueSubject: NamedNode | BlankNode
     targetClass: NamedNode | undefined
     parent: ShaclNode | ShaclPropertyInstance | undefined
+    config: Config
 
     constructor(shaclSubject: NamedNode, config: Config, parent: ShaclNode | ShaclPropertyInstance | undefined, valueSubject: NamedNode | BlankNode | undefined) {
         super()
 
+        this.config = config
         this.parent = parent
         this.shaclSubject = shaclSubject
-        this.exportValueSubject = valueSubject || new BlankNode(uuidv4())
+        this.exportValueSubject = valueSubject || DataFactory.blankNode(uuidv4())
         this.dataset.nodeId = this.exportValueSubject.id
         const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
-
         let list: Term[] | undefined
+
         for (const quad of quads) {
             switch (quad.predicate.id) {
                 case `${PREFIX_SHACL}property`:
@@ -92,10 +94,10 @@ export class ShaclNode extends HTMLElement {
             (shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
         }
         if (this.targetClass) {
-            graph.addQuad(subject, new NamedNode(PREFIX_RDF + "type"), this.targetClass)
+            graph.addQuad(subject, RDF_PREDICATE_TYPE, this.targetClass)
         }
         if (!this.parent) {
-            graph.addQuad(subject, new NamedNode(PREFIX_RDF + "type"), this.shaclSubject)
+            graph.addQuad(subject, RDF_PREDICATE_TYPE, this.shaclSubject)
         }
         return subject
     }

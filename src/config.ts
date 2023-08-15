@@ -1,7 +1,7 @@
 import { Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { DefaultTheme, Theme } from './theme'
-import { PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
 import { Plugins } from './plugin'
 
 export class Config {
@@ -12,8 +12,8 @@ export class Config {
     valuesUrl: string | null = null
     valueSubject: string | null = null
     language: string | null = null
-    addEmptyElementToLists: string | null = null
     loadOwlImports: string = 'true'
+    submitButtonText: string = 'Submit'
 
     private _theme: Theme = new DefaultTheme()
     private _lists: Record<string, Term[]> = {}
@@ -42,7 +42,7 @@ export class Config {
         this._shapesGraph = graph
         this._lists = graph.extractLists()
         this._groups = []
-        graph.getQuads(null, `${PREFIX_RDF}type`, `${PREFIX_SHACL}PropertyGroup`, SHAPES_GRAPH).forEach(groupQuad => {
+        graph.getQuads(null, RDF_PREDICATE_TYPE, `${PREFIX_SHACL}PropertyGroup`, SHAPES_GRAPH).forEach(groupQuad => {
             this._groups.push(groupQuad.subject.value)
         })
     }

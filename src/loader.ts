@@ -53,12 +53,10 @@ export class Loader {
                 })
             })
 
-            if (this.form.config.loadOwlImports === 'true') {
-                for (const owlImport of owlImports) {
-                    const url = this.toURL(owlImport, rdfPrefixes)
-                    if (url) {
-                        await this.importRDF(this.fetchRDF(url), store, graph, parser)
-                    }
+            for (const owlImport of owlImports) {
+                const url = this.toURL(owlImport, rdfPrefixes)
+                if (url) {
+                    await this.importRDF(this.fetchRDF(url), store, graph, parser)
                 }
             }
         }

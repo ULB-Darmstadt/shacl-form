@@ -1,4 +1,4 @@
-import { NamedNode } from "n3"
+import { DataFactory } from "n3"
 
 export const PREFIX_SHACL = 'http://www.w3.org/ns/shacl#'
 export const PREFIX_DASH = 'http://datashapes.org/dash#'
@@ -19,5 +19,8 @@ export const DEFAULT_PREFIXES = {
 
 export const KNOWN_PREFIXES = [ PREFIX_SHACL, PREFIX_DASH, PREFIX_XSD, PREFIX_RDF, PREFIX_RDFS, PREFIX_SCHEMA, PREFIX_SKOS, PREFIX_OWL, PREFIX_FOAF, PREFIX_DCTERMS]
 
-export const SHAPES_GRAPH = new NamedNode("shapes")
-export const OWL_IMPORTS = new NamedNode(`${PREFIX_OWL}imports`)
+export const SHAPES_GRAPH = DataFactory.namedNode('shapes')
+export const OWL_IMPORTS = DataFactory.namedNode(PREFIX_OWL + 'imports')
+
+export const RDF_PREDICATE_TYPE = DataFactory.namedNode(PREFIX_RDF + 'type')
+export const SHACL_OBJECT_NODE_SHAPE = DataFactory.namedNode(PREFIX_SHACL + 'NodeShape')

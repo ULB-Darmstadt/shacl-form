@@ -67,7 +67,6 @@
       data-shape-subject2="http://purl.org/fidbau/elements/1.1/ArchitectureModelDataset"
       data-value-subject2="http://example.org/fidbau#4f2a8de3-9fc8-40a9-9237-d5964520ec54"
     >
-      <button type="submit" class="btn btn-primary" id="save-btn">Submit</button>
     </shacl-form>
   </div>
   <pre id="shacl-output"></pre>
@@ -109,17 +108,12 @@
       output.classList.toggle('valid', ev.detail?.valid)
       output.innerText = form.toRDFTurtle()
     })
+    form.addEventListener('submit', function (ev) {
+      output.classList.add('valid')
+      output.innerText = form.toRDFTurtle()
+    })
     shapesChooser.dispatchEvent(new Event('change'))
     // loadMetadata('https://workbench-metadata.0pq.de/fid/sparql', '<https://doi.org/10.82319/3dh4-7935>')
-
-    document.getElementById("save-btn").addEventListener("click", () => {
-      form.reportValidity()
-      form.validate(true, true).then(conforms => {
-        if (conforms) {
-          console.log('--- data graph', form.toRDF())
-        }
-      })
-    })
 
     function loadMetadata(endpoint, datasetID) {
       const table = document.querySelector('#metadataTable tbody')

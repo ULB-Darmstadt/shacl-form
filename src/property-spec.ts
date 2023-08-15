@@ -1,6 +1,6 @@
 import { Literal, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_DASH, PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
+import { PREFIX_DASH, PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { findLabel } from './util'
 
@@ -35,7 +35,7 @@ const mappers: Record<string, (spec: ShaclPropertySpec, term: Term) => void> = {
         }
         else {
             // try to resolve class instances from loaded ontologies
-            const ontologyInstances = spec.classInstances = spec.config.shapesGraph.getSubjects(`${PREFIX_RDF}type`, term, null)
+            const ontologyInstances = spec.classInstances = spec.config.shapesGraph.getSubjects(RDF_PREDICATE_TYPE, term, null)
             if (ontologyInstances.length) {
                 spec.classInstances = ontologyInstances
             } else {
@@ -106,9 +106,10 @@ export class ShaclPropertySpec  {
         return this
     }
 
-    cloneAndMerge(quads: Quad[]): ShaclPropertySpec {
-        const clone = Object.assign({}, this)
-        clone.merge = this.merge
-        return clone.merge(quads)
+    clone(): ShaclPropertySpec {
+        const copy = Object.assign({}, this)
+        copy.merge = this.merge.bind(copy)
+        copy.clone = this.clone.bind(copy)
+        return copy
     }
 }

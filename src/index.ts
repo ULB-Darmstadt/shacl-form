@@ -1,5 +1,4 @@
 export { ShaclForm } from './form'
-export { ShaclProperty } from './property'
 export { ShaclPropertySpec } from './property-spec'
 export { Plugin } from './plugin'
 export { InputBase, Editor } from './inputs'

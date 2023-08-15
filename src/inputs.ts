@@ -20,7 +20,7 @@ export abstract class InputBase extends HTMLElement {
 
         this.editor = this.createEditor()
         this.editor.id = `e${InputBase.idCtr++}`
-        this.editor.setAttribute('value', property.defaultValue ? property.defaultValue.value : '')
+        this.editor.setAttribute('value', property.defaultValue?.value || '')
         this.editor.classList.add('editor', 'form-control')
         // add path to editor to provide a hook to external apps
         this.editor.dataset.path = this.property.path
@@ -63,6 +63,7 @@ export class InputDate extends InputBase {
         else {
             input.type = 'date'
         }
+        input.classList.add('pr-0')
         return input
     }
 
@@ -95,6 +96,9 @@ export class InputText extends InputBase {
         if (property.maxLength) {
             input.maxLength = property.maxLength
         }
+        if (property.pattern) {
+            input.pattern = property.pattern
+        }
     }
 
     createEditor(): Editor {
@@ -102,7 +106,6 @@ export class InputText extends InputBase {
         if (this.property.singleLine === false) {
             input = document.createElement('textarea')
             input.rows = 5
-            // input.oninput = function () { this.parentNode.dataset.replicatedValue = this.value }
         }
         else {
             input = document.createElement('input')
@@ -161,6 +164,8 @@ export class InputLangString extends InputText {
         chooser.title = 'Language of the text'
         chooser.placeholder = 'lang?'
         chooser.classList.add('lang-chooser')
+        // if lang chooser changes, fire a change event on the text input instead. this is for shacl validation handling.
+        chooser.addEventListener('change', (ev) => { ev.stopPropagation(); this.editor.dispatchEvent(new Event('change', { bubbles: true })) })
         return chooser
     }
 }
@@ -168,11 +173,15 @@ export class InputLangString extends InputText {
 export class InputBoolean extends InputBase {
     constructor(property: ShaclPropertySpec) {
         super(property)
+        // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here.
+        this.editor.removeAttribute('required')
+        this.querySelector(':scope label')?.classList.remove('required')
     }
 
     createEditor(): Editor {
         const input = document.createElement('input')
         input.type = 'checkbox'
+        input.classList.add('ml-0')
         return input
     }
 
@@ -213,6 +222,7 @@ export class InputNumber extends InputBase {
     createEditor(): Editor {
         const input = document.createElement('input')
         input.type = 'number'
+        input.classList.add('pr-0')
         return input
     }
 
@@ -235,12 +245,11 @@ export class InputList extends InputBase {
 
     setListEntries(list: InputListEntry[]) {
         const select = this.editor as HTMLSelectElement
-        if (!this.required || this.property.config.addEmptyElementToLists !== undefined) {
-            const option = document.createElement('option')
-            option.value = ''
-            //option.hidden = true
-            select.options.add(option)
-        }
+        // add an empty element
+        const option = document.createElement('option')
+        option.value = ''
+        select.options.add(option)
+
         for (const item of list) {
             const option = document.createElement('option')
             option.innerHTML = item.label ? item.label : item.value.value

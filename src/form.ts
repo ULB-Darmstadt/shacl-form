@@ -1,11 +1,10 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
 import { Plugin } from './plugin'
-import { Writer, Quad, Store, NamedNode } from 'n3'
-import { DEFAULT_PREFIXES, PREFIX_RDF, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
+import { Writer, Quad, Store, NamedNode, DataFactory } from 'n3'
+import { DEFAULT_PREFIXES, PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH } from './constants'
 import { focusFirstInputElement } from './util'
 import SHACLValidator from 'rdf-validate-shacl'
-import factory from 'rdf-ext'
 import './styles.css'
 import { Loader } from './loader'
 import { Editor } from './inputs'
@@ -17,19 +16,37 @@ export class ShaclForm extends HTMLElement {
     loader: Loader = new Loader(this)
     shape: ShaclNode | null = null
     form: HTMLFormElement
+    submitButton: HTMLButtonElement
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 
     constructor() {
         super()
 
         this.form = document.createElement('form')
-        this.form.appendChild(document.createElement('slot'))
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
             this.validate(true).then(valid => {
                 this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': valid } }))
             })
         })
+        this.form.addEventListener('submit', ev => {
+            // we're handling form submit events ourselves in order to validate first, so disable default behavior
+            ev.stopPropagation()
+            ev.preventDefault()
+        })
+        this.submitButton = document.createElement('button')
+        this.submitButton.type = 'submit'
+        this.submitButton.addEventListener('click', (ev) => {
+            this.validate().then(valid => {
+                if (valid) {
+                    this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true, composed: true }))
+                } else {
+                    // focus first invalid element
+                    (this.querySelector(':scope .invalid > .editor') as HTMLElement | null)?.focus()
+                }
+            })
+        })
+        this.form.prepend(this.submitButton)
     }
 
     connectedCallback() {
@@ -48,22 +65,25 @@ export class ShaclForm extends HTMLElement {
     private initialize() {
         clearTimeout(this.initDebounceTimeout)
         this.initDebounceTimeout = setTimeout(() => {
+            // set submit button text
+            this.submitButton.innerText = this.config.submitButtonText
             this.loader.loadGraphs().then(_ => {
                 if (this.form.contains(this.shape)) {
-                    this.form.removeChild(this.shape as ShaclNode)
+                    this.form.removeChild(this.shape!)
                 }
 
                 // find root shacl shape
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
                 if (rootShapeShaclSubject) {
-                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, undefined, this.config.valueSubject ? new NamedNode(this.config.valueSubject) : undefined)
+                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, undefined, this.config.valueSubject ? DataFactory.namedNode(this.config.valueSubject) : undefined)
                     this.form.prepend(this.shape)
                     focusFirstInputElement(this.shape)
+                    this.validate(true)
                 }
             }).catch(e => {
                 console.error(e)
-                if (this.shape && this.form.contains(this.shape)) {
-                    this.form.removeChild(this.shape)
+                if (this.form.contains(this.shape)) {
+                    this.form.removeChild(this.shape!)
                 }
             })
         }, 50)
@@ -93,22 +113,22 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
-    public reportValidity(): boolean {
-        return this.form.reportValidity()
-    }
-
-    public async validate(showHints = false, showHintsForEmptyValues = false): Promise<boolean> {
+    public async validate(ignoreEmptyValues = false): Promise<boolean> {
         for (const elem of this.querySelectorAll(':scope .validation-error')) {
             elem.remove()
         }
-        for (const elem of this.querySelectorAll(':scope .invalid')) {
+        for (const elem of this.querySelectorAll(':scope .prop')) {
             elem.classList.remove('invalid')
+            if (((elem.querySelector('.editor')) as Editor).value) {
+                elem.classList.add('valid')
+            } else {
+                elem.classList.remove('valid')
+            }
         }
 
-        this.config.shapesGraph.deleteGraph("")
+        this.config.shapesGraph.deleteGraph('')
         this.shape?.toRDF(this.config.shapesGraph)
-        const dataset = factory.dataset(this.config.shapesGraph)
-        const report = await new SHACLValidator(dataset, { factory }).validate(dataset)
+        const report = await new SHACLValidator(this.config.shapesGraph).validate(this.config.shapesGraph)
 
         // for (const result of report.results) {
         //     // See https://www.w3.org/TR/shacl/#results-validation-result for details
@@ -121,31 +141,35 @@ export class ShaclForm extends HTMLElement {
         //     console.log(result.sourceShape)
         // }
 
-        if (showHints) {
-            for (const result of report.results) {
-                // result.path can be null, e.g. if a focus node does not contain a required property node
-                if (result.path) {
-                    const invalidElement = this.querySelector(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`) as Editor
-                    if (invalidElement) {
-                        if (invalidElement.value || showHintsForEmptyValues) {
-                            invalidElement.classList.add('invalid')
-                            const messageElement = document.createElement('span')
-                            messageElement.classList.add('validation-error')
-                            messageElement.innerHTML = '&#9888;'
-                            if (result.message.length > 0) {
-                                for (const message of result.message) {
-                                    messageElement.title += message + '\n'
-                                }
-                            } else {
-                                messageElement.title += result.sourceConstraintComponent.value
-                            }
-                            invalidElement.parentNode?.appendChild(messageElement)
-                        }
+        for (const result of report.results) {
+            // result.path can be null, e.g. if a focus node does not contain a required property node
+            if (result.path) {
+                for (const invalidElement of this.querySelectorAll(`:scope shacl-node[data-node-id='${result.focusNode.id}'] .editor[data-path='${result.path.id}']`)) {
+                    if (!ignoreEmptyValues || (invalidElement as Editor).value) {
+                        const parent = invalidElement.parentElement!
+                        parent.classList.add('invalid')
+                        parent.classList.remove('valid')
+                        parent.appendChild(this.createValidationErrorDisplay(result))
                     }
                 }
+            } else {
+                this.querySelector(`:scope shacl-node[data-node-id='${result.focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result))
             }
         }
         return report.conforms
+    }
+
+    private createValidationErrorDisplay(validatonResult: any): HTMLElement {
+        const messageElement = document.createElement('span')
+        messageElement.classList.add('validation-error')
+        if (validatonResult.message.length > 0) {
+            for (const message of validatonResult.message) {
+                messageElement.title += message.value + '\n'
+            }
+        } else {
+            messageElement.title += validatonResult.sourceConstraintComponent.value
+        }
+        return messageElement
     }
 
 
@@ -153,8 +177,8 @@ export class ShaclForm extends HTMLElement {
         let rootShapeShaclSubject: NamedNode | null = null
         // if data-shape-subject is set, use that
         if (this.config.shapeSubject) {
-            rootShapeShaclSubject = new NamedNode(this.config.shapeSubject)
-            if (!this.config.shapesGraph.has(new Quad(rootShapeShaclSubject, new NamedNode(`${PREFIX_RDF}type`), new NamedNode(`${PREFIX_SHACL}NodeShape`), SHAPES_GRAPH))) {
+            rootShapeShaclSubject = DataFactory.namedNode(this.config.shapeSubject)
+            if (!this.config.shapesGraph.has(new Quad(rootShapeShaclSubject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH))) {
                 console.warn(`shapes graph does not contain requested root shape ${this.config.shapeSubject}`)
                 return
             }
@@ -162,15 +186,15 @@ export class ShaclForm extends HTMLElement {
         else {
             // if data-value-subject is set, use shape of that
             if (this.config.valueSubject) {
-                const rootValueSubject = new NamedNode(this.config.valueSubject)
-                const rootValueSubjectTypes = this.config.dataGraph.getQuads(rootValueSubject, new NamedNode(`${PREFIX_RDF}type`), null, null)
+                const rootValueSubject = DataFactory.namedNode(this.config.valueSubject)
+                const rootValueSubjectTypes = this.config.dataGraph.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, null)
                 if (rootValueSubjectTypes.length === 0) {
-                    console.warn(`value subject '${this.config.valueSubject}' has no ${PREFIX_RDF}type statement`)
+                    console.warn(`value subject '${this.config.valueSubject}' has no ${RDF_PREDICATE_TYPE.id} statement`)
                     return
                 }
                 // if type refers to a node shape, prioritize that over targetClass resolution
                 for (const rootValueSubjectType of rootValueSubjectTypes) {
-                    if (this.config.shapesGraph.has(new Quad(rootValueSubjectType.object as NamedNode, new NamedNode(`${PREFIX_RDF}type`), new NamedNode(`${PREFIX_SHACL}NodeShape`), SHAPES_GRAPH))) {
+                    if (this.config.shapesGraph.has(new Quad(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH))) {
                         rootShapeShaclSubject = rootValueSubjectType.object as NamedNode
                         break
                     }
@@ -184,7 +208,7 @@ export class ShaclForm extends HTMLElement {
                     if (rootShapes.length > 1) {
                         console.warn(`value subject '${this.config.valueSubject}' has multiple shacl shape definitions in the shapes graph, choosing the first found (${rootShapes[0].subject})`)
                     }
-                    if (this.config.shapesGraph.getQuads(rootShapes[0].subject, `${PREFIX_RDF}type`, `${PREFIX_SHACL}NodeShape`, SHAPES_GRAPH).length === 0) {
+                    if (this.config.shapesGraph.getQuads(rootShapes[0].subject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH).length === 0) {
                         console.error(`value subject '${this.config.valueSubject}' references a shape which is not a NodeShape (${rootShapes[0].subject})`)
                         return
                     }
@@ -193,7 +217,7 @@ export class ShaclForm extends HTMLElement {
             }
             else {
                 // choose first of all defined root shapes
-                const rootShapes = this.config.shapesGraph.getQuads(null, `${PREFIX_RDF}type`, `${PREFIX_SHACL}NodeShape`, SHAPES_GRAPH)
+                const rootShapes = this.config.shapesGraph.getQuads(null, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH)
                 if (rootShapes.length == 0) {
                     console.warn('shapes graph does not contain any root shapes')
                     return
