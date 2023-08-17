@@ -39,8 +39,8 @@ export class Loader {
                     }
                     if (quad) {
                         store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
-                        // see if this is an owl:imports
-                        if (this.form.config.loadOwlImports === 'true' && OWL_IMPORTS.equals(quad.predicate)) {
+                        // check if this is an owl:imports
+                        if (this.form.config.ignoreOwlImports === null && OWL_IMPORTS.equals(quad.predicate)) {
                             owlImports.push(quad.object.value)
                         }
                         return

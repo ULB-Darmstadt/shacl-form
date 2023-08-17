@@ -44,7 +44,7 @@ data-values | RDF triples (e.g. a turtle string) to use as existing data values 
 data-values-url | When `data-values` is not set, load the data graph from this URL
 data-value-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID will be used. If `data-values` or `data-values-url` is set, this id is also used to find existing data in the data graph to fill the form
 data-language | Language to use if shapes contain langStrings
-data&#x2011;load&#x2011;owl&#x2011;imports | Whether to fetch RDF data from `owl:imports` statements. Default: `true`
+data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` are fetched and the resulting triples are added to the shapes graph. Set this attribute to disable this feature.
 data-submit-button | Whether to append a submit button to the form. The string value of this attribute is used as the button label. Submit events will only fire after successful validation
 
 ### Element functions

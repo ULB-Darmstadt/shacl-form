@@ -12,7 +12,7 @@ export class Config {
     valuesUrl: string | null = null
     valueSubject: string | null = null
     language: string | null = null
-    loadOwlImports: string = 'true'
+    ignoreOwlImports: string | null = null
     submitButton: string | null = null
 
     private _theme: Theme = new DefaultTheme()
