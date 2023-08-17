@@ -1,6 +1,6 @@
-import { Literal, NamedNode, Quad } from 'n3'
+import { Literal, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_DASH, PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
+import { PREFIX_DASH, PREFIX_SHACL, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { findLabel } from './util'
 
@@ -35,7 +35,7 @@ const mappers: Record<string, (spec: ShaclPropertySpec, term: Term) => void> = {
         }
         else {
             // try to resolve class instances from loaded ontologies
-            const ontologyInstances = spec.classInstances = spec.config.shapesGraph.getSubjects(RDF_PREDICATE_TYPE, term, null)
+            const ontologyInstances = findInstancesOf(term, spec.config.shapesGraph)
             if (ontologyInstances.length) {
                 spec.classInstances = ontologyInstances
             } else {
@@ -51,6 +51,14 @@ const mappers: Record<string, (spec: ShaclPropertySpec, term: Term) => void> = {
             console.error('list not found:', term.value, 'existing lists:', spec.config.lists)
         }
     }
+}
+
+function findInstancesOf(term: Term, shapes: Store): Term[] {
+    const instances: Term[] = shapes.getSubjects(RDF_PREDICATE_TYPE, term, null)
+    for (const subClass of shapes.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, term, null)) {
+        instances.push(...findInstancesOf(subClass, shapes))
+    }
+    return instances
 }
 
 export class ShaclPropertySpec  {

@@ -75,9 +75,6 @@ export class ShaclProperty extends HTMLElement {
         // for (const instance of this.querySelectorAll(':scope > shacl-property-instance > *:first-child')) {
         for (const instance of this.querySelectorAll(':scope > shacl-property-instance')) {
             const spec = (instance as ShaclPropertyInstance).spec
-            if (spec.class) {
-                graph.addQuad(subject, RDF_PREDICATE_TYPE, spec.class)
-            }
             if (spec.path) {
                 const pathNode = DataFactory.namedNode(spec.path)
                 const child = instance.querySelector(':scope > *:first-child')
