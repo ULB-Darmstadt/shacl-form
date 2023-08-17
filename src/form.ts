@@ -1,13 +1,14 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
 import { Plugin } from './plugin'
-import { Writer, Quad, Store, NamedNode, DataFactory } from 'n3'
-import { DEFAULT_PREFIXES, PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH } from './constants'
+import { Quad, Store, NamedNode, DataFactory } from 'n3'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH } from './constants'
 import { focusFirstInputElement } from './util'
 import SHACLValidator from 'rdf-validate-shacl'
 import './styles.css'
 import { Loader } from './loader'
 import { Editor } from './inputs'
+import { serialize } from './serialize'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.keysAsDataAttributes }
@@ -88,23 +89,11 @@ export class ShaclForm extends HTMLElement {
         }, 50)
     }
 
-    public toRDF(): Quad[] {
+    public serialize(format = 'text/turtle'): string | {}[] {
         const graph = new Store()
         this.shape?.toRDF(graph)
-        return graph.getQuads(null, null, null, null)
-    }
-
-    public toRDFTurtle(): string {
-        const writer = new Writer({ prefixes: DEFAULT_PREFIXES })
-        writer.addQuads(this.toRDF())
-        let serialized = ''
-        writer.end((error, result) => {
-            if (error) {
-                console.error(error)
-            }
-            serialized = result
-        })
-        return serialized
+        const quads = graph.getQuads(null, null, null, null)
+        return serialize(quads, format)
     }
 
     public registerPlugin(plugin: Plugin) {
@@ -183,8 +172,8 @@ export class ShaclForm extends HTMLElement {
             }
         }
         else {
-            // if data-value-subject is set, use shape of that
-            if (this.config.valueSubject) {
+            // if data-value-subject is set and we have input data, use shape of that
+            if (this.config.valueSubject && this.config.dataGraph.size > 0) {
                 const rootValueSubject = DataFactory.namedNode(this.config.valueSubject)
                 const rootValueSubjectTypes = this.config.dataGraph.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, null)
                 if (rootValueSubjectTypes.length === 0) {

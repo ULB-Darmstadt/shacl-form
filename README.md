@@ -23,9 +23,8 @@ This library provides an HTML5 web component that renders [SHACL shapes](https:/
       form.addEventListener('change', event => {
         // check if form validates according to the SHACL shapes
         if (event.detail?.valid) {
-          // get data graph as RDF triples and log them to the browser console.
-          // you can also call form.toRDF() to get the entered data as a Quad[].
-          const data = form.toRDFTurtle() 
+          // get data graph as RDF triples and log them to the browser console
+          const data = form.serialize('application/ld+json') 
           console.log('entered form data', data)
           // store the data somewhere, e.g. in a triple store
         }
@@ -43,10 +42,17 @@ data-shapes-url | When `data-shapes` is not set, load the shapes graph from this
 data-shape-subject | Optional subject (id) of the shacl node shape to use as root for the form. If not set, the first found shacl node shape will be used
 data-values | RDF triples (e.g. a turtle string) to use as existing data values in the generated form
 data-values-url | When `data-values` is not set, load the data graph from this URL
-data-value-subject | The subject (id) in the data graph to fill in existing data into the form
+data-value-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID will be used. If `data-values` or `data-values-url` is set, this id is also used to find existing data in the data graph to fill the form
 data-language | Language to use if shapes contain langStrings
 data-load-owl-imports | Whether to fetch RDF data from `owl:imports` statements. Default: `true`
-data-submit-button | Whether to append a submit button to the form. Any string value of this attribute will be used as the button label. Submit events will only fire after successful validation
+data-submit-button | Whether to append a submit button to the form. The string value of this attribute is used as the button label. Submit events will only fire after successful validation
+
+### Element functions
+Function | Description
+---|---
+serialize(format?: string): string \| {}[] | Serializes the form data as RDF triples. Supported formats:  `text/turtle` (default), `application/ld+json`, `application/n-triples`, `application/n-quads`, `application/trig`
+validate(ignoreEmptyValues: boolean): Promise\<boolean\> | Validates the form data against the SHACL shapes graph and displays validation results as icons. If `ignoreEmptyValues` is true, empty form fields will not be marked as having validation errors
+registerPlugin(plugin: Plugin) | TBD
 
 ## Theming
 TBD

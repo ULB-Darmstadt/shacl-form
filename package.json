@@ -1,6 +1,6 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "1.0.16",
+    "version": "1.1.0",
     "description": "SHACL form generator",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -45,7 +45,6 @@
     },
     "dependencies": {
         "n3": "^1.17.0",
-        "rdf-ext": "^2.2.0",
         "rdf-validate-shacl": "^0.4.5",
         "uuid": "^9.0.0"
     }
