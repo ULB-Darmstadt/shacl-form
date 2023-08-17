@@ -1,6 +1,6 @@
 shacl-form form { padding-left: 1rem; }
 shacl-node shacl-node h1 { font-size: 1rem; color: #555; }
-shacl-node, shacl-group { display: flex; flex-direction: column; width: 100%; }
+shacl-node, shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
 shacl-node .control-button { cursor: pointer; }
 shacl-node .control-button:not(:hover) { border-color: transparent; background: 0; }
 shacl-node .remove-button { margin-left: 4px; }

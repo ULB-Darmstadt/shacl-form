@@ -173,7 +173,7 @@ export class InputLangString extends InputText {
 export class InputBoolean extends InputBase {
     constructor(property: ShaclPropertySpec) {
         super(property)
-        // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here.
+        // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here
         this.editor.removeAttribute('required')
         this.querySelector(':scope label')?.classList.remove('required')
     }

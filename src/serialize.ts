@@ -1,11 +1,11 @@
-import { Writer, Quad, Literal } from 'n3'
-import { DEFAULT_PREFIXES, RDF_PREDICATE_TYPE } from './constants'
+import { Writer, Quad, Literal, Prefixes } from 'n3'
+import { RDF_PREDICATE_TYPE } from './constants'
 
-export function serialize(quads: Quad[], format: string): string | {}[] {
+export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): string | {}[] {
     if (format === 'application/ld+json') {
         return serializeJsonld(quads)
     } else {
-        const writer = new Writer({ format: format, prefixes: DEFAULT_PREFIXES })
+        const writer = new Writer({ format: format, prefixes: prefixes })
         writer.addQuads(quads)
         let serialized = ''
         writer.end((error, result) => {

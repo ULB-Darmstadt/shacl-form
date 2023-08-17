@@ -58,9 +58,9 @@ export class ShaclProperty extends HTMLElement {
 
     updateControls() {
         let instances = this.querySelectorAll(":scope > shacl-property-instance, :scope > shacl-or-constraint")
-        if (instances.length === 0 && (!(this.spec.node || this.spec.shaclOr) || (this.spec.minCount !== undefined && this.spec.minCount > 0))) {
+        if (instances.length === 0 && (!this.spec.node || (this.spec.minCount !== undefined && this.spec.minCount > 0))) {
             this.createPropertyInstance()
-            instances = this.querySelectorAll(":scope > shacl-property-instance")
+            instances = this.querySelectorAll(":scope > shacl-property-instance, :scope > shacl-or-constraint")
         }
         const mayRemove = instances.length > (this.spec.minCount ? this.spec.minCount : 1)
         for (const removeButton of this.querySelectorAll(":scope > shacl-property-instance > .remove-button")) {

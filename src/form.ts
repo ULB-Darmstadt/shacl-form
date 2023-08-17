@@ -29,20 +29,6 @@ export class ShaclForm extends HTMLElement {
                 this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': valid } }))
             })
         })
-        this.form.addEventListener('submit', ev => {
-            // we're handling form submit events ourselves in order to validate first, so disable default behavior
-            ev.stopPropagation()
-            ev.preventDefault()
-
-            this.validate().then(valid => {
-                if (valid) {
-                    this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true, composed: true }))
-                } else {
-                    // focus first invalid element
-                    (this.querySelector(':scope .invalid > .editor') as HTMLElement | null)?.focus()
-                }
-            })
-        })
     }
 
     connectedCallback() {
@@ -71,8 +57,23 @@ export class ShaclForm extends HTMLElement {
                     // add submit button
                     if (this.config.submitButton !== null) {
                         const button = document.createElement('button')
-                        button.type = 'submit'
+                        button.type = 'button'
                         button.innerText = this.config.submitButton || 'Submit'
+                        button.addEventListener('click', () => {
+                            this.validate().then(valid => {
+                                if (valid && this.form.checkValidity()) {
+                                    this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true, composed: true }))
+                                } else {
+                                    // focus first invalid element
+                                    const firstInvalidElement = this.querySelector(':scope .invalid > .editor') as HTMLElement | null
+                                    if (firstInvalidElement) {
+                                        firstInvalidElement.focus()
+                                    } else {
+                                        this.form.reportValidity()
+                                    }
+                                }
+                            })
+                        })
                         this.form.prepend(button)
                     }
                     this.form.prepend(this.shape)
@@ -93,7 +94,7 @@ export class ShaclForm extends HTMLElement {
         const graph = new Store()
         this.shape?.toRDF(graph)
         const quads = graph.getQuads(null, null, null, null)
-        return serialize(quads, format)
+        return serialize(quads, format, this.config.prefixes)
     }
 
     public registerPlugin(plugin: Plugin) {

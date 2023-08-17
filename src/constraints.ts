@@ -4,7 +4,7 @@ import { ShaclNode } from "./node"
 import { ShaclPropertyInstance, ShaclProperty } from "./property"
 import { Config } from './config'
 import { SHAPES_GRAPH } from './constants'
-import { findLabel, removeKnownPrefixes } from './util'
+import { findLabel, removePrefixes } from './util'
 
 export class ShaclOrConstraint extends HTMLElement {
 
@@ -53,7 +53,7 @@ export class ShaclOrConstraint extends HTMLElement {
 
                     const option = document.createElement('option')
                     option.value = i.toString()
-                    option.innerHTML = findLabel(quads, config.language) || (removeKnownPrefixes(quads[0].predicate.value) + ' = ' + removeKnownPrefixes(quads[0].object.value))
+                    option.innerHTML = findLabel(quads, config.language) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes))
                     select.options.add(option)
                 }
             }

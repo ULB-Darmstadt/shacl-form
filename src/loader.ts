@@ -16,23 +16,22 @@ export class Loader {
         }
         this.abortController = new AbortController()
 
-        const graph = new Store()
-        const valuesGraph = new Store()
+        const store = new Store()
+        const valuesStore = new Store()
 
         await Promise.all([
-            this.importRDF(this.form.config.shapes ? this.form.config.shapes : this.form.config.shapesUrl ? this.fetchRDF(this.form.config.shapesUrl) : '', graph, SHAPES_GRAPH),
-            this.importRDF(this.form.config.values ? this.form.config.values : this.form.config.valuesUrl ? this.fetchRDF(this.form.config.valuesUrl) : '', valuesGraph, undefined, new Parser({ blankNodePrefix: '' })),
+            this.importRDF(this.form.config.shapes ? this.form.config.shapes : this.form.config.shapesUrl ? this.fetchRDF(this.form.config.shapesUrl) : '', store, SHAPES_GRAPH),
+            this.importRDF(this.form.config.values ? this.form.config.values : this.form.config.valuesUrl ? this.fetchRDF(this.form.config.valuesUrl) : '', valuesStore, undefined, new Parser({ blankNodePrefix: '' })),
         ])
 
-        this.form.config.shapesGraph = graph
-        this.form.config.dataGraph = valuesGraph
+        this.form.config.shapesGraph = store
+        this.form.config.dataGraph = valuesStore
     }
     
     async importRDF(input: string | Promise<string>, store: Store, graph?: NamedNode, parser?: Parser) {
         const p = parser ? parser : new Parser()
         const parse = async (text: string) => {
             const owlImports: Array<string> = []
-            let rdfPrefixes: Prefixes | undefined
             await new Promise((resolve, reject) => {
                 p.parse(text, (error: Error, quad: Quad, prefixes: Prefixes) => {
                     if (error) {
@@ -47,14 +46,14 @@ export class Loader {
                         return
                     }
                     if (prefixes) {
-                        rdfPrefixes = prefixes
+                        this.form.config.registerPrefixes(prefixes)
                     }
                     resolve(null)
                 })
             })
 
             for (const owlImport of owlImports) {
-                const url = this.toURL(owlImport, rdfPrefixes)
+                const url = this.toURL(owlImport)
                 if (url) {
                     await this.importRDF(this.fetchRDF(url), store, graph, parser)
                 }
@@ -85,14 +84,14 @@ export class Loader {
         })
     }
 
-    toURL(id: string, prefixes: Prefixes | undefined): string | null {
+    toURL(id: string): string | null {
         if (this.isURL(id)) {
             return id
         }
-        if (prefixes) {
+        if (this.form.config.prefixes) {
             const splitted = id.split(':')
             if (splitted.length === 2) {
-                const prefix = prefixes[splitted[0]]
+                const prefix = this.form.config.prefixes[splitted[0]]
                 if (prefix) {
                     // need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
                     // @ts-ignore

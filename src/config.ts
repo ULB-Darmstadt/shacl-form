@@ -1,4 +1,4 @@
-import { Store } from 'n3'
+import { Prefixes, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { DefaultTheme, Theme } from './theme'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
@@ -18,9 +18,10 @@ export class Config {
     private _theme: Theme = new DefaultTheme()
     private _lists: Record<string, Term[]> = {}
     private _groups: Array<string> = []
-    private _shapesGraph: Store = new Store()
-    private _dataGraph: Store = new Store()
+    private _shapesGraph = new Store()
+    private _dataGraph = new Store()
     private _plugins: Plugins = {}
+    private _prefixes: Prefixes = {}
 
     equals(other: Config): boolean {
         if (!other) {
@@ -65,6 +66,16 @@ export class Config {
 
     set theme(theme: Theme) {
         this._theme = theme
+    }
+
+    get prefixes() {
+        return this._prefixes
+    }
+
+    registerPrefixes(prefixes: Prefixes) {
+        for (const key in prefixes) {
+            this._prefixes[key] = prefixes[key]
+        }
     }
 
     get plugins() {

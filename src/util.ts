@@ -1,5 +1,5 @@
-import { Quad, Store } from 'n3'
-import { KNOWN_PREFIXES, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS } from './constants'
+import { Prefixes, Quad, Store } from 'n3'
+import { PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './inputs'
 
@@ -55,9 +55,11 @@ export function createInputListEntries(subjects: Term[], shapesGraph: Store, lan
     return entries
 }
 
-export function removeKnownPrefixes(id: string): string {
-    for (const namespace of KNOWN_PREFIXES) {
-        id = id.replace(namespace, '')
+export function removePrefixes(id: string, prefixes: Prefixes): string {
+    for (const key in prefixes) {
+        // need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
+        // @ts-ignore
+        id = id.replace(prefixes[key], '')
     }
     return id
 }
