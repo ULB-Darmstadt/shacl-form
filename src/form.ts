@@ -16,7 +16,6 @@ export class ShaclForm extends HTMLElement {
     loader: Loader = new Loader(this)
     shape: ShaclNode | null = null
     form: HTMLFormElement
-    submitButton: HTMLButtonElement
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 
     constructor() {
@@ -33,10 +32,7 @@ export class ShaclForm extends HTMLElement {
             // we're handling form submit events ourselves in order to validate first, so disable default behavior
             ev.stopPropagation()
             ev.preventDefault()
-        })
-        this.submitButton = document.createElement('button')
-        this.submitButton.type = 'submit'
-        this.submitButton.addEventListener('click', (ev) => {
+
             this.validate().then(valid => {
                 if (valid) {
                     this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true, composed: true }))
@@ -46,7 +42,6 @@ export class ShaclForm extends HTMLElement {
                 }
             })
         })
-        this.form.prepend(this.submitButton)
     }
 
     connectedCallback() {
@@ -65,26 +60,30 @@ export class ShaclForm extends HTMLElement {
     private initialize() {
         clearTimeout(this.initDebounceTimeout)
         this.initDebounceTimeout = setTimeout(() => {
-            // set submit button text
-            this.submitButton.innerText = this.config.submitButtonText
+            // remove all child elements from form
+            this.form.replaceChildren()
             this.loader.loadGraphs().then(_ => {
-                if (this.form.contains(this.shape)) {
-                    this.form.removeChild(this.shape!)
-                }
-
                 // find root shacl shape
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
                 if (rootShapeShaclSubject) {
                     this.shape = new ShaclNode(rootShapeShaclSubject, this.config, undefined, this.config.valueSubject ? DataFactory.namedNode(this.config.valueSubject) : undefined)
+                    // add submit button
+                    if (this.config.submitButton !== null) {
+                        const button = document.createElement('button')
+                        button.type = 'submit'
+                        button.innerText = this.config.submitButton || 'Submit'
+                        this.form.prepend(button)
+                    }
                     this.form.prepend(this.shape)
                     focusFirstInputElement(this.shape)
                     this.validate(true)
                 }
             }).catch(e => {
                 console.error(e)
-                if (this.form.contains(this.shape)) {
-                    this.form.removeChild(this.shape!)
-                }
+                // remove all child elements from form
+                const errorDisplay = document.createElement('div')
+                errorDisplay.innerText = e
+                this.form.appendChild(errorDisplay)
             })
         }, 50)
     }

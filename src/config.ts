@@ -13,7 +13,7 @@ export class Config {
     valueSubject: string | null = null
     language: string | null = null
     loadOwlImports: string = 'true'
-    submitButtonText: string = 'Submit'
+    submitButton: string | null = null
 
     private _theme: Theme = new DefaultTheme()
     private _lists: Record<string, Term[]> = {}
@@ -78,7 +78,7 @@ export class Config {
     static from(elem: HTMLElement): Config {
         const config = new Config()
         for (const key of Object.keys(config)) {
-            if (elem.dataset[key]) {
+            if (elem.dataset[key] !== undefined) {
                 config[key] = elem.dataset[key]
             }
         }
