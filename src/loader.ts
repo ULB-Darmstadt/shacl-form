@@ -1,13 +1,14 @@
 import { Store, Parser, Quad, Prefixes, NamedNode } from 'n3'
 import { OWL_IMPORTS, SHAPES_GRAPH } from './constants'
 import { ShaclForm } from './form'
+import { Config } from './config'
 
 export class Loader {
     private abortController: AbortController | null = null
-    private form: ShaclForm
+    private config: Config
 
-    constructor(form: ShaclForm) {
-        this.form = form
+    constructor(config: Config) {
+        this.config = config
     }
 
     async loadGraphs() {
@@ -18,14 +19,15 @@ export class Loader {
 
         const store = new Store()
         const valuesStore = new Store()
+        this.config.prefixes = {}
 
         await Promise.all([
-            this.importRDF(this.form.config.shapes ? this.form.config.shapes : this.form.config.shapesUrl ? this.fetchRDF(this.form.config.shapesUrl) : '', store, SHAPES_GRAPH),
-            this.importRDF(this.form.config.values ? this.form.config.values : this.form.config.valuesUrl ? this.fetchRDF(this.form.config.valuesUrl) : '', valuesStore, undefined, new Parser({ blankNodePrefix: '' })),
+            this.importRDF(this.config.attributes.shapes ? this.config.attributes.shapes : this.config.attributes.shapesUrl ? this.fetchRDF(this.config.attributes.shapesUrl) : '', store, SHAPES_GRAPH),
+            this.importRDF(this.config.attributes.values ? this.config.attributes.values : this.config.attributes.valuesUrl ? this.fetchRDF(this.config.attributes.valuesUrl) : '', valuesStore, undefined, new Parser({ blankNodePrefix: '' })),
         ])
 
-        this.form.config.shapesGraph = store
-        this.form.config.dataGraph = valuesStore
+        this.config.shapesGraph = store
+        this.config.dataGraph = valuesStore
     }
     
     async importRDF(input: string | Promise<string>, store: Store, graph?: NamedNode, parser?: Parser) {
@@ -40,13 +42,13 @@ export class Loader {
                     if (quad) {
                         store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
                         // check if this is an owl:imports
-                        if (this.form.config.ignoreOwlImports === null && OWL_IMPORTS.equals(quad.predicate)) {
+                        if (this.config.attributes.ignoreOwlImports === null && OWL_IMPORTS.equals(quad.predicate)) {
                             owlImports.push(quad.object.value)
                         }
                         return
                     }
                     if (prefixes) {
-                        this.form.config.registerPrefixes(prefixes)
+                        this.config.registerPrefixes(prefixes)
                     }
                     resolve(null)
                 })
@@ -88,10 +90,10 @@ export class Loader {
         if (this.isURL(id)) {
             return id
         }
-        if (this.form.config.prefixes) {
+        if (this.config.prefixes) {
             const splitted = id.split(':')
             if (splitted.length === 2) {
-                const prefix = this.form.config.prefixes[splitted[0]]
+                const prefix = this.config.prefixes[splitted[0]]
                 if (prefix) {
                     // need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
                     // @ts-ignore

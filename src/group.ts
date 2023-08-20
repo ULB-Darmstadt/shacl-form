@@ -10,7 +10,7 @@ export class ShaclGroup extends HTMLElement {
 
         let name = groupSubject
         const quads = config.shapesGraph.getQuads(groupSubject, null, null, SHAPES_GRAPH)
-        const label = findObjectValueByPredicate(quads, "label", PREFIX_RDFS, config.language)
+        const label = findObjectValueByPredicate(quads, "label", PREFIX_RDFS, config.attributes.language)
         if (label) {
             name = label
         }

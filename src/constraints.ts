@@ -17,7 +17,6 @@ export class ShaclOrConstraint extends HTMLElement {
         label.innerHTML = 'Please choose'
         const select = document.createElement('select')
         select.classList.add('editor')
-        // this.selectContainer.classList.add('prop-instance')
         wrapper.appendChild(label)
         wrapper.appendChild(select)
         this.appendChild(wrapper)
@@ -35,7 +34,7 @@ export class ShaclOrConstraint extends HTMLElement {
                 properties.push(property)
                 const option = document.createElement('option')
                 option.value = i.toString()
-                option.innerHTML = property.spec.label
+                option.innerHTML = property.template.label
                 select.options.add(option)
             }
             select.onchange = () => {
@@ -44,7 +43,7 @@ export class ShaclOrConstraint extends HTMLElement {
                 }
             }
         } else {
-            label.innerHTML = context.spec.label + '?'
+            label.innerHTML = context.template.label + '?'
             const values: Quad[][] = []
             for (let i = 0; i < options.length; i++) {
                 const quads = config.shapesGraph.getQuads(options[i], null, null, SHAPES_GRAPH)
@@ -53,14 +52,14 @@ export class ShaclOrConstraint extends HTMLElement {
 
                     const option = document.createElement('option')
                     option.value = i.toString()
-                    option.innerHTML = findLabel(quads, config.language) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes))
+                    option.innerHTML = findLabel(quads, config.attributes.language) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes))
                     select.options.add(option)
                 }
             }
             
             select.onchange = () => {
                 if (select.value) {
-                    this.replaceWith(new ShaclPropertyInstance(context.spec.clone().merge(values[parseInt(select.value)]), undefined, true))
+                    this.replaceWith(new ShaclPropertyInstance(context.template.clone().merge(values[parseInt(select.value)]), undefined, true))
                 }
             }
         }

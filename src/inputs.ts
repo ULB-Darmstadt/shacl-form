@@ -1,38 +1,38 @@
 import { DataFactory, NamedNode, Literal } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, PREFIX_XSD, PREFIX_RDF } from './constants'
-import { createInputListEntries } from './util'
-import { ShaclPropertySpec } from './property-spec'
+import { createInputListEntries, findInstancesOf } from './util'
+import { ShaclPropertyTemplate } from './property-template'
 
 export type Editor = HTMLElement & { value: string }
 
 export abstract class InputBase extends HTMLElement {
     static idCtr = 0
-    property: ShaclPropertySpec
+    template: ShaclPropertyTemplate
     editor: Editor
     required = false
 
-    constructor(property: ShaclPropertySpec) {
+    constructor(template: ShaclPropertyTemplate) {
         super()
 
-        this.property = property
-        this.required = this.property.minCount !== undefined && this.property.minCount > 0
+        this.template = template
+        this.required = this.template.minCount !== undefined && this.template.minCount > 0
 
         this.editor = this.createEditor()
         this.editor.id = `e${InputBase.idCtr++}`
-        this.editor.setAttribute('value', property.defaultValue?.value || '')
+        this.editor.setAttribute('value', template.defaultValue?.value || '')
         this.editor.classList.add('editor', 'form-control')
         // add path to editor to provide a hook to external apps
-        this.editor.dataset.path = this.property.path
+        this.editor.dataset.path = this.template.path
 
         const label = document.createElement('label')
         label.htmlFor = this.editor.id
-        label.innerText = property.label
-        if (property.description) {
-            label.setAttribute('title', property.description.value)
+        label.innerText = template.label
+        if (template.description) {
+            label.setAttribute('title', template.description.value)
         }
 
-        const placeholder = property.description ? property.description.value : property.pattern ? property.pattern : null
+        const placeholder = template.description ? template.description.value : template.pattern ? template.pattern : null
         if (placeholder) {
             this.editor.setAttribute('placeholder', placeholder)
         }
@@ -57,7 +57,7 @@ export abstract class InputBase extends HTMLElement {
 export class InputDate extends InputBase {
     createEditor(): Editor {
         const input = document.createElement('input')
-        if (this.property.datatype?.value  === PREFIX_XSD + 'dateTime') {
+        if (this.template.datatype?.value  === PREFIX_XSD + 'dateTime') {
             input.type = 'datetime-local'
         }
         else {
@@ -74,19 +74,19 @@ export class InputDate extends InputBase {
         } else {
             isoDate = isoDate.slice(0, 10)
         }
-        super.setValue(DataFactory.literal(isoDate, this.property.datatype))
+        super.setValue(DataFactory.literal(isoDate, this.template.datatype))
     }
 
     toRDFObject(): Literal | undefined {
         if (this.editor.value) {
-            return DataFactory.literal(this.editor.value, this.property.datatype)
+            return DataFactory.literal(this.editor.value, this.template.datatype)
         }
         return
     }
 }
 
 export class InputText extends InputBase {
-    constructor(property: ShaclPropertySpec) {
+    constructor(property: ShaclPropertyTemplate) {
         super(property)
 
         const input = this.editor as HTMLInputElement
@@ -103,7 +103,7 @@ export class InputText extends InputBase {
 
     createEditor(): Editor {
         let input
-        if (this.property.singleLine === false) {
+        if (this.template.singleLine === false) {
             input = document.createElement('textarea')
             input.rows = 5
         }
@@ -116,10 +116,10 @@ export class InputText extends InputBase {
 
     toRDFObject(): Literal | NamedNode | undefined {
         if (this.editor.value) {
-            if (this.property.class || this.property.nodeKind?.id === `${PREFIX_SHACL}IRI`) {
+            if (this.template.class || this.template.nodeKind?.id === `${PREFIX_SHACL}IRI`) {
                 return DataFactory.namedNode(this.editor.value)
             } else {
-                return DataFactory.literal(this.editor.value, this.property.datatype)
+                return DataFactory.literal(this.editor.value, this.template.datatype)
             }
         }
     }
@@ -129,7 +129,7 @@ export class InputLangString extends InputText {
     language: string | undefined
     langChooser: HTMLInputElement | HTMLSelectElement
 
-    constructor(property: ShaclPropertySpec) {
+    constructor(property: ShaclPropertyTemplate) {
         super(property)
         this.langChooser = this.createLangChooser()
         this.appendChild(this.langChooser)
@@ -144,15 +144,15 @@ export class InputLangString extends InputText {
 
     toRDFObject(): Literal | NamedNode | undefined {
         if (this.editor.value) {
-            return DataFactory.literal(this.editor.value, this.langChooser.value ? this.langChooser.value : this.property.datatype)
+            return DataFactory.literal(this.editor.value, this.langChooser.value ? this.langChooser.value : this.template.datatype)
         }
     }
 
     createLangChooser(): HTMLInputElement | HTMLSelectElement {
         let chooser
-        if (this.property.languageIn?.length) {
+        if (this.template.languageIn?.length) {
             chooser = document.createElement('select')
-            for (const lang of this.property.languageIn) {
+            for (const lang of this.template.languageIn) {
                 const option = document.createElement('option')
                 option.innerText = lang.value
                 chooser.appendChild(option)
@@ -171,7 +171,7 @@ export class InputLangString extends InputText {
 }
 
 export class InputBoolean extends InputBase {
-    constructor(property: ShaclPropertySpec) {
+    constructor(property: ShaclPropertyTemplate) {
         super(property)
         // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here
         this.editor.removeAttribute('required')
@@ -196,13 +196,13 @@ export class InputBoolean extends InputBase {
         const checkbox = this.editor as HTMLInputElement
         // emit 'false' only when required
         if (checkbox.checked || this.required) {
-            return DataFactory.literal(checkbox.checked ? 'true' : 'false', this.property.datatype)
+            return DataFactory.literal(checkbox.checked ? 'true' : 'false', this.template.datatype)
         }
     }
 }
 
 export class InputNumber extends InputBase {
-    constructor(property: ShaclPropertySpec) {
+    constructor(property: ShaclPropertyTemplate) {
         super(property)
 
         const input = this.editor as HTMLInputElement
@@ -228,7 +228,7 @@ export class InputNumber extends InputBase {
 
     toRDFObject(): Literal | undefined {
         if (this.editor.value) {
-            return DataFactory.literal(parseFloat(this.editor.value), this.property.datatype)
+            return DataFactory.literal(parseFloat(this.editor.value), this.template.datatype)
         }
     }
 }
@@ -236,25 +236,42 @@ export class InputNumber extends InputBase {
 export type InputListEntry = { value: Term, label?: string }
 
 export class InputList extends InputBase {
-    constructor(property: ShaclPropertySpec, listEntries?: InputListEntry[]) {
+    constructor(property: ShaclPropertyTemplate, listEntries?: InputListEntry[] | Promise<InputListEntry[]>) {
         super(property)
         if (listEntries) {
             this.setListEntries(listEntries)
         }
     }
 
-    setListEntries(list: InputListEntry[]) {
+    setListEntries(list: InputListEntry[] | Promise<InputListEntry[]>) {
         const select = this.editor as HTMLSelectElement
         // add an empty element
         const option = document.createElement('option')
         option.value = ''
         select.options.add(option)
 
-        for (const item of list) {
-            const option = document.createElement('option')
-            option.innerHTML = item.label ? item.label : item.value.value
-            option.value = item.value.value
-            select.options.add(option)
+        const setListEntriesInner = (list: InputListEntry[]) => {
+            for (const item of list) {
+                const option = document.createElement('option')
+                option.innerHTML = item.label ? item.label : item.value.value
+                option.value = item.value.value
+                select.options.add(option)
+            }
+        }
+
+        if (list instanceof Promise) {
+            select.disabled = true
+            option.innerText = 'Loading...'
+            list.then(entries => {
+                select.disabled = false
+                option.innerText = ''
+                setListEntriesInner(entries)
+            }).catch(e => {
+                console.error(e)
+                option.innerText = 'Loading failed'
+            })
+        } else {
+            setListEntriesInner(list)
         }
     }
 
@@ -264,49 +281,67 @@ export class InputList extends InputBase {
 
     toRDFObject(): Literal | NamedNode | undefined {
         if (this.editor.value) {
-            if (this.property.class || this.property.nodeKind?.id === `${PREFIX_SHACL}IRI`) {
+            if (this.template.class || this.template.nodeKind?.id === `${PREFIX_SHACL}IRI`) {
                 return DataFactory.namedNode(this.editor.value)
             } else {
-                return DataFactory.literal(this.editor.value, this.property.datatype)
+                return DataFactory.literal(this.editor.value, this.template.datatype)
             }
         }
     }
 }
 
-export function inputFactory(property: ShaclPropertySpec): InputBase {
+export function inputFactory(template: ShaclPropertyTemplate): InputBase {
+    // if we have a class, find the instances and display them in a list
+    if (template.class) {
+        let listEntries: InputListEntry[] | Promise<InputListEntry[]>
+        if (template.config.classInstanceLoader) {
+            listEntries = template.config.classInstanceLoader.loadClassInstances(template.class, template.config)
+        } else {
+            listEntries = findInstancesOf(template.class, template.config)
+            // if (property.classInstances?.length) {
+            //     listEntries = createInputListEntries(property.classInstances, property.config.shapesGraph, property.config.language)
+            // } else {
+            //     console.warn('class', property.class.value, 'has no instances in the shapes graph. the generated RDF triples will not validate.')
+            //     listEntries = [{value: DataFactory.literal('Error')}]
+            // }
+        }
+        
+        return new InputList(template, listEntries)
+    }
+
     // check if it is a list
-    if (property.shaclIn) {
-        const list = property.config.lists[property.shaclIn]
+    if (template.shaclIn) {
+        const list = template.config.lists[template.shaclIn]
         if (list?.length) {
-            return new InputList(property, createInputListEntries(list, property.config.shapesGraph, property.config.language))
+            return new InputList(template, createInputListEntries(list, template.config.shapesGraph, template.config.attributes.language))
         }
         else {
-            console.error('list not found:', property.shaclIn, 'existing lists:', property.config.lists)
+            console.error('list not found:', template.shaclIn, 'existing lists:', template.config.lists)
         }
     }
 
     // check if it a langstring
-    if  (property.datatype?.value === `${PREFIX_RDF}langString` || property.languageIn?.length) {
-        return new InputLangString(property)
+    if  (template.datatype?.value === `${PREFIX_RDF}langString` || template.languageIn?.length) {
+        return new InputLangString(template)
     }
 
-    switch (property.datatype?.value.replace(PREFIX_XSD, '')) {
+    switch (template.datatype?.value.replace(PREFIX_XSD, '')) {
         case 'string':
-            return new InputText(property)
+            return new InputText(template)
         case 'integer':
         case 'float':
         case 'double':
         case 'decimal':
-            return new InputNumber(property)
+            return new InputNumber(template)
         case 'date':
         case 'dateTime':
-            return new InputDate(property)
+            return new InputDate(template)
         case 'boolean':
-            return new InputBoolean(property)
+            return new InputBoolean(template)
         }
 
     // nothing found, fallback to 'text'
-    return new InputText(property)
+    return new InputText(template)
 }
 
 window.customElements.define('input-langstring', InputLangString)

@@ -1,5 +1,5 @@
 import { Writer, Quad, Literal, Prefixes } from 'n3'
-import { RDF_PREDICATE_TYPE } from './constants'
+import { PREFIX_XSD, RDF_PREDICATE_TYPE } from './constants'
 
 export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): string | {}[] {
     if (format === 'application/ld+json') {
@@ -21,8 +21,7 @@ export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): s
 function serializeJsonld(quads: Quad[]): {}[] {
     const triples: {}[] = []
     for (const quad of quads) {
-        let triple = {}
-        triple['@id'] = quad.subject.id
+        const triple = { '@id': quad.subject.id }
   
         if (quad.predicate === RDF_PREDICATE_TYPE) {
           triple['@type'] = quad.object.id
@@ -31,7 +30,7 @@ function serializeJsonld(quads: Quad[]): {}[] {
             if (quad.object instanceof Literal) {
                 if (quad.object.language) {
                     object = { '@language': quad.object.language, '@value': quad.object.value }
-                } else if (quad.object.datatype && quad.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+                } else if (quad.object.datatype && quad.object.datatype.value !== `${PREFIX_XSD}#string`) {
                     object = { '@type': quad.object.datatype.value, '@value': quad.object.value }
                 }
             } else {

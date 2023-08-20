@@ -80,7 +80,7 @@ export class ShaclNode extends HTMLElement {
 
         if (parent instanceof ShaclPropertyInstance) {
             const header = document.createElement('h1')
-            header.innerText = parent.spec.label
+            header.innerText = parent.template.label
             this.prepend(header)
         }
     }

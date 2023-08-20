@@ -1,30 +1,30 @@
 import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
-import { inputFactory, InputBase, InputList } from './inputs'
-import { createInputListEntries, focusFirstInputElement } from './util'
-import { RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
+import { inputFactory, InputBase } from './inputs'
+import { focusFirstInputElement } from './util'
+import { SHAPES_GRAPH } from './constants'
 import { ShaclOrConstraint } from './constraints'
 import { Config } from './config'
-import { ShaclPropertySpec } from './property-spec'
+import { ShaclPropertyTemplate } from './property-template'
 
 export class ShaclProperty extends HTMLElement {
-    spec: ShaclPropertySpec
+    template: ShaclPropertyTemplate
     addButton: HTMLElement
 
     constructor(shaclSubject: BlankNode | NamedNode, config: Config, valueSubject?: NamedNode | BlankNode) {
         super()
 
-        this.spec = new ShaclPropertySpec(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), config)
+        this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), config)
 
-        if (this.spec.order) {
-            this.style.order = this.spec.order
+        if (this.template.order) {
+            this.style.order = this.template.order
         }
 
         this.addButton = document.createElement('a')
         this.appendChild(this.addButton)
-        this.addButton.innerText = this.spec.label
-        this.addButton.title = 'Add ' + this.spec.label
+        this.addButton.innerText = this.template.label
+        this.addButton.title = 'Add ' + this.template.label
         this.addButton.classList.add('control-button', 'add-button')
         this.addButton.addEventListener('click', _ => {
             const instance = this.createPropertyInstance()
@@ -33,17 +33,17 @@ export class ShaclProperty extends HTMLElement {
         });
 
         // bind existing values
-        if (this.spec.path) {
-            const values = valueSubject ? config.dataGraph.getQuads(valueSubject, this.spec.path, null, null) : []
+        if (this.template.path) {
+            const values = valueSubject ? config.dataGraph.getQuads(valueSubject, this.template.path, null, null) : []
             let valuesContainHasValue = false
             for (const value of values) {
                 this.createPropertyInstance(value.object)
-                if (this.spec.hasValue && value.object.equals(this.spec.hasValue)) {
+                if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                     valuesContainHasValue = true
                 }
             }
-            if (this.spec.hasValue && !valuesContainHasValue) {
-                this.createPropertyInstance(this.spec.hasValue)
+            if (this.template.hasValue && !valuesContainHasValue) {
+                this.createPropertyInstance(this.template.hasValue)
             }
         }
         this.addEventListener('change', () => { this.updateControls() })
@@ -51,32 +51,32 @@ export class ShaclProperty extends HTMLElement {
     }
 
     createPropertyInstance(value?: Term): HTMLElement {
-        const instance = this.spec.shaclOr?.length ? new ShaclOrConstraint(this.spec.shaclOr, this, this.spec.config) : new ShaclPropertyInstance(this.spec, value)
+        const instance = this.template.shaclOr?.length ? new ShaclOrConstraint(this.template.shaclOr, this, this.template.config) : new ShaclPropertyInstance(this.template, value)
         this.insertBefore(instance, this.addButton)
         return instance
     }
 
     updateControls() {
         let instances = this.querySelectorAll(":scope > shacl-property-instance, :scope > shacl-or-constraint")
-        if (instances.length === 0 && (!this.spec.node || (this.spec.minCount !== undefined && this.spec.minCount > 0))) {
+        if (instances.length === 0 && (!this.template.node || (this.template.minCount !== undefined && this.template.minCount > 0))) {
             this.createPropertyInstance()
             instances = this.querySelectorAll(":scope > shacl-property-instance, :scope > shacl-or-constraint")
         }
-        const mayRemove = instances.length > (this.spec.minCount ? this.spec.minCount : 1)
+        const mayRemove = instances.length > (this.template.minCount ? this.template.minCount : 1)
         for (const removeButton of this.querySelectorAll(":scope > shacl-property-instance > .remove-button")) {
             (removeButton as HTMLElement).style.visibility = (mayRemove || removeButton.classList.contains('persistent')) ? 'visible' : 'hidden'
         }
 
-        const mayAdd = this.spec.maxCount === undefined || instances.length < this.spec.maxCount
+        const mayAdd = this.template.maxCount === undefined || instances.length < this.template.maxCount
         this.addButton.style.display = mayAdd ? 'inline' : 'none'
     }
 
     toRDF(graph: Store, subject: NamedNode | BlankNode) {
         // for (const instance of this.querySelectorAll(':scope > shacl-property-instance > *:first-child')) {
         for (const instance of this.querySelectorAll(':scope > shacl-property-instance')) {
-            const spec = (instance as ShaclPropertyInstance).spec
-            if (spec.path) {
-                const pathNode = DataFactory.namedNode(spec.path)
+            const template = (instance as ShaclPropertyInstance).template
+            if (template.path) {
+                const pathNode = DataFactory.namedNode(template.path)
                 const child = instance.querySelector(':scope > *:first-child')
                 if (child instanceof ShaclNode) {
                     const quadCount = graph.size
@@ -98,28 +98,22 @@ export class ShaclProperty extends HTMLElement {
 }
 
 export class ShaclPropertyInstance extends HTMLElement {
-    spec: ShaclPropertySpec
+    template: ShaclPropertyTemplate
 
-    constructor(spec: ShaclPropertySpec, value?: Term, forceRemovable = false) {
+    constructor(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false) {
         super()
 
-        this.spec = spec
+        this.template = template
 
-        if (spec.node) {
-            this.appendChild(new ShaclNode(spec.node, spec.config, this, value as NamedNode | BlankNode | undefined))
+        if (template.node) {
+            this.appendChild(new ShaclNode(template.node, template.config, this, value as NamedNode | BlankNode | undefined))
         } else {
             let editor: InputBase
-            const plugin = spec.path ? spec.config.plugins[spec.path] : undefined
+            const plugin = template.path ? template.config.plugins[template.path] : undefined
             if (plugin) {
-                editor = plugin.createInstance(spec, value?.value)
+                editor = plugin.createInstance(template, value?.value)
             } else {
-                // if we have class instances, use these as list values
-                if (spec.classInstances?.length) {
-                    editor = new InputList(spec, createInputListEntries(spec.classInstances, spec.config.shapesGraph, spec.config.language))
-                    
-                } else {
-                    editor =  inputFactory(spec)
-                }
+                editor =  inputFactory(template)
                 if (value) {
                     editor.setValue(value)
                 }
@@ -134,7 +128,7 @@ export class ShaclPropertyInstance extends HTMLElement {
         if (forceRemovable) {
             removeButton.classList.add('persistent')
         }
-        removeButton.title = 'Remove ' + spec.label
+        removeButton.title = 'Remove ' + template.label
         removeButton.addEventListener('click', _ => {
             const parent = this.parentElement
             this.remove()
