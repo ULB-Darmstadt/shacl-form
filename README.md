@@ -65,7 +65,7 @@ registerPlugin(plugin: Plugin)
 WIP / TBD
 
 ```typescript
-setClassInstanceResolver((className: string) => Promise<string>)
+setClassInstanceProvider((className: string) => Promise<string>)
 ```
 Sets a callback function that is called when a SHACL property has a `sh:class` definition. The expected return value is a string (e.g. in format `text/turtle`) that contains RDF instance definitions of the given class name.
 

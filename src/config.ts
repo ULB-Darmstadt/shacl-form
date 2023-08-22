@@ -1,7 +1,7 @@
 import { Prefixes, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
-import { ClassInstanceLoader, ClassInstanceResolver, Plugins } from './plugin'
+import { ClassInstanceLoader, ClassInstanceProvider, Plugins } from './plugin'
 import { Loader } from './loader'
 
 export class ElementAttributes {
@@ -72,9 +72,9 @@ export class Config {
         }
     }
 
-    set classInstanceResolver(resolver: ClassInstanceResolver | undefined) {
-        if (resolver) {
-            this.classInstanceLoader = new ClassInstanceLoader(this, resolver)
+    set classInstanceProvider(provider: ClassInstanceProvider | undefined) {
+        if (provider) {
+            this.classInstanceLoader = new ClassInstanceLoader(this, provider)
         } else {
             this.classInstanceLoader = undefined
         }

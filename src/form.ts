@@ -1,6 +1,6 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
-import { ClassInstanceResolver, Plugin } from './plugin'
+import { ClassInstanceProvider, Plugin } from './plugin'
 import { Quad, Store, NamedNode, DataFactory } from 'n3'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH } from './constants'
 import { focusFirstInputElement } from './util'
@@ -95,8 +95,8 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
-    public setClassInstanceResolver(resolver: ClassInstanceResolver) {
-        this.config.classInstanceResolver = resolver
+    public setClassInstanceProvider(provider: ClassInstanceProvider) {
+        this.config.classInstanceProvider = provider
         this.initialize()
     }
 

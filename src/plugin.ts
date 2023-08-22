@@ -1,7 +1,6 @@
 import { ShaclPropertyTemplate } from './property-template'
 import { InputBase, InputListEntry } from './inputs'
 import { NamedNode } from "n3"
-import { Loader } from './loader';
 import { findInstancesOf } from './util';
 import { Config } from './config';
 import { SHAPES_GRAPH } from './constants';
@@ -20,24 +19,24 @@ export abstract class Plugin {
     abstract createInstance(property: ShaclPropertyTemplate, value?: string): InputBase
 }
 
-export type ClassInstanceResolver = (clazz: string) => Promise<string>
+export type ClassInstanceProvider = (clazz: string) => Promise<string>
 
 export class ClassInstanceLoader {
     private config: Config
-    private resolver: ClassInstanceResolver
+    private provider: ClassInstanceProvider
     private loadedClasses: string[] = []
 
-    constructor(config: Config, resolver: ClassInstanceResolver) {
+    constructor(config: Config, provider: ClassInstanceProvider) {
         this.config = config
-        this.resolver = resolver
+        this.provider = provider
     }
 
     async loadClassInstances(clazz: NamedNode, config: Config): Promise<InputListEntry[]> {
         const className = clazz.value
-        // invoke resolver plugin only once for each class
+        // invoke provider plugin only once for each class
         if (this.loadedClasses.indexOf(className) < 0) {
             this.loadedClasses.push(className)
-            await this.config.loader.importRDF(this.resolver(className), config.shapesGraph, SHAPES_GRAPH)
+            await this.config.loader.importRDF(this.provider(className), config.shapesGraph, SHAPES_GRAPH)
         }
         return findInstancesOf(clazz, config)
     }
