@@ -57,7 +57,7 @@ Serializes the form data as RDF triples. Supported formats:  `text/turtle` (defa
 ```typescript
 validate(ignoreEmptyValues: boolean): Promise<boolean>
 ```
-Validates the form data against the SHACL shapes graph and displays validation results as icons next to the respective inut fields. If `ignoreEmptyValues` is true, empty form fields will not be marked as invalid. This function is also internally called on `change` and `submit` events.
+Validates the form data against the SHACL shapes graph and displays validation results as icons next to the respective input fields. If `ignoreEmptyValues` is true, empty form fields will not be marked as invalid. This function is also internally called on `change` and `submit` events.
 
 ```typescript
 registerPlugin(plugin: Plugin)

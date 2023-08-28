@@ -1,6 +1,5 @@
 import { Store, Parser, Quad, Prefixes, NamedNode } from 'n3'
 import { OWL_IMPORTS, SHAPES_GRAPH } from './constants'
-import { ShaclForm } from './form'
 import { Config } from './config'
 
 export class Loader {
@@ -65,7 +64,9 @@ export class Loader {
         if (input instanceof Promise) {
             input = await input
         }
-        await parse(input)
+        if (input) {
+            await parse(input)
+        }
     }
 
     fetchRDF(url: string): Promise<string> {

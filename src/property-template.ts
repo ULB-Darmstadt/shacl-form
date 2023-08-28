@@ -1,8 +1,8 @@
-import { Literal, NamedNode, Quad } from 'n3'
+import { Literal, NamedNode, BlankNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_DASH, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
-import { findLabel } from './util'
+import { findLabel, removePrefixes } from './util'
 
 const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => void> = {
     [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; if (!template.name || (template.config.attributes.language && literal.language === template.config.attributes.language)) { template.name = literal } },
@@ -46,6 +46,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
 
 export class ShaclPropertyTemplate  {
     label: string
+    nodeId: NamedNode | BlankNode
     name: Literal | undefined
     description: Literal | undefined
     path: string | undefined
@@ -72,8 +73,9 @@ export class ShaclPropertyTemplate  {
 
     config: Config
 
-    constructor(quads: Quad[], config: Config) {
+    constructor(quads: Quad[], nodeId: NamedNode | BlankNode, config: Config) {
         this.config = config
+        this.nodeId = nodeId
         this.merge(quads)
 
         // provide best fitting label for UI
@@ -82,7 +84,7 @@ export class ShaclPropertyTemplate  {
             this.label = findLabel(quads, config.attributes.language)
         }
         if (!this.label) {
-            this.label = this.path || ''
+            this.label = this.path ? removePrefixes(this.path, config.prefixes) : ''
         }
         if (!this.label) {
             this.label = 'unknown'

@@ -131,7 +131,7 @@ export class ShaclForm extends HTMLElement {
         for (const result of report.results) {
             // result.path can be null, e.g. if a focus node does not contain a required property node
             if (result.path) {
-                for (const invalidElement of this.querySelectorAll(`:scope shacl-node[data-node-id='${result.focusNode.id}'] .editor[data-path='${result.path.id}']`)) {
+                for (const invalidElement of this.querySelectorAll(`:scope .editor[data-node-id='${result.focusNode.id}'][data-path='${result.path.id}']`)) {
                     if (!ignoreEmptyValues || (invalidElement as Editor).value) {
                         const parent = invalidElement.parentElement!
                         parent.classList.add('invalid')

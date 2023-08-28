@@ -9,7 +9,7 @@ import { Config } from './config'
 
 export class ShaclNode extends HTMLElement {
     shaclSubject: NamedNode
-    exportValueSubject: NamedNode | BlankNode
+    nodeId: NamedNode | BlankNode
     targetClass: NamedNode | undefined
     parent: ShaclNode | ShaclPropertyInstance | undefined
     config: Config
@@ -20,8 +20,7 @@ export class ShaclNode extends HTMLElement {
         this.config = config
         this.parent = parent
         this.shaclSubject = shaclSubject
-        this.exportValueSubject = valueSubject || DataFactory.blankNode(uuidv4())
-        this.dataset.nodeId = this.exportValueSubject.id
+        this.nodeId = valueSubject || DataFactory.blankNode(uuidv4())
         const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
         let list: Term[] | undefined
 
@@ -45,7 +44,7 @@ export class ShaclNode extends HTMLElement {
                             console.warn('ignoring unknown group reference', groupRef[0])
                         }
                     }
-                    parent.appendChild(new ShaclProperty(quad.object as NamedNode | BlankNode, config, valueSubject))
+                    parent.appendChild(new ShaclProperty(quad.object as NamedNode | BlankNode, config, this.nodeId, valueSubject))
                     break;
                 case `${PREFIX_SHACL}and`:
                     // inheritance via sh:and
@@ -87,9 +86,8 @@ export class ShaclNode extends HTMLElement {
 
     toRDF(graph: Store, subject?: NamedNode | BlankNode): (NamedNode | BlankNode) {
         if (!subject) {
-            subject = this.exportValueSubject
+            subject = this.nodeId
         }
-        const quadCount = graph.size
         for (const shape of this.querySelectorAll(':scope > shacl-node, :scope > shacl-group > shacl-node, :scope > shacl-property, :scope > shacl-group > shacl-property, :scope > shacl-or-constraint > shacl-node, :scope > shacl-or-constraint > shacl-property')) {
             (shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
         }

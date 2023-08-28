@@ -3,7 +3,7 @@ import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { inputFactory, InputBase } from './inputs'
 import { focusFirstInputElement } from './util'
-import { SHAPES_GRAPH } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
 import { ShaclOrConstraint } from './constraints'
 import { Config } from './config'
 import { ShaclPropertyTemplate } from './property-template'
@@ -12,10 +12,10 @@ export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
     addButton: HTMLElement
 
-    constructor(shaclSubject: BlankNode | NamedNode, config: Config, valueSubject?: NamedNode | BlankNode) {
+    constructor(shaclSubject: BlankNode | NamedNode, config: Config, nodeId: NamedNode | BlankNode, valueSubject?: NamedNode | BlankNode) {
         super()
 
-        this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), config)
+        this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), nodeId, config)
 
         if (this.template.order) {
             this.style.order = this.template.order
@@ -51,7 +51,27 @@ export class ShaclProperty extends HTMLElement {
     }
 
     createPropertyInstance(value?: Term): HTMLElement {
-        const instance = this.template.shaclOr?.length ? new ShaclOrConstraint(this.template.shaclOr, this, this.template.config) : new ShaclPropertyInstance(this.template, value)
+        let instance: HTMLElement
+        if (this.template.shaclOr?.length) {
+            if (value) {
+                let template = this.template
+                const types = this.template.config.dataGraph.getObjects(value, RDF_PREDICATE_TYPE, null)
+                console.log('--- binding or value', value, types)
+                if (types.length > 0) {
+                    const nodeShapes = this.template.config.shapesGraph.getSubjects(`${PREFIX_SHACL}targetClass`, types[0], SHAPES_GRAPH)
+                    if (nodeShapes.length > 0) {
+                        template = template.clone()
+                        template.node = nodeShapes[0] as NamedNode
+                    }
+                }
+                instance = new ShaclPropertyInstance(template, value, true)
+            } else {
+                instance = new ShaclOrConstraint(this.template.shaclOr, this, this.template.config)
+            }
+
+        } else {
+            instance = new ShaclPropertyInstance(this.template, value)
+        }
         this.insertBefore(instance, this.addButton)
         return instance
     }
@@ -62,7 +82,13 @@ export class ShaclProperty extends HTMLElement {
             this.createPropertyInstance()
             instances = this.querySelectorAll(":scope > shacl-property-instance, :scope > shacl-or-constraint")
         }
-        const mayRemove = instances.length > (this.template.minCount ? this.template.minCount : 1)
+        let mayRemove: boolean
+        if (this.template.minCount !== undefined) {
+            mayRemove = instances.length > this.template.minCount
+        } else {
+            mayRemove = this.template.node !== undefined || instances.length > 1
+        }
+        // const mayRemove = instances.length > (this.template.minCount ? this.template.minCount : 1)
         for (const removeButton of this.querySelectorAll(":scope > shacl-property-instance > .remove-button")) {
             (removeButton as HTMLElement).style.visibility = (mayRemove || removeButton.classList.contains('persistent')) ? 'visible' : 'hidden'
         }
@@ -113,10 +139,7 @@ export class ShaclPropertyInstance extends HTMLElement {
             if (plugin) {
                 editor = plugin.createInstance(template, value?.value)
             } else {
-                editor =  inputFactory(template)
-                if (value) {
-                    editor.setValue(value)
-                }
+                editor =  inputFactory(template, value)
             }
             this.appendChild(editor)
         }

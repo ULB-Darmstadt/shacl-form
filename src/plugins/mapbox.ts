@@ -14,7 +14,7 @@ export class MapBoxPlugin extends Plugin {
     createInstance(property: ShaclPropertyTemplate, value?: string): InputText {
         const instance = new InputText(property)
         if (value) {
-            instance.setValue(DataFactory.literal(value))
+            instance.editor.value = value
         }
         const button = document.createElement('button')
         button.type = 'button'

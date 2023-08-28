@@ -30,7 +30,7 @@ export class ShaclOrConstraint extends HTMLElement {
             const properties: ShaclProperty[] = []
             // expect options to be shacl properties
             for (let i = 0; i < options.length; i++) {
-                const property = new ShaclProperty(options[i] as NamedNode | BlankNode, config)
+                const property = new ShaclProperty(options[i] as NamedNode | BlankNode, config, context.nodeId)
                 properties.push(property)
                 const option = document.createElement('option')
                 option.value = i.toString()
