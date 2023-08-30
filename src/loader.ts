@@ -5,8 +5,8 @@ import { Config } from './config'
 export class Loader {
     private abortController: AbortController | null = null
     private config: Config
-    private owlImportsLoaded: string[] = []
-    private classesLoaded: string[] = []
+    private loadedOwlImports: string[] = []
+    private loadedClasses: string[] = []
 
     constructor(config: Config) {
         this.config = config
@@ -34,8 +34,7 @@ export class Loader {
     async importRDF(input: string | Promise<string>, store: Store, graph?: NamedNode, parser?: Parser) {
         const p = parser ? parser : new Parser()
         const parse = async (text: string) => {
-            const owlImports: string[] = []
-            const classes: string[] = []
+            const dependencies: Promise<void>[] = []
             await new Promise((resolve, reject) => {
                 p.parse(text, (error: Error, quad: Quad, prefixes: Prefixes) => {
                     if (error) {
@@ -43,13 +42,21 @@ export class Loader {
                     }
                     if (quad) {
                         store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
-                        // check if this is an owl:imports predicate
+                        // check if this is an owl:imports predicate and try to load the url
                         if (this.config.attributes.ignoreOwlImports === null && OWL_IMPORTS.equals(quad.predicate)) {
-                            owlImports.push(quad.object.value)
+                            const url = this.toURL(quad.object.value)
+                            // import url only once
+                            if (url && this.loadedOwlImports.indexOf(url) < 0) {
+                                this.loadedOwlImports.push(url)
+                                dependencies.push(this.importRDF(this.fetchRDF(url), store, graph, parser))
+                            }
                         }
-                        // check if this is an sh:class predicate
+                        // check if this is an sh:class predicate and invoke class instance provider
                         if (this.config.classInstanceProvider && SHACL_PREDICATE_CLASS.equals(quad.predicate)) {
-                            classes.push(quad.object.value)
+                            // import class definitions only once
+                            if (this.loadedClasses.indexOf(quad.object.value) < 0) {
+                                dependencies.push(this.importRDF(this.config.classInstanceProvider(quad.object.value), store, graph, parser))
+                            }
                         }
                         return
                     }
@@ -59,25 +66,7 @@ export class Loader {
                     resolve(null)
                 })
             })
-
-            if (owlImports.length || classes.length) {
-                const promises: Promise<void>[] = []
-                for (const owlImport of owlImports) {
-                    const url = this.toURL(owlImport)
-                    if (url && this.owlImportsLoaded.indexOf(url) < 0) {
-                        // import url only once
-                        this.owlImportsLoaded.push(url)
-                        promises.push(this.importRDF(this.fetchRDF(url), store, graph, parser))
-                    }
-                }
-                for (const clazz of classes) {
-                    if (this.classesLoaded.indexOf(clazz) < 0) {
-                        // import class definitions only once
-                        promises.push(this.importRDF(this.config.classInstanceProvider!(clazz), store, graph, parser))
-                    }
-                }
-                await Promise.all(promises)
-            }
+            await Promise.all(dependencies)
         }
 
         if (input instanceof Promise) {
