@@ -165,7 +165,7 @@ export function createNumberEditor(template: ShaclPropertyTemplate, value?: Term
 
 export type InputListEntry = { value: Term, label?: string }
 
-export function createListEditor(template: ShaclPropertyTemplate, listEntries: InputListEntry[] | Promise<InputListEntry[]>, value?: Term): HTMLElement {
+export function createListEditor(template: ShaclPropertyTemplate, listEntries: InputListEntry[], value?: Term): HTMLElement {
     const editor = document.createElement('select')
     const result = createDefaultTemplate(template, editor)
     // add an empty element
@@ -173,19 +173,17 @@ export function createListEditor(template: ShaclPropertyTemplate, listEntries: I
     emptyOption.value = ''
     editor.options.add(emptyOption)
 
-    if (listEntries instanceof Promise) {
-        editor.disabled = true
-        emptyOption.innerText = 'Loading...'
-        listEntries.then(entries => {
-            editor.disabled = false
-            emptyOption.innerText = ''
-            setListEntries(editor, entries, value)
-        }).catch(e => {
-            console.error(e)
-            emptyOption.innerText = 'Loading failed'
-        })
-    } else {
-        setListEntries(editor, listEntries, value)
+    for (const item of listEntries) {
+        const option = document.createElement('option')
+        option.innerHTML = item.label ? item.label : item.value.value
+        option.value = item.value.value
+        if (value && value.equals(item.value)) {
+            option.selected = true
+        }
+        editor.options.add(option)
+    }
+    if (value) {
+        editor.value = value.value
     }
     return result
 }
@@ -231,20 +229,7 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
 export function editorFactory(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
     // if we have a class, find the instances and display them in a list
     if (template.class) {
-        let listEntries: InputListEntry[] | Promise<InputListEntry[]>
-        if (template.config.classInstanceLoader) {
-            listEntries = template.config.classInstanceLoader.loadClassInstances(template.class, template.config)
-        } else {
-            listEntries = findInstancesOf(template.class, template.config)
-            // if (property.classInstances?.length) {
-            //     listEntries = createInputListEntries(property.classInstances, property.config.shapesGraph, property.config.language)
-            // } else {
-            //     console.warn('class', property.class.value, 'has no instances in the shapes graph. the generated RDF triples will not validate.')
-            //     listEntries = [{value: DataFactory.literal('Error')}]
-            // }
-        }
-        
-        return createListEditor(template, listEntries, value)
+        return createListEditor(template, findInstancesOf(template.class, template.config), value)
     }
 
     // check if it is a list

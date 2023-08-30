@@ -5,9 +5,9 @@ import { ShaclPropertyTemplate } from '../property-template'
 import { createListEditor, InputListEntry } from '../editors'
 
 export class FixedListPlugin extends Plugin {
-    entries: InputListEntry[] | Promise<InputListEntry[]>
+    entries: InputListEntry[]
     
-    constructor(predicate: string, entries: InputListEntry[] | Promise<InputListEntry[]>) {
+    constructor(predicate: string, entries: InputListEntry[]) {
         super(predicate)
         this.entries = entries
     }
