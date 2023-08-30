@@ -1,4 +1,5 @@
-shacl-form form { padding-left: 1rem; }
+shacl-form { padding-left: 1rem; box-sizing: border-box; }
+shacl-form *, shacl-form ::after, shacl-form ::before { box-sizing: inherit; }
 shacl-node shacl-node h1 { font-size: 1rem; color: #555; }
 shacl-node, shacl-form .shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
 shacl-node .control-button { cursor: pointer; }
@@ -19,12 +20,12 @@ shacl-form .property-instance label, shacl-form .shacl-or-constraint label { dis
 shacl-form .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
 shacl-form .property-instance label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
 shacl-form .property-instance:not(:first-child) > label { visibility: hidden; height: 0; }
-shacl-form .property-instance.valid::before { position: absolute; left: 7em; top: 2px; color: green; content: '\2713'; }
+shacl-form .property-instance.valid::before { position: absolute; left: 6em; top: 2px; color: green; content: '\2713'; }
 shacl-form .editor:not([type='checkbox']), shacl-form .shacl-or-constraint select { flex-grow: 1; border: 1px solid #DDD; padding: 2px 4px; }
 shacl-form textarea.editor { resize: vertical; }
 shacl-form .lang-chooser { position: absolute; top: 1px; right: 25px; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
 shacl-form .lang-chooser+.editor { padding-right: 55px; }
-shacl-form .validation-error { position: absolute; left: 7em; top: 2px; color: red; cursor: help; }
+shacl-form .validation-error { position: absolute; left: 6em; top: 2px; color: red; cursor: help; }
 shacl-form .validation-error::before { content: '\26a0' }
 shacl-form .validation-error.node { left: -1em; }
 shacl-form .invalid > .editor { border-color: red !important; }
