@@ -1,6 +1,8 @@
 import { Plugin } from '../plugin'
+import { Term } from '@rdfjs/types'
+
 import { ShaclPropertyTemplate } from '../property-template'
-import { InputList, InputListEntry } from '../inputs'
+import { createListEditor, InputListEntry } from '../editors'
 
 export class FixedListPlugin extends Plugin {
     entries: InputListEntry[] | Promise<InputListEntry[]>
@@ -10,7 +12,7 @@ export class FixedListPlugin extends Plugin {
         this.entries = entries
     }
 
-    createInstance(property: ShaclPropertyTemplate, value?: string): InputList {
-        return new InputList(property, this.entries)
+    createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
+        return createListEditor(template, this.entries, value)
     }
 }

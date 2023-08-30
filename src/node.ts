@@ -1,28 +1,27 @@
 import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, SHAPES_GRAPH, RDF_PREDICATE_TYPE } from './constants'
-import { ShaclProperty, ShaclPropertyInstance } from './property'
-import { ShaclGroup } from './group'
+import { ShaclProperty } from './property'
+import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
-import { ShaclOrConstraint } from './constraints'
+import { createShaclOrConstraint } from './constraints'
 import { Config } from './config'
 
 export class ShaclNode extends HTMLElement {
     shaclSubject: NamedNode
     nodeId: NamedNode | BlankNode
     targetClass: NamedNode | undefined
-    parent: ShaclNode | ShaclPropertyInstance | undefined
     config: Config
 
-    constructor(shaclSubject: NamedNode, config: Config, parent: ShaclNode | ShaclPropertyInstance | undefined, valueSubject: NamedNode | BlankNode | undefined) {
+    constructor(shaclSubject: NamedNode, config: Config, valueSubject: NamedNode | BlankNode | undefined, label?: string) {
         super()
 
         this.config = config
-        this.parent = parent
         this.shaclSubject = shaclSubject
         this.nodeId = valueSubject || DataFactory.blankNode(uuidv4())
         const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
         let list: Term[] | undefined
+        this.dataset.nodeId = this.nodeId.id
 
         for (const quad of quads) {
             switch (quad.predicate.id) {
@@ -34,9 +33,9 @@ export class ShaclNode extends HTMLElement {
                         const groupSubject = groupRef[0].object.value
                         if (config.groups.indexOf(groupSubject) > -1) {
                             // check if group element already exists
-                            let group = this.querySelector(`:scope > shacl-group[data-subject='${groupSubject}']`) as ShaclGroup
+                            let group = this.querySelector(`:scope > .shacl-group[data-subject='${groupSubject}']`) as HTMLElement
                             if (!group) {
-                                group = new ShaclGroup(groupSubject, config)
+                                group = createShaclGroup(groupSubject, config)
                                 this.appendChild(group)
                             }
                             parent = group
@@ -51,7 +50,7 @@ export class ShaclNode extends HTMLElement {
                     list = config.lists[quad.object.value]
                     if (list?.length) {
                         for (const shape of list) {
-                            this.prepend(new ShaclNode(shape as NamedNode, config, this, valueSubject))
+                            this.prepend(new ShaclNode(shape as NamedNode, config, valueSubject))
                         }
                     }
                     else {
@@ -60,7 +59,7 @@ export class ShaclNode extends HTMLElement {
                     break;
                 case `${PREFIX_SHACL}node`:
                     // inheritance via sh:node
-                    this.prepend(new ShaclNode(quad.object as NamedNode, config, this, valueSubject))
+                    this.prepend(new ShaclNode(quad.object as NamedNode, config, valueSubject))
                     break;
                 case `${PREFIX_SHACL}targetClass`:
                     this.targetClass = quad.object as NamedNode
@@ -68,7 +67,7 @@ export class ShaclNode extends HTMLElement {
                 case `${PREFIX_SHACL}or`:
                     list = config.lists[quad.object.value]
                     if (list?.length) {
-                        this.appendChild(new ShaclOrConstraint(list, this, config))
+                        this.appendChild(createShaclOrConstraint(list, this, config))
                     }
                     else {
                         console.error('list not found:', quad.object.value, 'existing lists:', config.lists)
@@ -77,9 +76,9 @@ export class ShaclNode extends HTMLElement {
             }
         }
 
-        if (parent instanceof ShaclPropertyInstance) {
+        if (label) {
             const header = document.createElement('h1')
-            header.innerText = parent.template.label
+            header.innerText = label
             this.prepend(header)
         }
     }
@@ -88,13 +87,14 @@ export class ShaclNode extends HTMLElement {
         if (!subject) {
             subject = this.nodeId
         }
-        for (const shape of this.querySelectorAll(':scope > shacl-node, :scope > shacl-group > shacl-node, :scope > shacl-property, :scope > shacl-group > shacl-property, :scope > shacl-or-constraint > shacl-node, :scope > shacl-or-constraint > shacl-property')) {
+        for (const shape of this.querySelectorAll(':scope > shacl-node, :scope > .shacl-group > shacl-node, :scope > shacl-property, :scope > .shacl-group > shacl-property')) {
             (shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
         }
         if (this.targetClass) {
             graph.addQuad(subject, RDF_PREDICATE_TYPE, this.targetClass)
         }
-        if (!this.parent) {
+        // if this is the root shacl node, add the type predicate
+        if (!this.closest('shacl-node shacl-node')) {
             graph.addQuad(subject, RDF_PREDICATE_TYPE, this.shaclSubject)
         }
         return subject

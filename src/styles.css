@@ -1,33 +1,35 @@
 shacl-form form { padding-left: 1rem; }
 shacl-node shacl-node h1 { font-size: 1rem; color: #555; }
-shacl-node, shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
+shacl-node, shacl-form .shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
 shacl-node .control-button { cursor: pointer; }
 shacl-node .control-button:not(:hover) { border-color: transparent; background: 0; }
 shacl-node .remove-button { margin-left: 4px; }
 shacl-node .add-button { font-size: 0.7rem; color: #555;  margin-right: 24px; text-decoration:none; }
 shacl-node .add-button:before { content: '+'; margin-right: 0.2em; }
 shacl-node .add-button:hover { color: inherit; }
-shacl-node h1 { font-size: 1.1rem; border-bottom: 1px solid; margin-top: 0; }
-shacl-property { display: flex; flex-direction: column; align-items: end; }
-shacl-property-instance, shacl-or-constraint { display: flex; align-items: flex-start; margin-top: 8px; width: 100%; }
-shacl-or-constraint .editor { margin-right: 23px; }
-shacl-property-instance:not(:first-child) > .prop > label { visibility: hidden; height: 0; }
-shacl-group { margin-bottom: 1em; padding-bottom: 1em; }
-shacl-group h2 { font-size: 1rem; border-bottom: 1px solid; margin-top: 0; color: #555; }
-shacl-form .prop { display: flex; flex-grow: 1; align-items: flex-start; position: relative; }
-shacl-form .prop label { display: inline-block; word-break: break-word; width: 7em; line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
-shacl-form .prop label[title] { cursor: help; text-decoration: underline dashed #AAA; }
-shacl-form .prop label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
-shacl-form .prop .editor:not([type='checkbox']) { flex-grow: 1; border: 1px solid #DDD; padding: 2px 4px; }
-shacl-form .prop textarea.editor { resize: vertical; }
-shacl-form .prop .editor.ml-0  { margin-left: 0; }
-shacl-form .prop .editor.pr-0  { padding-right: 0; }
-input-langstring .lang-chooser { position: absolute; top: 1px; right: 0; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
-input-langstring.prop .editor { padding-right: 55px; }
+shacl-node h1 { font-size: 1.1rem; border-bottom: 1px solid; margin-top: 2px; }
+shacl-property { display: flex; flex-direction: column; align-items: end; position: relative; }
+shacl-property:not(.may-add) > .add-button { visibility: hidden; }
+shacl-property:not(.may-remove) > .property-instance > .remove-button:not(.persistent) { visibility: hidden; }
+shacl-form .shacl-or-constraint select { margin-right: 23px; }
+shacl-form .shacl-group { margin-bottom: 1em; padding-bottom: 1em; }
+shacl-form .shacl-group h2 { font-size: 1rem; border-bottom: 1px solid; margin-top: 0; color: #555; }
+shacl-form .property-instance, shacl-form .shacl-or-constraint { display: flex; align-items: flex-start; margin-top: 8px; width: 100%; position: relative; }
+shacl-form .property-instance label, shacl-form .shacl-or-constraint label { display: inline-block; word-break: break-word; width: 7em; line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
+shacl-form .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
+shacl-form .property-instance label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
+shacl-form .property-instance:not(:first-child) > label { visibility: hidden; height: 0; }
+shacl-form .property-instance.valid::before { position: absolute; left: 7em; top: 2px; color: green; content: '\2713'; }
+shacl-form .editor:not([type='checkbox']), shacl-form .shacl-or-constraint select { flex-grow: 1; border: 1px solid #DDD; padding: 2px 4px; }
+shacl-form textarea.editor { resize: vertical; }
+shacl-form .lang-chooser { position: absolute; top: 1px; right: 25px; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
+shacl-form .lang-chooser+.editor { padding-right: 55px; }
 shacl-form .validation-error { position: absolute; left: 7em; top: 2px; color: red; cursor: help; }
 shacl-form .validation-error::before { content: '\26a0' }
-shacl-form .invalid { border-color: red !important; }
-shacl-form .prop.valid::before { position: absolute; left: 7em; top: 2px; color: green; content: '\2713'; }
+shacl-form .validation-error.node { left: -1em; }
+shacl-form .invalid > .editor { border-color: red !important; }
+shacl-form .ml-0  { margin-left: 0 !important; }
+shacl-form .pr-0  { padding-right: 0 !important; }
 
-shacl-form.bootstrap .prop label { padding-top: 0.7em; }
-shacl-form.bootstrap .prop label.required::before { top: 0.65rem; }
+shacl-form.bootstrap .property-instance label { padding-top: 0.7em; }
+shacl-form.bootstrap .property-instance label.required::before { top: 0.65rem; }

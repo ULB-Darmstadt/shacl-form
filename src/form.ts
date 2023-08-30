@@ -4,7 +4,7 @@ import { ClassInstanceProvider, Plugin } from './plugin'
 import { Quad, Store, NamedNode, DataFactory } from 'n3'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH } from './constants'
 import { focusFirstInputElement } from './util'
-import { Editor } from './inputs'
+import { Editor } from './editors'
 import { serialize } from './serialize'
 import SHACLValidator from 'rdf-validate-shacl'
 import './styles.css'
@@ -47,7 +47,7 @@ export class ShaclForm extends HTMLElement {
                 // find root shacl shape
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
                 if (rootShapeShaclSubject) {
-                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, undefined, this.config.attributes.valueSubject ? DataFactory.namedNode(this.config.attributes.valueSubject) : undefined)
+                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valueSubject ? DataFactory.namedNode(this.config.attributes.valueSubject) : undefined)
                     // add submit button
                     if (this.config.attributes.submitButton !== null) {
                         const button = document.createElement('button')
@@ -104,9 +104,9 @@ export class ShaclForm extends HTMLElement {
         for (const elem of this.querySelectorAll(':scope .validation-error')) {
             elem.remove()
         }
-        for (const elem of this.querySelectorAll(':scope .prop')) {
+        for (const elem of this.querySelectorAll(':scope .property-instance')) {
             elem.classList.remove('invalid')
-            if (((elem.querySelector('.editor')) as Editor).value) {
+            if (((elem.querySelector(':scope > .editor')) as Editor)?.value) {
                 elem.classList.add('valid')
             } else {
                 elem.classList.remove('valid')
@@ -120,35 +120,53 @@ export class ShaclForm extends HTMLElement {
         // for (const result of report.results) {
         //     // See https://www.w3.org/TR/shacl/#results-validation-result for details
         //     // about each property
-        //     console.log(result.message)
-        //     console.log(result.path)
-        //     console.log(result.focusNode)
-        //     console.log(result.severity)
-        //     console.log(result.sourceConstraintComponent)
-        //     console.log(result.sourceShape)
+        //     console.log('--- message', result.message)
+        //     console.log('--- path', result.path)
+        //     console.log('--- focusNode', result.focusNode)
+        //     console.log('--- severity', result.severity)
+        //     console.log('--- sourceConstraintComponent', result.sourceConstraintComponent)
+        //     console.log('--- sourceShape', result.sourceShape)
         // }
 
         for (const result of report.results) {
             // result.path can be null, e.g. if a focus node does not contain a required property node
             if (result.path) {
-                for (const invalidElement of this.querySelectorAll(`:scope .editor[data-node-id='${result.focusNode.id}'][data-path='${result.path.id}']`)) {
-                    if (!ignoreEmptyValues || (invalidElement as Editor).value) {
-                        const parent = invalidElement.parentElement!
-                        parent.classList.add('invalid')
-                        parent.classList.remove('valid')
-                        parent.appendChild(this.createValidationErrorDisplay(result))
+                // try to find most specific editor elements first
+                let invalidElements = this.querySelectorAll(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}'] > .editor`)
+                if (invalidElements.length === 0) {
+                    // if no editors found, select respective node. this will be the case for node shape violations.
+                    invalidElements = this.querySelectorAll(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
+                }
+
+                for (const invalidElement of invalidElements) {
+                    if (invalidElement.classList.contains('editor')) {
+                        // this is a property shape violation
+                        if (!ignoreEmptyValues || invalidElement['value']) {
+                            const parent = invalidElement.parentElement!
+                            parent.classList.add('invalid')
+                            parent.classList.remove('valid')
+                            parent.appendChild(this.createValidationErrorDisplay(result))
+                        }
+                    } else if (!ignoreEmptyValues) {
+                        // this is a node shape violation
+                        invalidElement.classList.add('invalid')
+                        invalidElement.classList.remove('valid')
+                        invalidElement.appendChild(this.createValidationErrorDisplay(result, 'node'))
                     }
                 }
             } else {
-                this.querySelector(`:scope shacl-node[data-node-id='${result.focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result))
+                this.querySelector(`:scope [data-node-id='${result.focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result))
             }
         }
         return report.conforms
     }
 
-    private createValidationErrorDisplay(validatonResult: any): HTMLElement {
+    private createValidationErrorDisplay(validatonResult: any, clazz?: string): HTMLElement {
         const messageElement = document.createElement('span')
         messageElement.classList.add('validation-error')
+        if (clazz) {
+            messageElement.classList.add(clazz)
+        }
         if (validatonResult.message.length > 0) {
             for (const message of validatonResult.message) {
                 messageElement.title += message.value + '\n'

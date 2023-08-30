@@ -69,22 +69,22 @@ export class Loader {
         }
     }
 
-    fetchRDF(url: string): Promise<string> {
-        return fetch(url, {
-            headers: {
-                'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3'
-            },
-            signal: this.abortController?.signal
-        }).then(resp => {
-            if (resp.ok) {
-                return resp.text()
+    async fetchRDF(url: string): Promise<string> {
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3'
+                },
+                signal: this.abortController?.signal
+            })
+            if (response.ok) {
+                return response.text()
             }
-            else {
-                throw new Error('failed loading ' + url)
-            }
-        }).catch(e => {
+        }
+        catch(e) {
             throw new Error('failed loading ' + url + ', reason:' + e)
-        })
+        }
+        throw new Error('failed loading ' + url)
     }
 
     toURL(id: string): string | null {

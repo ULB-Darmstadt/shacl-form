@@ -1,6 +1,7 @@
 import { ShaclPropertyTemplate } from './property-template'
-import { InputBase, InputListEntry } from './inputs'
-import { NamedNode } from "n3"
+import { InputListEntry } from './editors'
+import { NamedNode } from 'n3'
+import { Term } from '@rdfjs/types'
 import { findInstancesOf } from './util';
 import { Config } from './config';
 import { SHAPES_GRAPH } from './constants';
@@ -16,7 +17,7 @@ export abstract class Plugin {
         this.predicate = predicate
     }
 
-    abstract createInstance(property: ShaclPropertyTemplate, value?: string): InputBase
+    abstract createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement
 }
 
 export type ClassInstanceProvider = (clazz: string) => Promise<string>

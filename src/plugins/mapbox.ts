@@ -1,7 +1,7 @@
-import { DataFactory } from 'n3'
-import { InputText } from '../inputs'
+import { Term } from '@rdfjs/types'
 import { Plugin } from '../plugin'
 import { ShaclPropertyTemplate } from '../property-template'
+import { createTextEditor } from '../editors'
 
 export class MapBoxPlugin extends Plugin {
     apiKey: string
@@ -11,11 +11,8 @@ export class MapBoxPlugin extends Plugin {
         this.apiKey = apiKey
     }
 
-    createInstance(property: ShaclPropertyTemplate, value?: string): InputText {
-        const instance = new InputText(property)
-        if (value) {
-            instance.editor.value = value
-        }
+    createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
+        const instance = createTextEditor(template, value)
         const button = document.createElement('button')
         button.type = 'button'
         button.innerHTML = 'Open map...'

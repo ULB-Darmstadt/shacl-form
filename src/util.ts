@@ -1,7 +1,7 @@
 import { Prefixes, Quad, Store } from 'n3'
 import { PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE } from './constants'
 import { Term } from '@rdfjs/types'
-import { InputListEntry } from './inputs'
+import { InputListEntry } from './editors'
 import { Config } from './config'
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string | null): string {
