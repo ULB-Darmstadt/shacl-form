@@ -40,46 +40,50 @@ export class ShaclForm extends HTMLElement {
 
     private initialize() {
         clearTimeout(this.initDebounceTimeout)
-        this.initDebounceTimeout = setTimeout(() => {
-            // remove all child elements from form
-            this.form.replaceChildren()
-            this.config.loader.loadGraphs().then(_ => {
+        this.initDebounceTimeout = setTimeout(async () => {
+            // remove all child elements from form and show loading indicator
+            this.form.replaceChildren(document.createTextNode('Loading...'))
+            try {
+                await this.config.loader.loadGraphs()
+                this.form.replaceChildren()
                 // find root shacl shape
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
-                if (rootShapeShaclSubject) {
-                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valueSubject ? DataFactory.namedNode(this.config.attributes.valueSubject) : undefined)
-                    // add submit button
-                    if (this.config.attributes.submitButton !== null) {
-                        const button = document.createElement('button')
-                        button.type = 'button'
-                        button.innerText = this.config.attributes.submitButton || 'Submit'
-                        button.addEventListener('click', () => {
-                            this.validate().then(valid => {
-                                if (valid && this.form.checkValidity()) {
-                                    this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true, composed: true }))
-                                } else {
-                                    // focus first invalid element
-                                    const firstInvalidElement = this.querySelector(':scope .invalid > .editor') as HTMLElement | null
-                                    if (firstInvalidElement) {
-                                        firstInvalidElement.focus()
-                                    } else {
-                                        this.form.reportValidity()
-                                    }
-                                }
-                            })
-                        })
-                        this.form.prepend(button)
-                    }
-                    this.form.prepend(this.shape)
-                    focusFirstInputElement(this.shape)
-                    this.validate(true)
+                if (!rootShapeShaclSubject) {
+                    throw new Error('shacl root node shape not found')
                 }
-            }).catch(e => {
+                this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valueSubject ? DataFactory.namedNode(this.config.attributes.valueSubject) : undefined)
+                // add submit button
+                if (this.config.attributes.submitButton !== null) {
+                    const button = document.createElement('button')
+                    button.type = 'button'
+                    button.innerText = this.config.attributes.submitButton || 'Submit'
+                    button.addEventListener('click', () => {
+                        this.validate().then(valid => {
+                            if (valid && this.form.checkValidity()) {
+                                this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true, composed: true }))
+                            } else {
+                                // focus first invalid element
+                                const firstInvalidElement = this.querySelector(':scope .invalid > .editor') as HTMLElement | null
+                                if (firstInvalidElement) {
+                                    firstInvalidElement.focus()
+                                } else {
+                                    this.form.reportValidity()
+                                }
+                            }
+                        })
+                    })
+                    this.form.prepend(button)
+                }
+                this.form.prepend(this.shape)
+                focusFirstInputElement(this.shape)
+                this.validate(true)
+            } catch (e) {
                 console.error(e)
                 const errorDisplay = document.createElement('div')
-                errorDisplay.innerText = e
-                this.form.appendChild(errorDisplay)
-            })
+                errorDisplay.innerText = String(e)
+                this.form.replaceChildren(errorDisplay)
+
+            }
         }, 50)
     }
 
