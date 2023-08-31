@@ -1,4 +1,4 @@
-shacl-form { padding-left: 1rem; box-sizing: border-box; }
+shacl-form { padding-left: 1em; box-sizing: border-box; display:block; }
 shacl-form *, shacl-form ::after, shacl-form ::before { box-sizing: inherit; }
 shacl-node shacl-node h1 { font-size: 1rem; color: #555; }
 shacl-node, shacl-form .shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
