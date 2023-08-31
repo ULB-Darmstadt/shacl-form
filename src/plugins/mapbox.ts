@@ -80,6 +80,7 @@ export class MapBoxPlugin extends Plugin {
         if (this.currentEditor && pos) {
             this.currentMarker = new mapboxgl.Marker().setLngLat(pos).addTo(this.map)
             this.currentEditor.value = `POINT(${pos.lng},${pos.lat})`
+            this.currentEditor.dispatchEvent(new Event('change', { bubbles: true }))
         }
     }
 }
