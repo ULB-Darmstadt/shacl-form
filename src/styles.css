@@ -31,6 +31,8 @@ shacl-form .validation-error.node { left: -1em; }
 shacl-form .invalid > .editor { border-color: red !important; }
 shacl-form .ml-0  { margin-left: 0 !important; }
 shacl-form .pr-0  { padding-right: 0 !important; }
+shacl-form dialog { width:90vw; height: 90vh; margin: auto; }
+shacl-form dialog::backdrop { background-color: #0007; }
 
 shacl-form.bootstrap .property-instance label { padding-top: 0.7em; }
 shacl-form.bootstrap .property-instance label.required::before { top: 0.65rem; }

@@ -5,7 +5,10 @@ import { createTextEditor, Editor } from '../editors'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-const dialogTemplate = '<dialog id="mapDialog" style="width:75vw; height: 75vh; margin: auto;" onclick="event.target==this && this.close()"><button id="closeButton" type="button" style="position: absolute; z-index: 1000; margin: 2px; padding: 6px 10px; background: white; border-radius: 4px; border: 0; cursor: pointer;">Close</button></dialog>'
+const dialogTemplate = '<dialog id="shaclMapDialog" onclick="event.target==this && this.close()">\
+<div style="position: absolute; z-index: 1; padding: 2px; background-color: #EEEEEECC;">Choose a location by left clicking, then close dialog\
+<button id="closeButton" type="button" style="margin-left: 4px; padding: 6px 10px; background: white; border-radius: 4px; border: 0; cursor: pointer;">Close</button>\
+</div></dialog>'
 
 export class MapBoxPlugin extends Plugin {
     map: mapboxgl.Map
@@ -17,8 +20,11 @@ export class MapBoxPlugin extends Plugin {
         super(predicate)
         mapboxgl.accessToken = apiKey
 
-        document.body.insertAdjacentHTML('beforeend', dialogTemplate)
-        this.dialog = document.querySelector('#mapDialog') as HTMLDialogElement
+        this.dialog = document.querySelector('#shaclMapDialog') as HTMLDialogElement
+        if (!this.dialog) {
+            document.querySelector('shacl-form')?.insertAdjacentHTML('beforeend', dialogTemplate)
+            this.dialog = document.querySelector('#shaclMapDialog') as HTMLDialogElement
+        }
         this.dialog.addEventListener('close', () => {
             const scrollY = document.body.style.top
             document.body.style.position = ''
@@ -26,7 +32,7 @@ export class MapBoxPlugin extends Plugin {
             window.scrollTo(0, parseInt(scrollY || '0') * -1)
         })
         this.map = new mapboxgl.Map({
-            container: 'mapDialog',
+            container: 'shaclMapDialog',
             // style: 'mapbox://styles/mapbox/outdoors-v11',
             style: 'mapbox://styles/mapbox/satellite-streets-v11',
             zoom: 5,
