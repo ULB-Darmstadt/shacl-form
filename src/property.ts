@@ -120,7 +120,7 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         instance.classList.add('property-instance')
         instance.appendChild(new ShaclNode(template.node, template.config, value as NamedNode | BlankNode | undefined, template.label))
     } else {
-        const plugin = template.path ? template.config.plugins[template.path] : undefined
+        const plugin = template.config.plugins.find(template.path, template.datatype?.value)
         if (plugin) {
             instance = plugin.createInstance(template, value)
         } else {

@@ -1,4 +1,4 @@
-import { Plugin } from '../plugin'
+import { Plugin, PluginOptions } from '../plugin'
 import { Term } from '@rdfjs/types'
 
 import { ShaclPropertyTemplate } from '../property-template'
@@ -7,8 +7,8 @@ import { createListEditor, InputListEntry } from '../editors'
 export class FixedListPlugin extends Plugin {
     entries: InputListEntry[]
     
-    constructor(predicate: string, entries: InputListEntry[]) {
-        super(predicate)
+    constructor(options: PluginOptions, entries: InputListEntry[]) {
+        super(options)
         this.entries = entries
     }
 

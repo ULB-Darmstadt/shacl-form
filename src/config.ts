@@ -21,7 +21,7 @@ export class Config {
     loader = new Loader(this)
     classInstanceProvider: ClassInstanceProvider | undefined
     prefixes: Prefixes = {}
-    plugins: Plugins = {}
+    plugins = new Plugins()
 
     dataGraph = new Store()
     lists: Record<string, Term[]> = {}

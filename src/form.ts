@@ -95,7 +95,7 @@ export class ShaclForm extends HTMLElement {
     }
 
     public registerPlugin(plugin: Plugin) {
-        this.config.plugins[plugin.predicate] = plugin
+        this.config.plugins.register(plugin)
         this.initialize()
     }
 

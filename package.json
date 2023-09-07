@@ -44,6 +44,7 @@
         "webpack-dev-server": "^4.15.1"
     },
     "dependencies": {
+        "@mapbox/mapbox-gl-draw": "^1.4.2",
         "mapbox-gl": "^2.15.0",
         "n3": "^1.17.0",
         "rdf-validate-shacl": "^0.4.5",

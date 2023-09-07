@@ -163,7 +163,7 @@ export function createNumberEditor(template: ShaclPropertyTemplate, value?: Term
     return createDefaultTemplate(template, editor, value)
 }
 
-export type InputListEntry = { value: Term, label?: string }
+export type InputListEntry = { value: Term | string, label?: string }
 
 export function createListEditor(template: ShaclPropertyTemplate, listEntries: InputListEntry[], value?: Term): HTMLElement {
     const editor = document.createElement('select')
@@ -175,9 +175,10 @@ export function createListEditor(template: ShaclPropertyTemplate, listEntries: I
 
     for (const item of listEntries) {
         const option = document.createElement('option')
-        option.innerHTML = item.label ? item.label : item.value.value
-        option.value = item.value.value
-        if (value && value.equals(item.value)) {
+        const itemValue = (typeof item.value === 'string') ? item.value : item.value.value
+        option.innerHTML = item.label ? item.label : itemValue
+        option.value = itemValue
+        if (value && value.value === itemValue) {
             option.selected = true
         }
         editor.options.add(option)
@@ -186,21 +187,6 @@ export function createListEditor(template: ShaclPropertyTemplate, listEntries: I
         editor.value = value.value
     }
     return result
-}
-
-function setListEntries(select: HTMLSelectElement, list: InputListEntry[], value?: Term) {
-    for (const item of list) {
-        const option = document.createElement('option')
-        option.innerHTML = item.label ? item.label : item.value.value
-        option.value = item.value.value
-        if (value && value.equals(item.value)) {
-            option.selected = true
-        }
-        select.options.add(option)
-    }
-    if (value) {
-        select.value = value.value
-    }
 }
 
 export function toRDF(editor: Editor): Literal | NamedNode | undefined {

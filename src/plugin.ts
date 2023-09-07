@@ -1,20 +1,38 @@
 import { ShaclPropertyTemplate } from './property-template'
-import { InputListEntry } from './editors'
-import { NamedNode } from 'n3'
 import { Term } from '@rdfjs/types'
-import { findInstancesOf } from './util';
-import { Config } from './config';
-import { SHAPES_GRAPH } from './constants';
 
-export type Plugins = {
-    [predicate: string]: Plugin;
+export class Plugins {
+    private plugins: Record<string, Plugin> = {}
+    
+    register(plugin: Plugin) {
+        this.plugins[`${plugin.predicate}:${plugin.datatype}`] = plugin
+    }
+
+    find(predicate: string | undefined, datatype: string | undefined): Plugin | undefined {
+        let plugin = this.plugins[`${predicate}:${datatype}`]
+        if (plugin) {
+            return plugin
+        }
+        plugin = this.plugins[`${predicate}:${undefined}`]
+        if (plugin) {
+            return plugin
+        }
+        return this.plugins[`${undefined}:${datatype}`]
+    }
+}
+
+export type PluginOptions = {
+    predicate?: string
+    datatype?: string
 }
 
 export abstract class Plugin {
-    predicate: string
+    predicate: string | undefined
+    datatype: string | undefined
 
-    constructor(predicate: string) {
-        this.predicate = predicate
+    constructor(options: PluginOptions) {
+        this.predicate = options.predicate
+        this.datatype = options.datatype
     }
 
     abstract createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement
