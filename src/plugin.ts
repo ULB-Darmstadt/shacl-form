@@ -13,11 +13,11 @@ export class Plugins {
         if (plugin) {
             return plugin
         }
-        plugin = this.plugins[`${predicate}:${undefined}`]
+        plugin = this.plugins[`${predicate}^${undefined}`]
         if (plugin) {
             return plugin
         }
-        return this.plugins[`${undefined}:${datatype}`]
+        return this.plugins[`${undefined}^${datatype}`]
     }
 }
 

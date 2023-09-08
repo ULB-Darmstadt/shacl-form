@@ -82,7 +82,6 @@ export class ShaclForm extends HTMLElement {
                 const errorDisplay = document.createElement('div')
                 errorDisplay.innerText = String(e)
                 this.form.replaceChildren(errorDisplay)
-
             }
         }, 50)
     }

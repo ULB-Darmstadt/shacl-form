@@ -7,7 +7,7 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 
-const dialogTemplate = '<style>#shaclMapDialog .closeButton { position: absolute; right: 0; top: 0; z-index: 1; padding: 10px 12px; cursor: pointer; border: 0; background-color: #FFFA; }\
+const dialogTemplate = '<style>#shaclMapDialog .closeButton { position: absolute; right: 0; top: 0; z-index: 1; padding: 6px 8px; cursor: pointer; border: 0; background-color: #FFFA; font-size: 24px; }\
 #shaclMapDialog .closeButton:hover { background-color: #FFF }\
 #shaclMapDialog .hint { position: absolute; right: 60px; top: 3px; z-index: 1; padding: 4px 6px; background-color: #FFFA; border-radius: 4px; }\
 </style><dialog id="shaclMapDialog" onclick="event.target==this && this.close()">\
@@ -45,19 +45,19 @@ export class MapBoxPlugin extends Plugin {
             zoom: 5,
             center: { lng: 8.657238961696038, lat: 49.87627570549512 }
         })
-        this.map.addControl(new mapboxgl.NavigationControl(), 'top-left')
 
         this.draw = new MapboxDraw({
             displayControlsDefault: false,
-            controls: { point: true, polygon: true },
-        });
+            controls: { point: true, polygon: true }
+        })
+        this.map.addControl(new mapboxgl.NavigationControl(), 'top-left')
         this.map.addControl(this.draw, 'top-left')
 
         this.map.on('idle', () => {
             // this fixes wrong size of canvas
             this.map.resize()
         })
-        this.map.on('draw.create', () => this.deleteAllButLastDrawing());
+        this.map.on('draw.create', () => this.deleteAllButLastDrawing())
     }
 
     createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
