@@ -157,8 +157,8 @@ export class ShaclForm extends HTMLElement {
                         invalidElement.appendChild(this.createValidationErrorDisplay(result, 'node'))
                     }
                 }
-            } else {
-                this.querySelector(`:scope [data-node-id='${result.focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result))
+            } else if (!ignoreEmptyValues) {
+                this.querySelector(`:scope [data-node-id='${result.focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
             }
         }
         return report.conforms

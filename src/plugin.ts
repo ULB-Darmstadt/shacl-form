@@ -5,11 +5,11 @@ export class Plugins {
     private plugins: Record<string, Plugin> = {}
     
     register(plugin: Plugin) {
-        this.plugins[`${plugin.predicate}:${plugin.datatype}`] = plugin
+        this.plugins[`${plugin.predicate}^${plugin.datatype}`] = plugin
     }
 
     find(predicate: string | undefined, datatype: string | undefined): Plugin | undefined {
-        let plugin = this.plugins[`${predicate}:${datatype}`]
+        let plugin = this.plugins[`${predicate}^${datatype}`]
         if (plugin) {
             return plugin
         }

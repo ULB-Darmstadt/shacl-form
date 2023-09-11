@@ -62,10 +62,10 @@ Validates the form data against the SHACL shapes graph and displays validation r
 ```typescript
 registerPlugin(plugin: Plugin)
 ```
-WIP / TBD
+Register a plugin to customize editing certain property values. Examples: [Mapbox](./src/plugins/mapbox.ts), [FixedList](./src/plugins/fixed-list.ts)
 
 ```typescript
 setClassInstanceProvider((className: string) => Promise<string>)
 ```
-Sets a callback function that is called when a SHACL property has a `sh:class` definition. The expected return value is a string (e.g. in format `text/turtle`) that contains RDF instance definitions of the given class name.
+Sets a callback function that is called when a SHACL property has a `sh:class` definition. The expected return value is a string (e.g. in format `text/turtle`) that contains RDF instance definitions of the given class.
 

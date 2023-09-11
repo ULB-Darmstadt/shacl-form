@@ -12,7 +12,7 @@ shacl-node h1 { font-size: 1.1rem; border-bottom: 1px solid; margin-top: 2px; }
 shacl-property { display: flex; flex-direction: column; align-items: end; position: relative; }
 shacl-property:not(.may-add) > .add-button { visibility: hidden; }
 shacl-property:not(.may-remove) > .property-instance > .remove-button:not(.persistent) { visibility: hidden; }
-shacl-form .shacl-or-constraint select { margin-right: 23px; }
+shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.persistent) { visibility: hidden; }
 shacl-form .shacl-group { margin-bottom: 1em; padding-bottom: 1em; }
 shacl-form .shacl-group h2 { font-size: 1rem; border-bottom: 1px solid; margin-top: 0; color: #555; }
 shacl-form .property-instance, shacl-form .shacl-or-constraint { display: flex; align-items: flex-start; margin-top: 8px; width: 100%; position: relative; }

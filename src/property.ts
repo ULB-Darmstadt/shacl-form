@@ -2,7 +2,7 @@ import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { focusFirstInputElement } from './util'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
+import { RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
 import { createShaclOrConstraint } from './constraints'
 import { Config } from './config'
 import { ShaclPropertyTemplate } from './property-template'
@@ -65,6 +65,7 @@ export class ShaclProperty extends HTMLElement {
                 instance = createPropertyInstance(template, value, true)
             } else {
                 instance = createShaclOrConstraint(this.template.shaclOr, this, this.template.config)
+                appendRemoveButton(instance, '')
             }
 
         } else {
@@ -127,11 +128,17 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
             instance = editorFactory(template, value)
         }
     }
+    appendRemoveButton(instance, template.label, forceRemovable)
+    instance.dataset.path = template.path
+    return instance
+}
+
+function appendRemoveButton(instance: HTMLElement, label: string, forceRemovable = false) {
     const removeButton = document.createElement('button')
     removeButton.innerText = '\u00d7'
     removeButton.type = 'button'
     removeButton.classList.add('control-button', 'btn', 'remove-button')
-    removeButton.title = 'Remove ' + template.label
+    removeButton.title = 'Remove ' + label
     removeButton.addEventListener('click', _ => {
         const parent = instance.parentElement
         instance.remove()
@@ -141,8 +148,6 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         removeButton.classList.add('persistent')
     }
     instance.appendChild(removeButton)
-    instance.dataset.path = template.path
-    return instance
 }
 
 window.customElements.define('shacl-property', ShaclProperty)
