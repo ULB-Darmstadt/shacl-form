@@ -5,7 +5,11 @@ export class Plugins {
     private plugins: Record<string, Plugin> = {}
     
     register(plugin: Plugin) {
-        this.plugins[`${plugin.predicate}^${plugin.datatype}`] = plugin
+        if (plugin.predicate === undefined && plugin.datatype === undefined) {
+            console.warn('not registering plugin because it does neither define predicate nor datatype', plugin)
+        } else {
+            this.plugins[`${plugin.predicate}^${plugin.datatype}`] = plugin
+        }
     }
 
     find(predicate: string | undefined, datatype: string | undefined): Plugin | undefined {
