@@ -6,21 +6,24 @@ export class Plugins {
     
     register(plugin: Plugin) {
         if (plugin.predicate === undefined && plugin.datatype === undefined) {
-            console.warn('not registering plugin because it does neither define predicate nor datatype', plugin)
+            console.warn('not registering plugin because it does neither define "predicate" nor "datatype"', plugin)
         } else {
             this.plugins[`${plugin.predicate}^${plugin.datatype}`] = plugin
         }
     }
 
     find(predicate: string | undefined, datatype: string | undefined): Plugin | undefined {
+        // first try to find plugin with matching predicate and datatype
         let plugin = this.plugins[`${predicate}^${datatype}`]
         if (plugin) {
             return plugin
         }
+        // now prefer predicate over datatype
         plugin = this.plugins[`${predicate}^${undefined}`]
         if (plugin) {
             return plugin
         }
+        // last, try to find plugin with matching datatype
         return this.plugins[`${undefined}^${datatype}`]
     }
 }

@@ -11,7 +11,7 @@ const dialogTemplate = '<style>#shaclMapDialog .closeButton { position: absolute
 #shaclMapDialog .closeButton:hover { background-color: #FFF }\
 #shaclMapDialog .hint { position: absolute; right: 60px; top: 3px; z-index: 1; padding: 4px 6px; background-color: #FFFA; border-radius: 4px; }\
 </style><dialog id="shaclMapDialog" onclick="event.target==this && this.close()">\
-<div class="hint">Draw a polygon or point, then close map</div>\
+<div class="hint">&#x24D8; Draw a polygon or point, then close map</div>\
 <button class="closeButton" type="button" onclick="this.parentElement.close()">&#x2715;</button>\
 </dialog>'
 
