@@ -1,12 +1,11 @@
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
 @prefix dash:    <http://datashapes.org/dash#> .
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix sh:      <http://www.w3.org/ns/shacl#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix ex:      <http://example.org/> .
 
 
-ex:Demo  rdf:type     sh:NodeShape ;
+ex:Demo a sh:NodeShape ;
     sh:property [
         sh:datatype     xsd:string ;
         sh:maxCount     1 ;
@@ -41,9 +40,11 @@ ex:Demo  rdf:type     sh:NodeShape ;
     ] ;
     sh:property [
         sh:datatype     xsd:boolean ;
+        #sh:minCount 1;
         sh:maxCount     1 ;
         sh:name         "boolean" ;
-        sh:path         ex:myBoolean
+        sh:path         ex:myBoolean ;
+        sh:order        1
     ] ;
     sh:property [
         sh:maxCount     1 ;
@@ -59,6 +60,8 @@ ex:Demo  rdf:type     sh:NodeShape ;
     ] ;
     sh:property [
         sh:datatype     xsd:integer ;
+        sh:minInclusive 1 ;
+        sh:maxInclusive 5 ;
         sh:maxCount     1 ;
         sh:name         "integer" ;
         sh:path         ex:myInteger ;
@@ -67,31 +70,31 @@ ex:Demo  rdf:type     sh:NodeShape ;
         sh:datatype     rdf:langString ;
         sh:languageIn   ( "en" "de" ) ;
         sh:maxCount     1 ;
-        sh:name         "langstring 1" ;
-        sh:description  "simple langstring with fixed languages" ;
-        sh:path         ex:myLangstring1
+        sh:name         "langString 1" ;
+        sh:description  "simple langString with fixed languages" ;
+        sh:path         ex:myLangString1
     ] ;
     sh:property [
         sh:datatype     rdf:langString ;
         sh:languageIn   ( "en" "de" ) ;
         sh:maxCount     1 ;
-        sh:name         "langstring 2" ;
-        sh:description  "multiline langstring with fixed languages" ;
+        sh:name         "langString 2" ;
+        sh:description  "multiline langString with fixed languages" ;
         dash:singleLine  false ;
-        sh:path          ex:myLangstring2
+        sh:path          ex:myLangString2
     ] ;
     sh:property [
         sh:datatype     rdf:langString ;
         sh:maxCount     1 ;
-        sh:name         "langstring 3" ;
-        sh:description  "simple langstring with no fixed languages" ;
-        sh:path         ex:myLangstring3
+        sh:name         "langString 3" ;
+        sh:description  "simple langString with no fixed languages" ;
+        sh:path         ex:myLangString3
     ] ;
     sh:property [
         sh:datatype     rdf:langString ;
         sh:maxCount     1 ;
-        sh:name         "langstring 4" ;
-        sh:description  "multiline langstring with no fixed languages" ;
+        sh:name         "langString 4" ;
+        sh:description  "multiline langString with no fixed languages" ;
         dash:singleLine  false ;
-        sh:path         ex:myLangstring4
+        sh:path         ex:myLangString4
     ] .

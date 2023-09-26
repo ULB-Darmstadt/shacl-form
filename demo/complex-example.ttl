@@ -1,8 +1,8 @@
 @prefix dash:    <http://datashapes.org/dash#> .
 @prefix dbpedia: <http://dbpedia.org/ontology/> .
+@prefix bau:     <https://terminology.fraunhofer.de/voc/bau#> .
 @prefix dcat:    <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix fidbau:  <http://purl.org/fidbau/elements/1.1/> .
 @prefix foaf:    <http://xmlns.com/foaf/0.1/> .
 @prefix geo:     <http://www.opengis.net/ont/geosparql#> .
 @prefix owl:     <http://www.w3.org/2002/07/owl#> .
@@ -12,15 +12,17 @@
 @prefix sh:      <http://www.w3.org/ns/shacl#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix example: <http://example.org/> .
 
-fidbau:ArchitectureModelDataset
+example:ArchitectureModelDataset
         rdf:type             sh:NodeShape ;
         dcterms:description  "FID-BAU architecture model dataset with metadata fields for e.g. model dimensions and materials" ;
         dcterms:title        "Architecture model" ;
-        sh:node              fidbau:BuildingDataset ;
+        sh:node              example:BuildingDataset ;
+
         sh:property          [ sh:datatype      xsd:integer ;
                                sh:description   "Width [mm] of the model" ;
-                               sh:group         fidbau:PhysicalPropertiesGroup ;
+                               sh:group         example:PhysicalPropertiesGroup ;
                                sh:maxCount      1 ;
                                sh:minInclusive  1 ;
                                sh:name          "Width" ;
@@ -28,7 +30,7 @@ fidbau:ArchitectureModelDataset
                              ] ;
         sh:property          [ sh:datatype      xsd:integer ;
                                sh:description   "Height [mm] of the model" ;
-                               sh:group         fidbau:PhysicalPropertiesGroup ;
+                               sh:group         example:PhysicalPropertiesGroup ;
                                sh:maxCount      1 ;
                                sh:minInclusive  1 ;
                                sh:name          "Height" ;
@@ -36,7 +38,7 @@ fidbau:ArchitectureModelDataset
                              ] ;
         sh:property          [ sh:datatype      xsd:integer ;
                                sh:description   "Depth [mm] of the model" ;
-                               sh:group         fidbau:PhysicalPropertiesGroup ;
+                               sh:group         example:PhysicalPropertiesGroup ;
                                sh:maxCount      1 ;
                                sh:minInclusive  1 ;
                                sh:name          "Depth" ;
@@ -44,30 +46,24 @@ fidbau:ArchitectureModelDataset
                              ] ;
         sh:property          [ sh:datatype     xsd:string ;
                                sh:description  "Scale of the model, e.g. 1:20" ;
-                               sh:group        fidbau:PhysicalPropertiesGroup ;
+                               sh:group        example:PhysicalPropertiesGroup ;
                                sh:maxCount     1 ;
                                sh:name         "Scale" ;
                                sh:path         dbpedia:scale ;
-                               sh:pattern      "^1:\\d+$"
+                               sh:pattern      "^\\d+:\\d+$"
                              ] ;
-        sh:property          [ sh:datatype     xsd:string ;
-                               sh:description  "Material used with this model" , "Beim Bau des Modells verwendetes Material"@de ;
-                               sh:group        fidbau:PhysicalPropertiesGroup ;
+        sh:property          [ sh:description  "Material used with this model" , "Beim Bau des Modells verwendetes Material"@de ;
+                               sh:group        example:PhysicalPropertiesGroup ;
                                sh:name         "Artwork material" ;
-                               sh:path         schema:artworkSurface
-                             ] ;
-        sh:property          [ sh:datatype     xsd:string ;
-                               sh:description  "Technique used building this model" ;
-                               sh:group        fidbau:PhysicalPropertiesGroup ;
-                               sh:name         "Technique" ;
-                               sh:path         schema:technique
+                               sh:path         schema:artworkSurface ;
+                               #sh:class        bau:B20802481186_1
                              ] .
 
-fidbau:BuildingDataset
+example:BuildingDataset
         rdf:type             sh:NodeShape ;
         dcterms:description  "FID-BAU building dataset with metadata fields for e.g. locations and materials" ;
         dcterms:title        "Building" ;
-        sh:node              fidbau:Dataset ;
+        sh:node              example:Dataset ;
         sh:property          [ sh:datatype     xsd:string ;
                                sh:description  "Construction material (eg. concrete, steel, iron, stone, brick, wood)." ;
                                sh:name         "Construction material" ;
@@ -75,15 +71,15 @@ fidbau:BuildingDataset
                              ] ;
         sh:property          [ sh:description  "Location of the building" ;
                                sh:name         "Location" ;
-                               sh:node         fidbau:Location ;
+                               sh:node         example:Location ;
                                sh:path         dcterms:spatial
                              ] .
 
-fidbau:PhysicalPropertiesGroup
+example:PhysicalPropertiesGroup
         rdf:type    sh:PropertyGroup ;
         rdfs:label  "Physical properties" .
 
-fidbau:Dataset  rdf:type     sh:NodeShape ;
+example:Dataset  rdf:type     sh:NodeShape ;
         owl:imports          <https://w3id.org/nfdi4ing/metadata4ing/> ;
 
         dcterms:description  "FID-BAU base dataset with minimal metadata fields" ;
@@ -104,7 +100,7 @@ fidbau:Dataset  rdf:type     sh:NodeShape ;
                                sh:description   "Description of the dataset" ;
                                sh:minCount      1 ;
                                sh:maxCount      2 ;
-                               sh:name          "Abstract" ;
+                               sh:name          "Description" ;
                                sh:path          dcterms:description
                              ] ;
         sh:property          [ sh:description  "License of the dataset" ;
@@ -125,35 +121,28 @@ fidbau:Dataset  rdf:type     sh:NodeShape ;
                                sh:name         "Issued" ;
                                sh:path         dcterms:issued
                              ] ;
-        sh:property          [ sh:description  "Whether data is freely accessible" ;
-                               sh:in           ( "public" "private" ) ;
-                               sh:maxCount     1 ;
-                               sh:minCount     1 ;
-                               sh:name         "Access type" ;
-                               sh:path         dcterms:accessRights
-                             ] ;
         sh:property          [
                                sh:name "Creator" ;
                                sh:description "Creator of the dataset" ;
                                sh:path dcterms:creator ;
                                sh:minCount 1 ;
-                               sh:node fidbau:Person ;
+                               sh:node example:Person ;
                              ] ;
-        sh:property          [ sh:name         "Attributions" ;
-                               sh:node         fidbau:Attribution ;
+        sh:property          [ sh:name         "Attribution" ;
+                               sh:node         example:Attribution ;
                                sh:path         prov:qualifiedAttribution
                              ] ;
         sh:targetClass       dcat:Dataset .
 
-fidbau:Location  rdf:type  sh:NodeShape ;
+example:Location  rdf:type  sh:NodeShape ;
         rdfs:label      "Location" ;
         sh:property     [ sh:datatype     geo:wktLiteral ;
-                          sh:description  "Format WKT, e.g. POINT(8.65,49.87)" ;
+                          sh:description  "Format WKT, e.g. POINT(8.65 49.87)" ;
                           sh:maxCount     1 ;
                           sh:minCount     1 ;
                           sh:name         "Coordinates" ;
                           sh:path         geo:asWKT ;
-                          sh:pattern      "^POINT\\([+-]?([0-9]*[.])?[0-9]+,[+-]?([0-9]*[.])?[0-9]+\\)$"
+                          sh:pattern      "^POINT\\([+\\-]?(?:[0-9]*[.])?[0-9]+ [+\\-]?(?:[0-9]*[.])?[0-9]+\\)|POLYGON\\(\\((?:[+\\-]?(?:[0-9]*[.])?[0-9]+[ ,]?){3,}\\)\\)$"
                         ] ;
         sh:property     [ sh:description  "Description of the location" ;
                           sh:maxCount     1 ;
@@ -162,7 +151,7 @@ fidbau:Location  rdf:type  sh:NodeShape ;
                         ] ;
         sh:targetClass  dcterms:Location .
 
-fidbau:Person  rdf:type  sh:NodeShape ;
+example:Person  rdf:type  sh:NodeShape ;
         rdfs:label      "Person" ;
         sh:property     [ sh:maxCount  1 ;
                           sh:minCount  1 ;
@@ -171,7 +160,7 @@ fidbau:Person  rdf:type  sh:NodeShape ;
                         ] ;
         sh:property     [ sh:maxCount  1 ;
                           sh:name      "Email" ;
-                          sh:path      foaf:mbox
+                          sh:path      foaf:mbox ;
                         ] ;
         sh:property     [ sh:datatype  xsd:string ;
                           sh:maxCount  1 ;
@@ -179,39 +168,42 @@ fidbau:Person  rdf:type  sh:NodeShape ;
                           sh:path      dcterms:identifier ;
                           sh:pattern   "^https://orcid.org/\\d{4}-\\d{4}-\\d{4}-\\d{4}$"
                         ] ;
-        #sh:or (
-        #  [
-        #    sh:path foaf:firstName ;
-        #    sh:minCount 1 ;
-        #  ]
-        #  [
-        #    sh:path foaf:givenName ;
-        #    sh:minCount 1 ;
-        #  ]
-        #) ;
-        #sh:property [
-        #  sh:path foaf:address ;
-        #  sh:or (
-        #    [
-        #      sh:datatype xsd:string ;
-        #    ]
-        #    [
-        #      sh:class foaf:Address ;
-        #    ]
-        #  )
-        #] ;
+        sh:or (
+          [
+            sh:path foaf:firstName ;
+            rdfs:name "first name" ;
+            sh:minCount 0 ;
+            sh:node example:Location ;
+          ]
+          [
+            sh:path foaf:givenName ;
+            sh:name "given name" ;
+            sh:minCount 0 ;
+          ]
+        ) ;
+        sh:property [
+          sh:name "Address" ;
+          sh:path foaf:address ;
+          sh:or (
+            [
+              sh:datatype xsd:string ;
+            ]
+            [
+              sh:class foaf:Address ;
+            ]
+          )
+        ] ;
         sh:targetClass  foaf:Agent .
 
-fidbau:Attribution  rdf:type  sh:NodeShape ;
+example:Attribution  rdf:type  sh:NodeShape ;
         sh:property     [ sh:maxCount  1 ;
                           sh:minCount  1 ;
                           sh:name      "Person with role" ;
-                          sh:node      fidbau:Person ;
+                          sh:node      example:Person ;
                           sh:path      prov:agent
                         ] ;
         sh:property     [ sh:name      "Role" ;
                           sh:minCount  1 ;
-                          sh:nodeKind  sh:IRI ;
                           sh:path      dcat:hadRole ;
                           sh:class     prov:Role
                         ] ;
@@ -219,3 +211,9 @@ fidbau:Attribution  rdf:type  sh:NodeShape ;
 
 <http://creativecommons.org/licenses/by/4.0/> rdfs:label "CC-BY" .
 <http://creativecommons.org/licenses/by-nc/4.0/> rdfs:label "CC-BY-NC" .
+
+example:123 rdf:type foaf:Address ;
+  rdfs:label 'Home' .
+
+example:124 rdf:type foaf:Address ;
+  rdfs:label 'Work' .

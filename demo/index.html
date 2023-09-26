@@ -4,158 +4,222 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SHACL form demo</title>
-  <style>
-    html,
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 5px;
-    }
-
-    shacl-form {
-      width: 100%;
-    }
-
-    .grid {
-      display: grid;
-      grid-auto-columns: minmax(0, 1fr);
-      grid-auto-flow: column;
-      gap: 40px;
-    }
-
-    #shacl-output.valid {
-      color: green;
-    }
-
-    #shacl-output:not(.valid) {
-      color: red;
-    }
-  </style>
-  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"> -->
-  <!-- <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"> -->
+  <title>&lt;shacl-form&gt; demo</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/dark.min.css">
+  <!-- <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/index.js" type="module"></script> -->
+  <script src="./index-with-plugins.js" type="module"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js"></script>
 </head>
 
 <body>
-  <h3>SHACL form demo</h3>
-  <select id="shacl-shape-input-chooser">
-    <option value="./shapes1.ttl">Shape 1</option>
-    <option value="./shapes2.ttl">Shape 2</option>
-    <option value="./shapes3.ttl">Shape 3</option>
-    <option value="./shapes4.ttl">Shape 4</option>
-    <option value="./shapes5.ttl">Shape 5</option>
-    <option value="./shapes6.ttl">Shape 6</option>
-  </select>
-  <select id="shacl-data-input-chooser">
-    <option value="./data1.ttl">Data 1</option>
-    <option value="./data2.ttl">Data 2</option>
-    <option value="./data3.ttl">Data 3</option>
-    <option value="./data4.ttl">Data 4</option>
-    <option value="./data5.ttl">Data 5</option>
-    <option value="./data6.ttl">Data 6</option>
-  </select>
-  <div class="grid">
-    <textarea id="shacl-shape-input"></textarea>
-    <textarea id="shacl-data-input"></textarea>
-    <shacl-form id="shacl-form" data-submit-button></shacl-form>
+  <div class="header">
+    <h1>&lt;shacl-form&gt; demo</h1>
   </div>
-  <pre id="shacl-output"></pre>
-  <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/index.js" type="module"></script>
+  <div class="menu">
+    <a id="intro" href="#intro">Introduction</a>
+    <a id="datatypes" href="#datatypes">Data types</a>
+    <a id="complex-example" href="#complex-example">Complex example</a>
+    <a id="try-your-own" href="#try-your-own">Try your own</a>
+  </div>
+  <div class="main">
+    <div class="content" id="content">Loading...</div>
+    <div class="footer">
+      <a href="https://github.com/ULB-Darmstadt/shacl-form"><img alt="GitHub Logotype" src="./github-mark.png" height="64"></a>
+      <a href="https://www.npmjs.com/package/@ulb-darmstadt/shacl-form">
+        <img src="https://img.shields.io/npm/v/@ulb-darmstadt/shacl-form.svg" alt="Version">
+      </a>
+    </div>
+  </div>
   <script>
-    const form = document.getElementById("shacl-form")
-    const shapes = document.getElementById("shacl-shape-input")
-    const data = document.getElementById("shacl-data-input")
-    const shapesChooser = document.getElementById("shacl-shape-input-chooser")
-    const dataChooser = document.getElementById("shacl-data-input-chooser")
-    const output = document.getElementById("shacl-output")
-    shapes.addEventListener('change', ev => {
-      form.dataset['shapes'] = shapes.value
-      form.dataset['values'] = data.value
-      output.innerText = ''
-    })
-    data.addEventListener('change', ev => {
-      shapes.dispatchEvent(new Event('change'))
-    })
-    shapesChooser.addEventListener('change', ev => {
-      fetch(shapesChooser.value).then(resp => resp.text()).then((text) => {
-        shapes.value = text
-        shapes.dispatchEvent(new Event('change'))
-      })
-    })
-    dataChooser.addEventListener('change', ev => {
-      fetch(dataChooser.value).then(resp => resp.text()).then((text) => {
-        data.value = text
-        data.dispatchEvent(new Event('change'))
-      })
-    })
-    form.addEventListener('change', function (ev) {
-      output.classList.toggle('valid', ev.detail?.valid)
-      output.innerText = form.serialize()
-      /*
-      const report = await window.validateShaclForm(shapes.value, output.innerText)
-      if (report.conforms) {
-        validation.classList.remove('invalid')
-        validation.classList.add('valid')
+    window.addEventListener('hashchange', (ev) => {
+      ev.preventDefault()
+      const parent = document.getElementById('content')
+      parent.classList.add('loading')
+    
+      const hash = window.location.hash.substring(1)
+      if (hash) {
+        setTimeout(() => {
+          parent.replaceChildren()
+          parent.appendChild(document.getElementById('template-'+hash).content.cloneNode(true))
+          hljs.highlightAll()
+          parent.classList.remove('loading')
+        }, 300)
       } else {
-        validation.classList.remove('valid')
-        validation.classList.add('invalid')
+        document.querySelector('.menu a')?.click()
       }
-      validation.innerText = 'conforms: ' + report.conforms + '\n'
-      for (const result of report.results) {
-        // See https://www.w3.org/TR/shacl/#results-validation-result for details
-        // about each property
-        validation.innerText += result.message + '\n'
-      }
-      */
-
-
-
-      // validation.innerText = JSON.stringify(report.results, getCircularReplacer())
+      return false
     })
-    shapesChooser.dispatchEvent(new Event('change'))
-    // loadMetadata('https://workbench-metadata.0pq.de/fid/sparql', '<https://doi.org/10.82319/3dh4-7935>')
-
-    function loadMetadata(endpoint, datasetID) {
-      const table = document.querySelector('#metadataTable tbody')
-      return fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/sparql-results+json'
-        },
-        body: 'query=' + encodeURIComponent(`SELECT ?s ?p ?o { ${datasetID} (<>|!<>)* ?s . ?s ?p ?o }`)
-      })
-      .then((response) => response.json())
-      .then((response) => {
-        data.value = JSON.stringify(response)
-      })
-      .catch((error) => {
-        data.value = `Failed loading metadata. Reason: ${error}`
-      });
-    }
-
-    function escapeHtml(unsafe) {
-      return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    const getCircularReplacer = () => {
-      const seen = new WeakSet();
-      return (key, value) => {
-        if (typeof value === "object" && value !== null) {
-          if (seen.has(value)) {
-            return;
-          }
-          seen.add(value);
-        }
-        return value;
-      }
-    }
+    window.dispatchEvent(new Event('hashchange'))
   </script>
-</body>
 
+  <template id="template-intro">
+    <p>
+      <a href="https://github.com/ULB-Darmstadt/shacl-form">&lt;shacl-form&gt;</a> is an HTML5 web component that takes <a href="https://www.w3.org/TR/shacl/">SHACL shapes</a> as input and generates an HTML form, allowing to enter data that conform to the given shapes.
+      See the <a href="https://github.com/ULB-Darmstadt/shacl-form">README</a> for the documentation of all element attributes, functions and supported input/output RDF formats.
+    </p>
+    <p>Here's a basic usage example:</p>
+    <pre>
+        <code>
+&lt;html&gt;
+  &lt;head&gt;
+      &lt;script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/index.js" type="module"&gt;&lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;!-- SHACL shapes can be defined on the attribute 'data-shapes' or can be loaded by setting attribute 'data-shapes-url' --&gt;
+    &lt;shacl-form data-shapes="
+      @prefix sh: <http://www.w3.org/ns/shacl#> .
+      @prefix ex: <http://example.org#> .
+
+      ex:ExampleShape
+        a sh:NodeShape ;
+        sh:property [
+          sh:name 'my value' ;
+          sh:path ex:exampleValue ;
+          sh:maxCount 3 ;
+        ] .
+    "&gt;&lt;/shacl-form&gt;
+
+    &lt;script&gt;
+      const form = document.querySelector("shacl-form")
+      form.addEventListener('change', event => {
+        // check if form validates according to the SHACL shapes
+        if (event.detail?.valid) {
+          // get data graph as RDF triples (default format is 'text/turtle') and log them to the browser console
+          const triples = form.serialize() 
+          console.log('entered form data', triples)
+          // store the data somewhere, e.g. in a triple store
+        }
+      })
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+        </code>
+    </pre>
+    <fieldset>
+      <legend>Result of the above</legend>
+      <shacl-form data-shapes="
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        @prefix ex: <http://example.org#> .
+
+        ex:ExampleShape
+          a sh:NodeShape ;
+          sh:property [
+            sh:name 'my value' ;
+            sh:path ex:exampleValue ;
+            sh:maxCount 3 ;
+          ] .
+      "></shacl-form>
+
+      <script>
+        (() => {
+          const form = document.querySelector("shacl-form")
+          form.addEventListener('change', event => {
+            // check if form validates according to the SHACL shapes
+            if (event.detail?.valid) {
+              // get data graph as RDF triples and log them to the browser console
+              const triples = form.serialize() 
+              console.log('entered form data', triples)
+              // store the data somewhere, e.g. in a triple store
+            }
+          })
+        })()
+      </script>
+    </fieldset>
+  </template>
+
+  <template id="template-complex-example">
+    <p>
+      shape inheritance
+taxonomies (owl:import, classInstanceProvider)
+plugins
+shacl or
+shacl groups
+lang strings (languageIn)
+data binding
+sh:order
+
+    </p>
+    <div class="wrapper">
+      <fieldset><legend>SHACL shapes as input to the form</legend><pre id="shacl-shape-input"></pre></fieldset>
+      <fieldset><legend>Generated form</legend><shacl-form id="shacl-form" data-submit-button data-values-url="complex-example-data.ttl" data-value-subject="http://example.org/4f2a8de3-9fc8-40a9-9237-d5964520ec54"></shacl-form></fieldset>
+      <fieldset id="shacl-output"><legend>Output generated by the form</legend><pre></pre></fieldset>
+    </div>
+    <script type="module">
+      import { MapBoxPlugin } from './index-with-plugins.js'
+
+      (() => {
+        const form = document.getElementById("shacl-form")
+        form.registerPlugin(new MapBoxPlugin({ datatype: 'http://www.opengis.net/ont/geosparql#wktLiteral' }, 'pk.eyJ1IjoiaHViZXJtb3NlciIsImEiOiJja3c2NDI2MXAwbWx0MnVudnJiOGV6NjRqIn0.va4IWkUk-USoL2Z8FylNzA'))
+
+        const shapes = document.getElementById("shacl-shape-input")
+        const output = document.getElementById("shacl-output")
+        form.addEventListener('change', (ev) => {
+          output.classList.toggle('valid', ev.detail?.valid)
+          output.classList.toggle('invalid', !ev.detail?.valid)
+          output.querySelector("pre").innerText = form.serialize()
+        })
+        // form.setClassInstanceProvider((clazz) => { return fetch("findex-bau.ttl").then((response) => { return response.text() }) })
+        fetch("complex-example.ttl").then(resp => resp.text()).then((text) => {
+          shapes.innerText = text
+          form.dataset['shapes'] = text
+        })
+      })()
+    </script>
+  </template>
+
+  <template id="template-datatypes">
+    <p>
+      <span class="code">sh:datatype</span>s are mapped to corresponding HTML input elements, including constraints like <span class="code">sh:minInclusive</span>, <span class="code">sh:minExclusive</span>, <span class="code">sh:maxInclusive</span>, <span class="code">sh:maxExclusive</span> and <span class="code">sh:pattern</span>.<br>
+      Note that you can affect the display order of the input elements with <span class="code">sh:order</span> or group elements using <span class="code">sh:group</span>.
+    </p>
+
+    <div class="wrapper">
+      <fieldset><legend>SHACL shapes as input to the form</legend><pre id="shacl-shape-input"></pre></fieldset>
+      <fieldset><legend>Generated form</legend><shacl-form id="shacl-form"></shacl-form></fieldset>
+      <fieldset id="shacl-output"><legend>Output generated by the form</legend><pre></pre></fieldset>
+    </div>
+    <script>
+      (() => {
+        const form = document.getElementById("shacl-form")
+        const shapes = document.getElementById("shacl-shape-input")
+        const output = document.getElementById("shacl-output")
+        form.addEventListener('change', (ev) => {
+          output.classList.toggle('valid', ev.detail?.valid)
+          output.classList.toggle('invalid', !ev.detail?.valid)
+          output.querySelector("pre").innerText = form.serialize()
+        })
+        fetch("datatypes.ttl").then(resp => resp.text()).then((text) => {
+          shapes.innerText = text
+          form.dataset['shapes'] = text
+        })
+      })()
+    </script>
+  </template>
+
+  <template id="template-try-your-own">
+    <div class="wrapper">
+      <fieldset><legend>Enter your SHACL shapes here</legend><textarea id="shacl-shape-input" class="w-100 h-100"></textarea></fieldset>
+      <fieldset><legend>Generated form</legend><shacl-form id="shacl-form"></shacl-form></fieldset>
+      <fieldset id="shacl-output"><legend>Output generated by the form</legend><pre></pre></fieldset>
+    </div>
+    <script>
+      (() => {
+        const form = document.getElementById("shacl-form")
+        const shapes = document.getElementById("shacl-shape-input")
+        const output = document.getElementById("shacl-output")
+        shapes.addEventListener('change', () => {
+          form.dataset['shapes'] = shapes.value
+          output.querySelector("pre").innerText = ''
+          output.classList.remove('valid', 'invalid')
+        })
+        form.addEventListener('change', (ev) => {
+          output.classList.toggle('valid', ev.detail?.valid)
+          output.classList.toggle('invalid', !ev.detail?.valid)
+          output.querySelector("pre").innerText = form.serialize()
+        })
+      })()
+    </script>
+  </template>
+</body>
 </html>

@@ -35,7 +35,7 @@ This library provides an HTML5 web component that renders [SHACL shapes](https:/
       form.addEventListener('change', event => {
         // check if form validates according to the SHACL shapes
         if (event.detail?.valid) {
-          // get data graph as RDF triples and log them to the browser console
+          // get data graph as RDF triples (default format is 'text/turtle') and log them to the browser console
           const triples = form.serialize() 
           console.log('entered form data', triples)
           // store the data somewhere, e.g. in a triple store
