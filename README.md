@@ -79,5 +79,5 @@ Register a plugin to customize editing certain property values. Examples: [Mapbo
 ```typescript
 setClassInstanceProvider((className: string) => Promise<string>)
 ```
-Sets a callback function that is called when a SHACL property has a `sh:class` definition. The expected return value is a string (e.g. in format `text/turtle`) that contains RDF instance definitions of the given class.
+Sets a callback function that is called when a SHACL property has a `sh:class` definition. The expected return value is a string (e.g. in format `text/turtle`) that contains RDF instance definitions of the given class. Instances can be defined either with `rdf:type` predicates or with `owl:NamedIndividual` and `skos:broader`. Instances are parsed recursively so that class hierarchies are supported.
 
