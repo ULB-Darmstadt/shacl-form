@@ -13,5 +13,7 @@ export const OWL_IMPORTS = DataFactory.namedNode(PREFIX_OWL + 'imports')
 
 export const RDF_PREDICATE_TYPE = DataFactory.namedNode(PREFIX_RDF + 'type')
 export const RDFS_PREDICATE_SUBCLASS_OF = DataFactory.namedNode(PREFIX_RDFS + 'subClassOf')
+export const SKOS_PREDICATE_BROADER = DataFactory.namedNode(PREFIX_SKOS + 'broader')
+export const OWL_OBJECT_NAMED_INDIVIDUAL = DataFactory.namedNode(PREFIX_OWL + 'NamedIndividual')
 export const SHACL_OBJECT_NODE_SHAPE = DataFactory.namedNode(PREFIX_SHACL + 'NodeShape')
 export const SHACL_PREDICATE_CLASS = DataFactory.namedNode(PREFIX_SHACL + 'class')

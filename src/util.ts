@@ -1,5 +1,5 @@
-import { Prefixes, Quad, Store } from 'n3'
-import { PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE } from './constants'
+import { NamedNode, Prefixes, Quad, Store } from 'n3'
+import { OWL_OBJECT_NAMED_INDIVIDUAL, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './editors'
 import { Config } from './config'
@@ -65,11 +65,17 @@ export function removePrefixes(id: string, prefixes: Prefixes): string {
     return id
 }
 
-export function findInstancesOf(clazz: Term, config: Config): InputListEntry[] {
+export function findInstancesOf(clazz: NamedNode, config: Config): InputListEntry[] {
     const instances: Term[] = config.shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, null)
     const entries = createInputListEntries(instances, config.shapesGraph, config.attributes.language)
     for (const subClass of config.shapesGraph.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, clazz, null)) {
-        entries.push(...findInstancesOf(subClass, config))
+        entries.push(...findInstancesOf(subClass as NamedNode, config))
+    }
+    if (config.shapesGraph.has(new Quad(clazz, RDF_PREDICATE_TYPE, OWL_OBJECT_NAMED_INDIVIDUAL, SHAPES_GRAPH))) {
+        entries.push(...createInputListEntries([ clazz ], config.shapesGraph, config.attributes.language))
+        for (const subClass of config.shapesGraph.getSubjects(SKOS_PREDICATE_BROADER, clazz, null)) {
+            entries.push(...findInstancesOf(subClass as NamedNode, config))
+        }
     }
     return entries
 }
