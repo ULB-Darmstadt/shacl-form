@@ -1,4 +1,5 @@
 import { Store, Parser, Quad, Prefixes, NamedNode } from 'n3'
+import * as jsonld from 'jsonld'
 import { OWL_IMPORTS, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 
@@ -55,6 +56,7 @@ export class Loader {
                         if (this.config.classInstanceProvider && SHACL_PREDICATE_CLASS.equals(quad.predicate)) {
                             // import class definitions only once
                             if (this.loadedClasses.indexOf(quad.object.value) < 0) {
+                                this.loadedClasses.push(quad.object.value)
                                 dependencies.push(this.importRDF(this.config.classInstanceProvider(quad.object.value), store, graph, parser))
                             }
                         }
@@ -66,13 +68,23 @@ export class Loader {
                     resolve(null)
                 })
             })
-            await Promise.all(dependencies)
+            try {
+                await Promise.all(dependencies)
+            } catch (e) {
+                console.warn(e)
+            }
         }
 
         if (input instanceof Promise) {
             input = await input
         }
         if (input) {
+            try {
+                // check if input is JSON
+                input = jsonld.toRDF(JSON.parse(input), {format: 'application/n-quads'}) as string
+            } catch(_) {
+                // NOP, it wasn't JSON
+            }
             await parse(input)
         }
     }
@@ -81,7 +93,7 @@ export class Loader {
         try {
             const response = await fetch(url, {
                 headers: {
-                    'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3'
+                    'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3, application/ld+json'
                 },
                 signal: this.abortController?.signal
             })
