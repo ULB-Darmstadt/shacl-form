@@ -75,7 +75,6 @@ export class ShaclForm extends HTMLElement {
                     this.form.prepend(button)
                 }
                 this.form.prepend(this.shape)
-                focusFirstInputElement(this.shape)
                 this.validate(true)
             } catch (e) {
                 console.error(e)
