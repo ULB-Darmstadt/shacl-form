@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHACL form demo</title>
+  <!-- <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css"> -->
+  <style>
+    html,
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 5px;
+    }
+
+    shacl-form {
+      width: 100%;
+    }
+
+    .grid {
+      display: grid;
+      grid-auto-columns: minmax(0, 1fr);
+      grid-auto-flow: column;
+      gap: 40px;
+    }
+
+    #shacl-output.valid {
+      color: green;
+    }
+
+    #shacl-output:not(.valid) {
+      color: red;
+    }
+  </style>
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"> -->
+  <!-- <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"> -->
+</head>
+
+<body>
+  <div class="grid">
+    <textarea id="shacl-shape-input"></textarea>
+    <shacl-form id="shacl-form" data-submit-button></shacl-form>
+  </div>
+  <pre id="shacl-output"></pre>
+  
+  <script src="./index.js" type="module"></script>
+  <script type="module">
+    const form = document.getElementById("shacl-form")
+    const shapes = document.getElementById("shacl-shape-input")
+    const output = document.getElementById("shacl-output")
+    shapes.addEventListener('change', ev => {
+      form.dataset['shapes'] = shapes.value
+      output.innerText = ''
+    })
+    form.addEventListener('change', function (ev) {
+      output.classList.toggle('valid', ev.detail?.valid)
+      output.innerText = form.serialize()
+    })
+    form.addEventListener('submit', function (ev) {
+      output.classList.add('valid')
+      output.innerText = form.serialize()
+    })
+    fetch('complex-example.ttl').then((response) => { return response.text() }).then((response) => {
+        shapes.value = response
+        // loadMetadata('https://workbench-metadata.0pq.de/fid/sparql', 'https://doi.org/10.82319/nx38-1n58', form).then(() => {
+            shapes.dispatchEvent(new Event('change'))
+        // })
+    })
+
+    function loadMetadata(endpoint, datasetID, form) {
+      return fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'text/turtle'
+        },
+        body: 'query=' + encodeURIComponent(`CONSTRUCT { ?s ?p ?o } WHERE { <${datasetID}> (<>|!<>)* ?s . ?s ?p ?o }`)
+      })
+      .then((response) => response.text())
+      .then((response) => {
+        form.dataset['values'] = response
+        form.dataset['valueSubject'] = datasetID
+      })
+      .catch((error) => {
+        console.log(`Failed loading metadata. Reason: ${error}`)
+      });
+    }
+
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    const getCircularReplacer = () => {
+      const seen = new WeakSet();
+      return (key, value) => {
+        if (typeof value === "object" && value !== null) {
+          if (seen.has(value)) {
+            return;
+          }
+          seen.add(value);
+        }
+        return value;
+      }
+    }
+  </script>
+</body>
+
+</html>
