@@ -46,7 +46,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
 }
 
 export class ShaclPropertyTemplate  {
-    label: string
+    label = ''
     nodeId: NamedNode | BlankNode
     name: Literal | undefined
     description: Literal | undefined
@@ -81,7 +81,8 @@ export class ShaclPropertyTemplate  {
 
         // provide best fitting label for UI
         this.label = this.name?.value || findLabel(quads, config.attributes.language)
-        if (!this.label) {
+        if (!this.label && !this.node) {
+            // force label value only for non-node properties to avoid nested <h1> in UI
             this.label = this.path ? removePrefixes(this.path, config.prefixes) : 'unknown'
         }
     }
