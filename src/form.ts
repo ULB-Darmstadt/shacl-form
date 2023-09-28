@@ -25,7 +25,7 @@ export class ShaclForm extends HTMLElement {
             ev.stopPropagation()
             this.validate(true).then(valid => {
                 this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': valid } }))
-            })
+            }).catch(e => { console.log(e) })
         })
     }
 
@@ -75,7 +75,7 @@ export class ShaclForm extends HTMLElement {
                     this.form.prepend(button)
                 }
                 this.form.prepend(this.shape)
-                this.validate(true)
+                await this.validate(true)
             } catch (e) {
                 console.error(e)
                 const errorDisplay = document.createElement('div')
