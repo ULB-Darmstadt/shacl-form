@@ -5,33 +5,28 @@
 @prefix geo: <http://www.opengis.net/ont/geosparql#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix example: <http://example.org/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 
 example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
-  a dcat:Dataset, example:ArchitectureModelDataset ;
-	dcterms:title "Einsteinturm"@de ;
-	dcterms:title "Einstein Tower"@en ;
-	dcterms:description "Modell des Einsteinturms"@de;
-	dcterms:description "Model of the Einstein Tower"@en;
-	dcterms:issued "2023-07-27"^^xsd:date;
-	dcterms:license <http://creativecommons.org/licenses/by/4.0/>;
+	a dcat:Dataset, example:ArchitectureModelDataset ;
+	dcterms:title "Einsteinturm"@de, "Einstein Tower"@en ;
+	dcterms:description "Modell des Einsteinturms"@de, "Model of the Einstein Tower"@en ;
+	dcterms:issued "2023-07-27"^^xsd:date ;
+	dcterms:license <http://creativecommons.org/licenses/by/4.0/> ;
+	schema:artworkSurface example:wood ;
+	schema:width 200 ;
 	dcterms:spatial [
 		a dcterms:Location ;
 		geo:asWKT "POLYGON((13.06382134836241 52.37900504575066,13.063796707503286 52.37896794299019,13.063798350228126 52.37875635638159,13.063926482692182 52.37875435081642,13.0639281254158 52.378964934657034,13.063905127281544 52.37900404297392,13.06382134836241 52.37900504575066))"^^geo:wktLiteral ;
 		dcterms:description "Building has been realized here" ;
 	] ;
-	schema:artworkSurface "Holz" ;
-	schema:width 200 ;
-	<http://www.w3.org/ns/prov#qualifiedAttribution> _:0706162f-c5a3-4954-8cf8-a9d324b313f4 ;
-  <http://purl.org/dc/terms/creator> _:n1150716783622461953 .
-
-_:n1150716783622461953
-  <http://xmlns.com/foaf/0.1/name> "Jane Doe" ;
-  <http://xmlns.com/foaf/0.1/mbox> "jane@example.org" ;
-  a <http://xmlns.com/foaf/0.1/Agent> .
-
-_:1c986e20-c685-47c4-83ca-c22068e07762 <http://xmlns.com/foaf/0.1/name> "123";
-    a <http://xmlns.com/foaf/0.1/Agent>.
-
-_:0706162f-c5a3-4954-8cf8-a9d324b313f4 a <http://www.w3.org/ns/prov#Attribution>;
-    <http://www.w3.org/ns/prov#agent> _:1c986e20-c685-47c4-83ca-c22068e07762;
-    <http://www.w3.org/ns/dcat#hadRole> <http://w3id.org/nfdi4ing/metadata4ing#DataCollector>.
+	prov:qualifiedAttribution [
+		a prov:Attribution ;
+		prov:agent [
+			a foaf:Person ;
+			foaf:name "Jane Doe";
+			dcterms:identifier "https://orcid.org/0000-0002-1584-4316" ;
+		] ;
+		dcat:hadRole <http://w3id.org/nfdi4ing/metadata4ing#DataCollector> ;
+	] .

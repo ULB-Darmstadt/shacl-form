@@ -1,6 +1,5 @@
 @prefix dash:    <http://datashapes.org/dash#> .
 @prefix dbpedia: <http://dbpedia.org/ontology/> .
-@prefix bau:     <https://terminology.fraunhofer.de/voc/bau#> .
 @prefix dcat:    <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix foaf:    <http://xmlns.com/foaf/0.1/> .
@@ -15,11 +14,14 @@
 @prefix example: <http://example.org/> .
 
 example:ArchitectureModelDataset
-        rdf:type             sh:NodeShape ;
-        dcterms:description  "FID-BAU architecture model dataset with metadata fields for e.g. model dimensions and materials" ;
-        dcterms:title        "Architecture model" ;
-        sh:node              example:BuildingDataset ;
+        a                    sh:NodeShape ;
+        sh:node              example:Dataset ;
 
+        sh:property          [ sh:description  "Location of the building" ;
+                               sh:name         "Location" ;
+                               sh:node         example:Location ;
+                               sh:path         dcterms:spatial
+                             ] ;
         sh:property          [ sh:datatype      xsd:integer ;
                                sh:description   "Width [mm] of the model" ;
                                sh:group         example:PhysicalPropertiesGroup ;
@@ -52,38 +54,15 @@ example:ArchitectureModelDataset
                                sh:path         dbpedia:scale ;
                                sh:pattern      "^\\d+:\\d+$"
                              ] ;
-        sh:property          [ sh:description  "Material used with this model" , "Beim Bau des Modells verwendetes Material"@de ;
+        sh:property          [ sh:description  "Material used with this model"@en , "Beim Bau des Modells verwendetes Material"@de ;
                                sh:group        example:PhysicalPropertiesGroup ;
                                sh:name         "Artwork material" ;
                                sh:path         schema:artworkSurface ;
-                               #sh:class        bau:B20802481186_1
+                               sh:class        example:Material ;
                              ] .
 
-example:BuildingDataset
-        rdf:type             sh:NodeShape ;
-        dcterms:description  "FID-BAU building dataset with metadata fields for e.g. locations and materials" ;
-        dcterms:title        "Building" ;
-        sh:node              example:Dataset ;
-        sh:property          [ sh:datatype     xsd:string ;
-                               sh:description  "Construction material (eg. concrete, steel, iron, stone, brick, wood)." ;
-                               sh:name         "Construction material" ;
-                               sh:path         dbpedia:constructionMaterial
-                             ] ;
-        sh:property          [ sh:description  "Location of the building" ;
-                               sh:name         "Location" ;
-                               sh:node         example:Location ;
-                               sh:path         dcterms:spatial
-                             ] .
-
-example:PhysicalPropertiesGroup
-        rdf:type    sh:PropertyGroup ;
-        rdfs:label  "Physical properties" .
-
-example:Dataset  rdf:type     sh:NodeShape ;
-        owl:imports          <https://w3id.org/nfdi4ing/metadata4ing/> ;
-
-        dcterms:description  "FID-BAU base dataset with minimal metadata fields" ;
-        dcterms:title        "Generic" ;
+example:Dataset
+        a                    sh:NodeShape ;
         sh:property          [ sh:datatype      rdf:langString ;
                                sh:languageIn    ( "en" "de" ) ;
                                sh:uniqueLang    true ;
@@ -110,6 +89,7 @@ example:Dataset  rdf:type     sh:NodeShape ;
                                sh:nodeKind     sh:IRI ;
                                sh:path         dcterms:license ;
                                sh:in (
+                                # see below how labels are added to the list entries
                                 <http://creativecommons.org/licenses/by/4.0/>
                                 <http://creativecommons.org/licenses/by-nc/4.0/>
                                )
@@ -121,20 +101,18 @@ example:Dataset  rdf:type     sh:NodeShape ;
                                sh:name         "Issued" ;
                                sh:path         dcterms:issued
                              ] ;
-        sh:property          [
-                               sh:name "Creator" ;
-                               sh:description "Creator of the dataset" ;
-                               sh:path dcterms:creator ;
-                               sh:minCount 1 ;
-                               sh:node example:Person ;
-                             ] ;
         sh:property          [ sh:name         "Attribution" ;
                                sh:node         example:Attribution ;
                                sh:path         prov:qualifiedAttribution
                              ] ;
         sh:targetClass       dcat:Dataset .
 
-example:Location  rdf:type  sh:NodeShape ;
+example:PhysicalPropertiesGroup
+        a    sh:PropertyGroup ;
+        rdfs:label  "Physical properties" .
+
+example:Location
+        a               sh:NodeShape ;
         rdfs:label      "Location" ;
         sh:property     [ sh:datatype     geo:wktLiteral ;
                           sh:description  "Format WKT, e.g. POINT(8.65 49.87)" ;
@@ -151,16 +129,13 @@ example:Location  rdf:type  sh:NodeShape ;
                         ] ;
         sh:targetClass  dcterms:Location .
 
-example:Person  rdf:type  sh:NodeShape ;
+example:Person
+        a               sh:NodeShape ;
         rdfs:label      "Person" ;
         sh:property     [ sh:maxCount  1 ;
                           sh:minCount  1 ;
                           sh:name      "Name" ;
                           sh:path      foaf:name
-                        ] ;
-        sh:property     [ sh:maxCount  1 ;
-                          sh:name      "Email" ;
-                          sh:path      foaf:mbox ;
                         ] ;
         sh:property     [ sh:datatype  xsd:string ;
                           sh:maxCount  1 ;
@@ -168,39 +143,30 @@ example:Person  rdf:type  sh:NodeShape ;
                           sh:path      dcterms:identifier ;
                           sh:pattern   "^https://orcid.org/\\d{4}-\\d{4}-\\d{4}-\\d{4}$"
                         ] ;
-        sh:or (
-          [
-            sh:path foaf:firstName ;
-            rdfs:name "first name" ;
-            sh:minCount 0 ;
-            sh:node example:Location ;
-          ]
-          [
-            sh:path foaf:givenName ;
-            sh:name "given name" ;
-            sh:minCount 0 ;
-          ]
-        ) ;
-        sh:property [
-          sh:name "Address" ;
-          sh:path foaf:address ;
-          sh:or (
-            [
-              sh:datatype xsd:string ;
-            ]
-            [
-              sh:class foaf:Address ;
-            ]
-          )
-        ] ;
-        sh:targetClass  foaf:Agent .
+        sh:targetClass  foaf:Person .
 
-example:Attribution  rdf:type  sh:NodeShape ;
+example:Organisation
+        a               sh:NodeShape ;
+        rdfs:label      "Organisation" ;
         sh:property     [ sh:maxCount  1 ;
                           sh:minCount  1 ;
-                          sh:name      "Person with role" ;
-                          sh:node      example:Person ;
-                          sh:path      prov:agent
+                          sh:name      "Name" ;
+                          sh:path      foaf:name
+                        ] ;
+        sh:targetClass  foaf:Organisation .
+
+example:Attribution
+        a               sh:NodeShape ;
+        # load an external taxonomy, which will be added to the shapes graph. In this case, the taxonomy provides class instances of prov:Role.
+        owl:imports          <https://w3id.org/nfdi4ing/metadata4ing/> ;
+
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  1 ;
+                          sh:path      prov:agent ;
+                          sh:or (
+                            [ sh:node example:Person ; rdfs:label "Person" ]
+                            [ sh:node example:Organisation ; rdfs:label "Organisation" ]
+                          )
                         ] ;
         sh:property     [ sh:name      "Role" ;
                           sh:minCount  1 ;
@@ -209,11 +175,6 @@ example:Attribution  rdf:type  sh:NodeShape ;
                         ] ;
         sh:targetClass  prov:Attribution .
 
+# add a label to the license IRIs
 <http://creativecommons.org/licenses/by/4.0/> rdfs:label "CC-BY" .
 <http://creativecommons.org/licenses/by-nc/4.0/> rdfs:label "CC-BY-NC" .
-
-example:123 rdf:type foaf:Address ;
-  rdfs:label 'Home' .
-
-example:124 rdf:type foaf:Address ;
-  rdfs:label 'Work' .

@@ -4,7 +4,6 @@
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix ex:      <http://example.org/> .
 
-
 ex:Demo a sh:NodeShape ;
     sh:property [
         sh:datatype     xsd:string ;
