@@ -18,6 +18,8 @@ export class Loader {
             this.abortController.abort()
         }
         this.abortController = new AbortController()
+        this.loadedOwlImports = []
+        this.loadedClasses = []
 
         const store = new Store()
         const valuesStore = new Store()
@@ -33,7 +35,7 @@ export class Loader {
     }
     
     async importRDF(input: string | Promise<string>, store: Store, graph?: NamedNode, parser?: Parser) {
-        const p = parser ? parser : new Parser()
+        const p = parser || new Parser()
         const parse = async (text: string) => {
             const dependencies: Promise<void>[] = []
             await new Promise((resolve, reject) => {
