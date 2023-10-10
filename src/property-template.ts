@@ -78,18 +78,17 @@ export class ShaclPropertyTemplate  {
         this.config = config
         this.nodeId = nodeId
         this.merge(quads)
-
-        // provide best fitting label for UI
-        this.label = this.name?.value || findLabel(quads, config.attributes.language)
-        if (!this.label && !this.node) {
-            // force label value only for non-node properties to avoid nested <h1> in UI
-            this.label = this.path ? removePrefixes(this.path, config.prefixes) : 'unknown'
-        }
     }
 
     merge(quads: Quad[]): ShaclPropertyTemplate {
         for (const quad of quads) {
             mappers[quad.predicate.id]?.call(this, this, quad.object)
+        }
+        // provide best fitting label for UI
+        this.label = this.name?.value || findLabel(quads, this.config.attributes.language)
+        if (!this.label && !this.node) {
+            // force label value only for non-node properties to avoid nested <h1> in UI
+            this.label = this.path ? removePrefixes(this.path, this.config.prefixes) : 'unknown'
         }
         return this
     }

@@ -163,18 +163,20 @@ export class ShaclForm extends HTMLElement {
         return report.conforms
     }
 
-    private createValidationErrorDisplay(validatonResult: any, clazz?: string): HTMLElement {
+    private createValidationErrorDisplay(validatonResult?: any, clazz?: string): HTMLElement {
         const messageElement = document.createElement('span')
         messageElement.classList.add('validation-error')
         if (clazz) {
             messageElement.classList.add(clazz)
         }
-        if (validatonResult.message.length > 0) {
-            for (const message of validatonResult.message) {
-                messageElement.title += message.value + '\n'
+        if (validatonResult) {
+            if (validatonResult.message?.length > 0) {
+                for (const message of validatonResult.message) {
+                    messageElement.title += message.value + '\n'
+                }
+            } else {
+                messageElement.title = validatonResult.sourceConstraintComponent?.value
             }
-        } else {
-            messageElement.title += validatonResult.sourceConstraintComponent.value
         }
         return messageElement
     }
@@ -191,7 +193,7 @@ export class ShaclForm extends HTMLElement {
             }
         }
         else {
-            // if data-value-subject is set and we have input data, use shape of that
+            // if we have a data graph and data-value-subject is set, use shape of that
             if (this.config.attributes.valueSubject && this.config.dataGraph.size > 0) {
                 const rootValueSubject = DataFactory.namedNode(this.config.attributes.valueSubject)
                 const rootValueSubjectTypes = this.config.dataGraph.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, null)
@@ -209,7 +211,7 @@ export class ShaclForm extends HTMLElement {
                 if (!rootShapeShaclSubject) {
                     const rootShapes = this.config.shapesGraph.getQuads(null, `${PREFIX_SHACL}targetClass`, rootValueSubjectTypes[0].object, SHAPES_GRAPH)
                     if (rootShapes.length === 0) {
-                        console.warn(`value subject '${this.config.attributes.valueSubject}' has no shacl shape definition in the shapes graph`)
+                        console.error(`value subject '${this.config.attributes.valueSubject}' has no shacl shape definition in the shapes graph`)
                         return
                     }
                     if (rootShapes.length > 1) {
