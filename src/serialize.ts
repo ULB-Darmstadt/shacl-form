@@ -1,7 +1,7 @@
 import { Writer, Quad, Literal, Prefixes } from 'n3'
 import { PREFIX_XSD, RDF_PREDICATE_TYPE } from './constants'
 
-export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): string | {}[] {
+export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): string {
     if (format === 'application/ld+json') {
         return serializeJsonld(quads)
     } else {
@@ -18,7 +18,7 @@ export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): s
     }
 }
 
-function serializeJsonld(quads: Quad[]): {}[] {
+function serializeJsonld(quads: Quad[]): string {
     const triples: {}[] = []
     for (const quad of quads) {
         const triple = { '@id': quad.subject.id }
@@ -40,5 +40,5 @@ function serializeJsonld(quads: Quad[]): {}[] {
         }
         triples.push(triple)
     }
-    return triples
+    return JSON.stringify(triples)
 }
