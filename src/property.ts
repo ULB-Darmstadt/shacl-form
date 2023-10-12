@@ -2,8 +2,8 @@ import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { focusFirstInputElement } from './util'
-import { RDF_PREDICATE_TYPE, PREFIX_SHACL, SHAPES_GRAPH } from './constants'
-import { createShaclOrConstraint } from './constraints'
+import { SHAPES_GRAPH } from './constants'
+import { createShaclOrConstraint, resolveShaclOrConstraint } from './constraints'
 import { Config } from './config'
 import { ShaclPropertyTemplate } from './property-template'
 import { Editor, editorFactory, toRDF } from './editors'
@@ -55,28 +55,11 @@ export class ShaclProperty extends HTMLElement {
         let instance: HTMLElement
         if (this.template.shaclOr?.length) {
             if (value) {
-                let template = this.template
-                // find rdf:type of given value. if more than one available, choose first one for now
-                let types = this.template.config.dataGraph.getObjects(value, RDF_PREDICATE_TYPE, null)
-                if (types.length > 0) {
-                    const type = types[0] as NamedNode
-                    template = template.clone()
-                    // try to find node shape that has requested target class
-                    const nodeShapes = template.config.shapesGraph.getSubjects(`${PREFIX_SHACL}targetClass`, type, SHAPES_GRAPH)
-                    if (nodeShapes.length > 0) {
-                        template.node = nodeShapes[0] as NamedNode
-                        // remove label since this is a node type property now
-                        template.label = ''
-                    } else {
-                        template.class = type
-                    }
-                }
-                instance = createPropertyInstance(template, value, true)
+                instance = createPropertyInstance(resolveShaclOrConstraint(this.template, value), value, true)
             } else {
                 instance = createShaclOrConstraint(this.template.shaclOr, this, this.template.config)
                 appendRemoveButton(instance, '')
             }
-
         } else {
             instance = createPropertyInstance(this.template, value)
         }

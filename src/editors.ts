@@ -229,7 +229,7 @@ export function editorFactory(template: ShaclPropertyTemplate, value?: Term): HT
         }
     }
 
-    // check if it a langstring
+    // check if it is a langstring
     if  (template.datatype?.value === `${PREFIX_RDF}langString` || template.languageIn?.length) {
         return createLangStringEditor(template, value)
     }
