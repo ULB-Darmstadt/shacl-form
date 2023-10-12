@@ -3,7 +3,7 @@ import { Term } from '@rdfjs/types'
 import { ShaclNode } from "./node"
 import { ShaclProperty, createPropertyInstance } from "./property"
 import { Config } from './config'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { findLabel, removePrefixes } from './util'
 import { ShaclPropertyTemplate } from './property-template'
 
@@ -70,34 +70,46 @@ export function resolveShaclOrConstraint(template: ShaclPropertyTemplate, value:
         return template
     }
     if (value instanceof Literal) {
-        // value is a literal, try to match given value datatype
+        // value is a literal, try to resolve sh:or by matching on given value datatype
         const valueType = value.datatype
-        for (const option of template.shaclOr) {
-            const shaclOrDatatypes = template.config.shapesGraph.getObjects(option, `${PREFIX_SHACL}datatype`, SHAPES_GRAPH)
-            if (shaclOrDatatypes.length && shaclOrDatatypes[0].equals(valueType)) {
-                template = template.clone()
-                template.datatype = shaclOrDatatypes[0] as NamedNode
-                return template
+        for (const subject of template.shaclOr) {
+            const options = template.config.shapesGraph.getQuads(subject, null, null, SHAPES_GRAPH)
+            for (const quad of options) {
+                if (quad.predicate.value === `${PREFIX_SHACL}datatype` && quad.object.equals(valueType)) {
+                    return template.clone().merge(options)
+                }
             }
         }
-        console.warn('couldn\'t resolve sh:or datatype for literal', value)
     } else {
-        // value is a NamedNode or BlankNode
-        // find rdf:type of given value. if more than one available, choose first one for now
+        // value is a NamedNode or BlankNode, try to resolve sh:or by matching rdf:type of given value with sh:node or sh:class
         let types = template.config.dataGraph.getObjects(value, RDF_PREDICATE_TYPE, null)
         if (types.length > 0) {
-            const type = types[0] as NamedNode
-            template = template.clone()
-            // try to find node shape that has requested target class
-            const nodeShapes = template.config.shapesGraph.getSubjects(`${PREFIX_SHACL}targetClass`, type, SHAPES_GRAPH)
-            if (nodeShapes.length > 0) {
-                template.node = nodeShapes[0] as NamedNode
-                // remove label since this is a node type property now
-                template.label = ''
-            } else {
-                template.class = type
+            for (const subject of template.shaclOr) {
+                const options = template.config.shapesGraph.getQuads(subject, null, null, SHAPES_GRAPH)
+                for (const quad of options) {
+                    // try to find matching sh:node in sh:or values
+                    if (quad.predicate.value === `${PREFIX_SHACL}node`) {
+                        for (const type of types) {
+                            if (template.config.shapesGraph.has(new Quad(quad.object, SHACL_PREDICATE_TARGET_CLASS, type, SHAPES_GRAPH))) {
+                                template = template.clone().merge(options)
+                                // remove label since this is a node type property now
+                                template.label = ''
+                                return template
+                            }
+                        }
+                    }
+                    // try to find matching sh:class in sh:or values
+                    if (quad.predicate.equals(SHACL_PREDICATE_CLASS)) {
+                        for (const type of types) {
+                            if (quad.object.equals(type)) {
+                                return template.clone().merge(options)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
+    console.warn('couldn\'t resolve sh:or for value', value)
     return template
 }

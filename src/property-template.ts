@@ -1,6 +1,6 @@
 import { Literal, NamedNode, BlankNode, Quad, DataFactory } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_DASH, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
+import { PREFIX_DASH, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { findLabel, removePrefixes } from './util'
 
@@ -30,7 +30,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [SHACL_PREDICATE_CLASS.value]:   (template, term) => {
         template.class = term as NamedNode
         // try to find node shape that has requested target class
-        const nodeShapes = template.config.shapesGraph.getSubjects(`${PREFIX_SHACL}targetClass`, term, SHAPES_GRAPH)
+        const nodeShapes = template.config.shapesGraph.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, SHAPES_GRAPH)
         if (nodeShapes.length > 0) {
             template.node = nodeShapes[0] as NamedNode
         }

@@ -17,3 +17,4 @@ export const SKOS_PREDICATE_BROADER = DataFactory.namedNode(PREFIX_SKOS + 'broad
 export const OWL_OBJECT_NAMED_INDIVIDUAL = DataFactory.namedNode(PREFIX_OWL + 'NamedIndividual')
 export const SHACL_OBJECT_NODE_SHAPE = DataFactory.namedNode(PREFIX_SHACL + 'NodeShape')
 export const SHACL_PREDICATE_CLASS = DataFactory.namedNode(PREFIX_SHACL + 'class')
+export const SHACL_PREDICATE_TARGET_CLASS = DataFactory.namedNode(PREFIX_SHACL + 'targetClass')

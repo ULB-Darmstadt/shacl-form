@@ -2,7 +2,7 @@ import { ShaclNode } from './node'
 import { Config } from './config'
 import { ClassInstanceProvider, Plugin } from './plugin'
 import { Quad, Store, NamedNode, DataFactory } from 'n3'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { focusFirstInputElement } from './util'
 import { Editor } from './editors'
 import { serialize } from './serialize'
@@ -209,7 +209,7 @@ export class ShaclForm extends HTMLElement {
                     }
                 }
                 if (!rootShapeShaclSubject) {
-                    const rootShapes = this.config.shapesGraph.getQuads(null, `${PREFIX_SHACL}targetClass`, rootValueSubjectTypes[0].object, SHAPES_GRAPH)
+                    const rootShapes = this.config.shapesGraph.getQuads(null, SHACL_PREDICATE_TARGET_CLASS, rootValueSubjectTypes[0].object, SHAPES_GRAPH)
                     if (rootShapes.length === 0) {
                         console.error(`value subject '${this.config.attributes.valueSubject}' has no shacl shape definition in the shapes graph`)
                         return
