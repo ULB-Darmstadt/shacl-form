@@ -8,9 +8,12 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 
 const dialogTemplate = '<style>#shaclMapDialog .closeButton { position: absolute; right: 0; top: 0; z-index: 1; padding: 6px 8px; cursor: pointer; border: 0; background-color: #FFFA; font-size: 24px; }\
+#shaclMapDialog { padding: 0 } \
 #shaclMapDialog .closeButton:hover { background-color: #FFF }\
 #shaclMapDialog .hint { position: absolute; right: 60px; top: 3px; z-index: 1; padding: 4px 6px; background-color: #FFFA; border-radius: 4px; }\
+#shaclMapDialogContainer { width:100%; height: 100% }\
 </style><dialog id="shaclMapDialog" onclick="event.target==this && this.close()">\
+<div id="shaclMapDialogContainer"></div>\
 <div class="hint">&#x24D8; Draw a polygon or point, then close map</div>\
 <button class="closeButton" type="button" onclick="this.parentElement.close()">&#x2715;</button>\
 </dialog>'
@@ -39,7 +42,7 @@ export class MapBoxPlugin extends Plugin {
             this.setEditorValue()
         })
         this.map = new mapboxgl.Map({
-            container: 'shaclMapDialog',
+            container: 'shaclMapDialogContainer',
             // style: 'mapbox://styles/mapbox/outdoors-v11',
             style: 'mapbox://styles/mapbox/satellite-streets-v11',
             zoom: 5,
