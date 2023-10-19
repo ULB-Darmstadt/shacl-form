@@ -59,7 +59,7 @@ data-shape-subject | Optional subject (id) of the SHACL node shape to use as roo
 data-values | RDF triples (e.g. a turtle string) to use as existing data values to fill the form
 data-values-url | When `data-values` is not set, the data triples are loaded from this URL
 data-value-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID will be used. If `data-values` or `data-values-url` is set, this id is also used to find existing data in the data graph to fill the form
-data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`
+data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://www.w3schools.com/jsref/prop_nav_language.asp)
 data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` IRIs are fetched and the resulting triples added to the shapes graph. Set this attribute to any value in order to disable this feature
 data-submit-button | Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events will only fire after successful validation
 

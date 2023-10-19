@@ -1,10 +1,10 @@
 import { NamedNode, Prefixes, Quad, Store } from 'n3'
 import { OWL_OBJECT_NAMED_INDIVIDUAL, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER } from './constants'
 import { Term } from '@rdfjs/types'
-import { InputListEntry } from './editors'
+import { InputListEntry } from './theme'
 import { Config } from './config'
 
-export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string | null): string {
+export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string): string {
     let result = ''
     const object = findObjectByPredicate(quads, predicate, prefix, language)
     if (object) {
@@ -13,7 +13,7 @@ export function findObjectValueByPredicate(quads: Quad[], predicate: string, pre
     return result
 }
 
-export function findObjectByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string | null): Term | undefined {
+export function findObjectByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, language?: string): Term | undefined {
     let candidate: Term | undefined
     const prefixedPredicate = prefix + predicate
     for (const quad of quads) {
@@ -40,7 +40,7 @@ export function focusFirstInputElement(context: HTMLElement) {
     (context.querySelector('input,select,textarea') as HTMLElement)?.focus()
 }
 
-export function findLabel(quads: Quad[], language?: string | null): string {
+export function findLabel(quads: Quad[], language: string): string {
     let label = findObjectValueByPredicate(quads, 'prefLabel', PREFIX_SKOS, language)
     if (label) {
         return label
@@ -48,7 +48,7 @@ export function findLabel(quads: Quad[], language?: string | null): string {
     return findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, language)
 }
 
-export function createInputListEntries(subjects: Term[], shapesGraph: Store, language?: string | null): InputListEntry[] {
+export function createInputListEntries(subjects: Term[], shapesGraph: Store, language: string): InputListEntry[] {
     const entries: InputListEntry[] = []
     for (const subject of subjects) {
         entries.push({ value: subject, label: findLabel(shapesGraph.getQuads(subject, null, null, null), language) })

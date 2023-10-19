@@ -1,3 +1,3 @@
 export { FixedListPlugin } from './fixed-list'
 export { MapBoxPlugin } from './mapbox'
-export { InputListEntry } from '../editors'
+export { InputListEntry } from '../theme'

@@ -2,7 +2,7 @@ import { Plugin, PluginOptions } from '../plugin'
 import { Term } from '@rdfjs/types'
 
 import { ShaclPropertyTemplate } from '../property-template'
-import { createListEditor, InputListEntry } from '../editors'
+import { InputListEntry } from '../theme'
 
 export class FixedListPlugin extends Plugin {
     entries: InputListEntry[]
@@ -13,6 +13,6 @@ export class FixedListPlugin extends Plugin {
     }
 
     createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        return createListEditor(template, this.entries, value)
+        return template.config.theme.createListEditor(template, this.entries, value)
     }
 }

@@ -6,7 +6,7 @@ import { SHAPES_GRAPH } from './constants'
 import { createShaclOrConstraint, resolveShaclOrConstraint } from './constraints'
 import { Config } from './config'
 import { ShaclPropertyTemplate } from './property-template'
-import { Editor, editorFactory, toRDF } from './editors'
+import { Editor, editorFactory, toRDF } from './theme'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
@@ -43,12 +43,15 @@ export class ShaclProperty extends HTMLElement {
                     valuesContainHasValue = true
                 }
             }
-            if (this.template.hasValue && !valuesContainHasValue) {
+            if (config.editMode && this.template.hasValue && !valuesContainHasValue) {
                 this.addPropertyInstance(this.template.hasValue)
             }
         }
-        this.addEventListener('change', () => { this.updateControls() })
-        this.updateControls()
+
+        if (config.editMode) {
+            this.addEventListener('change', () => { this.updateControls() })
+            this.updateControls()
+        }
     }
 
     addPropertyInstance(value?: Term): HTMLElement {

@@ -82,11 +82,10 @@ a:visited { color: inherit; }
 }
 
 .content h2 {
-    margin-top: 0; color: #444;
+    margin-top: 1em; color: #444;
 }
 
-.content p:first-child { margin-top: 0; }
-.content p { margin-top: 40px; line-height: 1.3em; font-size: 20px; color: #444; }
+.content p { margin-top: 0; line-height: 1.3em; font-size: 20px; color: #444; }
 
 .wrapper {
     display: grid;
@@ -96,7 +95,8 @@ a:visited { color: inherit; }
 
 .w-100 { width: 100%; }
 .h-100 { height: 100%; }
-.mt-1 { margin-top: 1em; }
+.mt-1 { margin-top: 1em !important; }
+.my-0 { margin-top: 0 !important; margin-bottom: 0 !important; }
 .code { font-family: monospace; background-color: #ededed; padding: 3px; border-radius: 4px; color: #333; font-size: 14px; }
 #shacl-output.valid legend::after { content: "[valid]"; padding-left: 5px; }
 #shacl-output.invalid legend::after { content: "[not valid]"; padding-left: 5px; }

@@ -5,8 +5,8 @@ import { Config } from './config'
 import { findLabel, removePrefixes } from './util'
 
 const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => void> = {
-    [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; if (!template.name || (template.config.attributes.language && literal.language === template.config.attributes.language)) { template.name = literal } },
-    [`${PREFIX_SHACL}description`]:  (template, term) => { const literal = term as Literal; if (!template.description || (template.config.attributes.language && literal.language === template.config.attributes.language)) { template.description = literal } },
+    [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; if (!template.name || literal.language === template.config.attributes.language) { template.name = literal } },
+    [`${PREFIX_SHACL}description`]:  (template, term) => { const literal = term as Literal; if (!template.description || literal.language === template.config.attributes.language) { template.description = literal } },
     [`${PREFIX_SHACL}path`]:         (template, term) => { template.path = term.value },
     [`${PREFIX_SHACL}node`]:         (template, term) => { template.node = term as NamedNode },
     [`${PREFIX_SHACL}datatype`]:     (template, term) => { template.datatype = term as NamedNode },

@@ -4,7 +4,7 @@ import { ClassInstanceProvider, Plugin } from './plugin'
 import { Quad, Store, NamedNode, DataFactory } from 'n3'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { focusFirstInputElement } from './util'
-import { Editor } from './editors'
+import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import SHACLValidator from 'rdf-validate-shacl'
 import './styles.css'
@@ -99,6 +99,11 @@ export class ShaclForm extends HTMLElement {
 
     public setClassInstanceProvider(provider: ClassInstanceProvider) {
         this.config.classInstanceProvider = provider
+        this.initialize()
+    }
+
+    public setTheme(theme: Theme) {
+        this.config.theme = theme
         this.initialize()
     }
 

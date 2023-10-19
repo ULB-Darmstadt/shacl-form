@@ -1,7 +1,7 @@
 import { Term } from '@rdfjs/types'
 import { Plugin, PluginOptions } from '../plugin'
 import { ShaclPropertyTemplate } from '../property-template'
-import { createTextEditor, Editor } from '../editors'
+import { Editor } from '../theme'
 import mapboxgl from 'mapbox-gl'
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -64,7 +64,7 @@ export class MapBoxPlugin extends Plugin {
     }
 
     createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        const instance = createTextEditor(template, value)
+        const instance = template.config.theme.createTextEditor(template, value)
         const button = document.createElement('button')
         button.type = 'button'
         button.innerHTML = 'Open map...'
