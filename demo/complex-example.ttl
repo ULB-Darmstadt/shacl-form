@@ -181,5 +181,5 @@ example:Attribution
   sh:targetClass  prov:Attribution .
 
 # add a label to the license IRIs
-<http://creativecommons.org/licenses/by/4.0/> rdfs:label "CC-BY" .
+<http://creativecommons.org/licenses/by/4.0/>    rdfs:label "CC-BY" .
 <http://creativecommons.org/licenses/by-nc/4.0/> rdfs:label "CC-BY-NC" .

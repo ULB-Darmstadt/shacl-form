@@ -4,7 +4,7 @@
 npm i @ulb-darmstadt/shacl-form
 ```
 
-This library provides an HTML5 web component that renders [SHACL shapes](https://www.w3.org/TR/shacl/) as a web form, outputting the entered data as RDF triples validated against these shapes.
+This library provides an HTML5 web component that renders [SHACL shapes](https://www.w3.org/TR/shacl/) as a web form, outputting the entered data as RDF triples validated against these shapes. It can also be used as an editor/viewer for existing data graphs.
 
 ## [See demo here](https://ulb-darmstadt.github.io/shacl-form/)
 
@@ -56,11 +56,12 @@ Attribute | Description
 data-shapes | SHACL shape definitions (e.g. a turtle string) to generate the form from
 data-shapes-url | When `data-shapes` is not set, the SHACL shapes are loaded from this URL
 data-shape-subject | Optional subject (id) of the SHACL node shape to use as root for the form. If not set, the first found node shape will be used
-data-values | RDF triples (e.g. a turtle string) to use as existing data values to fill the form
-data-values-url | When `data-values` is not set, the data triples are loaded from this URL
-data-value-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID will be used. If `data-values` or `data-values-url` is set, this id is also used to find existing data in the data graph to fill the form
+data-values | RDF triples (e.g. a turtle string) to use as existing data graph to fill the form
+data-values-url | When `data-values` is not set, the data graph triples are loaded from this URL
+data-value-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID will be used. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form
 data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://www.w3schools.com/jsref/prop_nav_language.asp)
 data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` IRIs are fetched and the resulting triples added to the shapes graph. Set this attribute to any value in order to disable this feature
+data-mode | When set to `"view"`, turns the form into a viewer that displays the given data graph without any editing functionality
 data-submit-button | Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events will only fire after successful validation
 
 ### Element functions
@@ -79,6 +80,11 @@ Validates the form data against the SHACL shapes graph and displays validation r
 registerPlugin(plugin: Plugin)
 ```
 Register a plugin to customize editing certain property values. Plugins can handle specific RDF predicates or `xsd:datatype`s or both. Examples: [Mapbox](./src/plugins/mapbox.ts), [FixedList](./src/plugins/fixed-list.ts)
+
+```typescript
+setTheme(theme: Theme)
+```
+Set a design theme to use for rendering input fields. Default is [Native](./src/themes/native.ts) which creates standard HTML input fields. Other themes: [Material](./src/themes/material.ts) or [Bootstrap](./src/themes/bootstrap.ts). Custom themes can be set by implementing [Theme](./src/themes.ts) yourself.
 
 ```typescript
 setClassInstanceProvider((className: string) => Promise<string>)

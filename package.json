@@ -1,6 +1,6 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "1.1.9",
+    "version": "1.2.0",
     "description": "SHACL form generator",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -44,7 +44,9 @@
         "webpack-dev-server": "^4.15.1"
     },
     "dependencies": {
+        "@fontsource/roboto": "^5.0.8",
         "@mapbox/mapbox-gl-draw": "^1.4.2",
+        "@material/web": "^1.0.0",
         "jsonld": "^8.3.1",
         "mapbox-gl": "^2.15.0",
         "n3": "^1.17.0",

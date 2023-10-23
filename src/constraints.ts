@@ -91,10 +91,7 @@ export function resolveShaclOrConstraint(template: ShaclPropertyTemplate, value:
                     if (quad.predicate.value === `${PREFIX_SHACL}node`) {
                         for (const type of types) {
                             if (template.config.shapesGraph.has(new Quad(quad.object, SHACL_PREDICATE_TARGET_CLASS, type, SHAPES_GRAPH))) {
-                                template = template.clone().merge(options)
-                                // remove label since this is a node type property now
-                                template.label = ''
-                                return template
+                                return template.clone().merge(options)
                             }
                         }
                     }

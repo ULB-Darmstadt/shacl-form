@@ -6,11 +6,11 @@ import { SHAPES_GRAPH } from './constants'
 import { createShaclOrConstraint, resolveShaclOrConstraint } from './constraints'
 import { Config } from './config'
 import { ShaclPropertyTemplate } from './property-template'
-import { Editor, editorFactory, toRDF } from './theme'
+import { Editor, fieldFactory, toRDF } from './theme'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
-    addButton: HTMLElement
+    addButton: HTMLElement | undefined
 
     constructor(shaclSubject: BlankNode | NamedNode, config: Config, nodeId: NamedNode | BlankNode, valueSubject?: NamedNode | BlankNode) {
         super()
@@ -22,16 +22,18 @@ export class ShaclProperty extends HTMLElement {
             this.style.order = this.template.order
         }
 
-        this.addButton = document.createElement('a')
-        this.appendChild(this.addButton)
-        this.addButton.innerText = this.template.label
-        this.addButton.title = 'Add ' + this.template.label
-        this.addButton.classList.add('control-button', 'add-button')
-        this.addButton.addEventListener('click', _ => {
-            const instance = this.addPropertyInstance()
-            this.updateControls()
-            focusFirstInputElement(instance)
-        });
+        if (config.editMode) {
+            this.addButton = document.createElement('a')
+            this.addButton.innerText = this.template.label
+            this.addButton.title = 'Add ' + this.template.label
+            this.addButton.classList.add('control-button', 'add-button')
+            this.addButton.addEventListener('click', _ => {
+                const instance = this.addPropertyInstance()
+                this.updateControls()
+                focusFirstInputElement(instance)
+            })
+            this.appendChild(this.addButton)
+        }
 
         // bind existing values
         if (this.template.path) {
@@ -44,6 +46,7 @@ export class ShaclProperty extends HTMLElement {
                 }
             }
             if (config.editMode && this.template.hasValue && !valuesContainHasValue) {
+                // sh:hasValue is defined in shapes graph, but does not exist in data graph, so force it
                 this.addPropertyInstance(this.template.hasValue)
             }
         }
@@ -66,7 +69,11 @@ export class ShaclProperty extends HTMLElement {
         } else {
             instance = createPropertyInstance(this.template, value)
         }
-        this.insertBefore(instance, this.addButton)
+        if (this.template.config.editMode) {
+            this.insertBefore(instance, this.addButton!)
+        } else {
+            this.appendChild(instance)
+        }
         return instance
     }
 
@@ -120,10 +127,12 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         if (plugin) {
             instance = plugin.createInstance(template, value)
         } else {
-            instance = editorFactory(template, value)
+            instance = fieldFactory(template, value)
         }
     }
-    appendRemoveButton(instance, template.label, forceRemovable)
+    if (template.config.editMode) {
+        appendRemoveButton(instance, template.label, forceRemovable)
+    }
     instance.dataset.path = template.path
     return instance
 }

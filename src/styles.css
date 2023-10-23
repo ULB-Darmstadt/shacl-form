@@ -18,7 +18,7 @@ shacl-form .shacl-group h2 { font-size: 1rem; border-bottom: 1px solid; margin-t
 shacl-form .property-instance, shacl-form .shacl-or-constraint { display: flex; align-items: flex-start; margin-top: 8px; width: 100%; position: relative; }
 shacl-form .property-instance label, shacl-form .shacl-or-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
 shacl-form .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
-shacl-form .property-instance label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
+shacl-form .edit-mode .property-instance label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
 shacl-form .property-instance:not(:first-child) > label { visibility: hidden; height: 0; }
 shacl-form .property-instance.valid::before { position: absolute; left: calc(var(--label-width) - 1em); top: 2px; color: green; content: '\2713'; }
 shacl-form .editor:not([type='checkbox']), shacl-form .shacl-or-constraint select { flex-grow: 1; border: 1px solid #DDD; padding: 2px 4px; }

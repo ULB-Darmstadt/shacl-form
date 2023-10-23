@@ -64,7 +64,7 @@ export class MapBoxPlugin extends Plugin {
     }
 
     createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        const instance = template.config.theme.createTextEditor(template, value)
+        const instance = template.config.theme.createText(template, template.config.editMode, value)
         const button = document.createElement('button')
         button.type = 'button'
         button.innerHTML = 'Open map...'

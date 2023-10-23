@@ -3,7 +3,8 @@ import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
 import { ClassInstanceProvider, Plugins } from './plugin'
 import { Loader } from './loader'
-import { NativeTheme, Theme } from './theme'
+import { Theme } from './theme'
+import { NativeTheme } from './themes/native'
 
 export class ElementAttributes {
     shapes: string | null = null
@@ -12,7 +13,7 @@ export class ElementAttributes {
     values: string | null = null
     valuesUrl: string | null = null
     valueSubject: string | null = null
-    view: string | null = null
+    mode: string | null = null
     language: string = navigator.language
     ignoreOwlImports: string | null = null
     submitButton: string | null = null
@@ -39,9 +40,7 @@ export class Config {
                 atts[key] = elem.dataset[key]
             }
         }
-        if (atts.view) {
-            this.editMode = false
-        }
+        this.editMode = atts.mode !== 'view'
         this.attributes = atts
     }
 

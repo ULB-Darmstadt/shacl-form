@@ -9,12 +9,13 @@ let idCtr = 0
 export type Editor = HTMLElement & { value: string }
 export type InputListEntry = { value: Term | string, label?: string }
 export abstract class Theme {
-    abstract createListEditor(template: ShaclPropertyTemplate, listEntries: InputListEntry[], value?: Term): HTMLElement
-    abstract createLangStringEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement
-    abstract createTextEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement
-    abstract createNumberEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement
-    abstract createDateEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement
-    abstract createBooleanEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement
+    abstract createList(template: ShaclPropertyTemplate, editMode: boolean, listEntries: InputListEntry[], value?: Term): HTMLElement
+    abstract createLangString(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement
+    abstract createText(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement
+    abstract createNumber(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement
+    abstract createDate(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement
+    abstract createBoolean(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement
+
     createDefaultTemplate(template: ShaclPropertyTemplate, editor: Editor, value?: Term): HTMLElement {
         editor.id = `e${idCtr++}`
         editor.classList.add('editor', 'form-control')
@@ -56,144 +57,6 @@ export abstract class Theme {
         return result
     }
 }
-export class NativeTheme extends Theme {
-    createDateEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        const editor = document.createElement('input')
-        if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
-            editor.type = 'datetime-local'
-        }
-        else {
-            editor.type = 'date'
-        }
-        editor.classList.add('pr-0')
-        const result = this.createDefaultTemplate(template, editor)
-        if (value) {
-            let isoDate = new Date(value.value).toISOString()
-            if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
-                isoDate = isoDate.slice(0, 19)
-            } else {
-                isoDate = isoDate.slice(0, 10)
-            }
-            editor.value = isoDate
-        }
-        return result
-    }
-
-    createTextEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        let editor
-        if (template.singleLine === false) {
-            editor = document.createElement('textarea')
-            editor.rows = 5
-        }
-        else {
-            editor = document.createElement('input')
-            editor.type = 'text'
-        }
-    
-        if (template.minLength) {
-                editor.minLength = template.minLength
-            }
-        if (template.maxLength) {
-            editor.maxLength = template.maxLength
-        }
-        if (template.pattern) {
-            editor.pattern = template.pattern
-        }
-        return this.createDefaultTemplate(template, editor, value)
-    }
-
-    createLangStringEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        const result = this.createTextEditor(template, value)
-        const editor = result.querySelector(':scope .editor') as Editor
-        let langChooser
-        if (template.languageIn?.length) {
-            langChooser = document.createElement('select')
-            for (const lang of template.languageIn) {
-                const option = document.createElement('option')
-                option.innerText = lang.value
-                langChooser.appendChild(option)
-            }
-        } else {
-            langChooser = document.createElement('input')
-            langChooser.maxLength = 5 // e.g. en-US
-        }
-        langChooser.title = 'Language of the text'
-        langChooser.placeholder = 'lang?'
-        langChooser.classList.add('lang-chooser')
-        // if lang chooser changes, fire a change event on the text input instead. this is for shacl validation handling.
-        langChooser.addEventListener('change', (ev) => {
-            ev.stopPropagation();
-            if (editor) {
-                editor.dataset.lang = langChooser.value
-                editor.dispatchEvent(new Event('change', { bubbles: true }))
-            }
-        })
-        if (value instanceof Literal) {
-            langChooser.value = value.language
-        }
-        editor.dataset.lang = langChooser.value
-        editor.after(langChooser)
-        return result
-    }
-
-    createBooleanEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        const editor = document.createElement('input')
-        editor.type = 'checkbox'
-        editor.classList.add('ml-0')
-    
-        const result = this.createDefaultTemplate(template, editor, value)
-    
-        // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here
-        editor.removeAttribute('required')
-        result.querySelector(':scope label')?.classList.remove('required')
-        if (value instanceof Literal) {
-            editor.checked = value.value === 'true'
-        }
-        return result
-    }
-
-    createNumberEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        const editor = document.createElement('input')
-        editor.type = 'number'
-        editor.classList.add('pr-0')
-        const min = template.minInclusive ? template.minInclusive : template.minExclusive ? template.minExclusive + 1 : undefined
-        const max = template.maxInclusive ? template.maxInclusive : template.maxExclusive ? template.maxExclusive - 1 : undefined
-        if (min) {
-            editor.min = String(min)
-        }
-        if (max) {
-            editor.max = String(max)
-        }
-        if (template.datatype?.value !== PREFIX_XSD + 'integer') {
-            editor.step = '0.1'
-        }
-        return this.createDefaultTemplate(template, editor, value)
-    }
-
-    createListEditor(template: ShaclPropertyTemplate, listEntries: InputListEntry[], value?: Term): HTMLElement {
-        const editor = document.createElement('select')
-        const result = this.createDefaultTemplate(template, editor)
-        // add an empty element
-        const emptyOption = document.createElement('option')
-        emptyOption.value = ''
-        editor.options.add(emptyOption)
-    
-        for (const item of listEntries) {
-            const option = document.createElement('option')
-            const itemValue = (typeof item.value === 'string') ? item.value : item.value.value
-            option.innerHTML = item.label ? item.label : itemValue
-            option.value = itemValue
-            if (value && value.value === itemValue) {
-                option.selected = true
-            }
-            editor.options.add(option)
-        }
-        if (value) {
-            editor.value = value.value
-        }
-        return result
-    }
-}
 
 export function toRDF(editor: Editor): Literal | NamedNode | undefined {
     let datatype = editor['shacl-datatype']
@@ -218,17 +81,18 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
     }
 }
 
-export function editorFactory(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
+export function fieldFactory(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
+    const editMode = template.config.editMode
     // if we have a class, find the instances and display them in a list
     if (template.class) {
-        return template.config.theme.createListEditor(template, findInstancesOf(template.class, template.config), value)
+        return template.config.theme.createList(template, editMode, findInstancesOf(template.class, template.config), value)
     }
 
     // check if it is a list
     if (template.shaclIn) {
         const list = template.config.lists[template.shaclIn]
         if (list?.length) {
-            return template.config.theme.createListEditor(template, createInputListEntries(list, template.config.shapesGraph, template.config.attributes.language), value)
+            return template.config.theme.createList(template, editMode, createInputListEntries(list, template.config.shapesGraph, template.config.attributes.language), value)
         }
         else {
             console.error('list not found:', template.shaclIn, 'existing lists:', template.config.lists)
@@ -237,24 +101,24 @@ export function editorFactory(template: ShaclPropertyTemplate, value?: Term): HT
 
     // check if it is a langstring
     if  (template.datatype?.value === `${PREFIX_RDF}langString` || template.languageIn?.length) {
-        return template.config.theme.createLangStringEditor(template, value)
+        return template.config.theme.createLangString(template, editMode, value)
     }
 
     switch (template.datatype?.value.replace(PREFIX_XSD, '')) {
         case 'string':
-            return template.config.theme.createTextEditor(template, value)
+            return template.config.theme.createText(template, editMode, value)
         case 'integer':
         case 'float':
         case 'double':
         case 'decimal':
-            return template.config.theme.createNumberEditor(template, value)
+            return template.config.theme.createNumber(template, editMode, value)
         case 'date':
         case 'dateTime':
-            return template.config.theme.createDateEditor(template, value)
+            return template.config.theme.createDate(template, editMode, value)
         case 'boolean':
-            return template.config.theme.createBooleanEditor(template, value)
+            return template.config.theme.createBoolean(template, editMode, value)
         }
 
     // nothing found, fallback to 'text'
-    return template.config.theme.createTextEditor(template, value)
+    return template.config.theme.createText(template, editMode, value)
 }

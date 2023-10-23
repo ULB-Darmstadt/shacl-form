@@ -13,6 +13,6 @@ export class FixedListPlugin extends Plugin {
     }
 
     createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        return template.config.theme.createListEditor(template, this.entries, value)
+        return template.config.theme.createList(template, template.config.editMode, this.entries, value)
     }
 }
