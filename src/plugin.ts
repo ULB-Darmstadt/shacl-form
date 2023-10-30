@@ -12,6 +12,10 @@ export class Plugins {
         }
     }
 
+    list(): Plugin[] {
+        return Object.entries(this.plugins).map((value: [_: string, plugin: Plugin]) => { return value[1] })
+    }
+
     find(predicate: string | undefined, datatype: string | undefined): Plugin | undefined {
         // first try to find plugin with matching predicate and datatype
         let plugin = this.plugins[`${predicate}^${datatype}`]
@@ -36,13 +40,22 @@ export type PluginOptions = {
 export abstract class Plugin {
     predicate: string | undefined
     datatype: string | undefined
+    stylesheet: CSSStyleSheet | undefined
 
-    constructor(options: PluginOptions) {
+    constructor(options: PluginOptions, css?: string) {
         this.predicate = options.predicate
         this.datatype = options.datatype
+        if (css) {
+            this.stylesheet = new CSSStyleSheet()
+            this.stylesheet.replaceSync(css)
+        }
     }
 
-    abstract createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement
+    abstract createEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement
+
+    createViewer(template: ShaclPropertyTemplate, value: Term): HTMLElement {
+        return template.config.theme.createViewer(template.label, value, template)
+    }
 }
 
 export type ClassInstanceProvider = (clazz: string) => Promise<string>

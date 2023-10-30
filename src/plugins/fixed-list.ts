@@ -12,7 +12,8 @@ export class FixedListPlugin extends Plugin {
         this.entries = entries
     }
 
-    createInstance(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
-        return template.config.theme.createList(template, template.config.editMode, this.entries, value)
+    createEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement {
+        const required = template.minCount !== undefined && template.minCount > 0
+        return template.config.theme.createListEditor(template.label, value || null, required, this.entries, template)
     }
 }

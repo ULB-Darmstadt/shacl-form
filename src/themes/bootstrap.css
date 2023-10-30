@@ -1,0 +1,4 @@
+:host .lang-chooser { top: 0; right: 43px; font-size: 0.7em; }
+:host form.mode-edit { --label-width: 0em; }
+:host .property-instance.valid::before { top: 6px; }
+:host .validation-error { top: 6px; }

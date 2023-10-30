@@ -6,22 +6,15 @@ import { Config } from './config'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { findLabel, removePrefixes } from './util'
 import { ShaclPropertyTemplate } from './property-template'
+import { Editor, InputListEntry } from './theme'
 
 
 export function createShaclOrConstraint(options: Term[], context: ShaclNode | ShaclProperty, config: Config): HTMLElement {
     const constraintElement = document.createElement('div')
     constraintElement.classList.add('shacl-or-constraint')
-    const label = document.createElement('label')
-    label.innerHTML = 'Please choose'
-    const select = document.createElement('select')
-    // select.classList.add('editor')
-    constraintElement.appendChild(label)
-    constraintElement.appendChild(select)
 
-    const option = document.createElement('option')
-    option.value = ''
-    option.innerHTML = '--- please choose ---'
-    select.options.add(option)
+    const optionElements: InputListEntry[] =  []
+    optionElements.push({ label: '--- please choose ---', value: '' })
 
     if (context instanceof ShaclNode) {
         const properties: ShaclProperty[] = []
@@ -29,38 +22,36 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         for (let i = 0; i < options.length; i++) {
             const property = new ShaclProperty(options[i] as NamedNode | BlankNode, config, context.nodeId)
             properties.push(property)
-            const option = document.createElement('option')
-            option.value = i.toString()
-            option.innerHTML = property.template.label
-            select.options.add(option)
+            optionElements.push({ label: property.template.label, value: i.toString() })
         }
+        const editor = config.theme.createListEditor('Please choose', null, false, optionElements)
+        const select = editor.querySelector('.editor') as Editor
         select.onchange = () => {
             if (select.value) {
                 constraintElement.replaceWith(properties[parseInt(select.value)])
             }
         }
+        constraintElement.appendChild(editor)
     } else {
-        label.innerHTML = context.template.label + '?'
         const values: Quad[][] = []
         for (let i = 0; i < options.length; i++) {
             const quads = config.shapesGraph.getQuads(options[i], null, null, SHAPES_GRAPH)
             if (quads.length) {
                 values.push(quads)
-
-                const option = document.createElement('option')
-                option.value = i.toString()
-                option.innerHTML = findLabel(quads, config.attributes.language) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes))
-                select.options.add(option)
+                optionElements.push({ label: findLabel(quads, config.attributes.language) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes)), value: i.toString() })
             }
         }
-        
+        const editor = config.theme.createListEditor(context.template.label + '?', null, false, optionElements, context.template)
+        const select = editor.querySelector('.editor') as Editor
         select.onchange = () => {
             if (select.value) {
-                // this.replaceWith(new ShaclPropertyInstance(context.template.clone().merge(values[parseInt(select.value)]), undefined, true))
+    
                 constraintElement.replaceWith(createPropertyInstance(context.template.clone().merge(values[parseInt(select.value)]), undefined, true))
             }
         }
+        constraintElement.appendChild(editor)
     }
+
     return constraintElement
 }
 
@@ -81,8 +72,10 @@ export function resolveShaclOrConstraint(template: ShaclPropertyTemplate, value:
             }
         }
     } else {
-        // value is a NamedNode or BlankNode, try to resolve sh:or by matching rdf:type of given value with sh:node or sh:class
+        // value is a NamedNode or BlankNode, try to resolve sh:or by matching rdf:type of given value with sh:node or sh:class in data graph or shapes graph
         let types = template.config.dataGraph.getObjects(value, RDF_PREDICATE_TYPE, null)
+        types.push(...template.config.shapesGraph.getObjects(value, RDF_PREDICATE_TYPE, SHAPES_GRAPH))
+
         if (types.length > 0) {
             for (const subject of template.shaclOr) {
                 const options = template.config.shapesGraph.getQuads(subject, null, null, SHAPES_GRAPH)
@@ -107,6 +100,6 @@ export function resolveShaclOrConstraint(template: ShaclPropertyTemplate, value:
             }
         }
     }
-    console.warn('couldn\'t resolve sh:or for value', value)
+    console.error('couldn\'t resolve sh:or for value', value)
     return template
 }

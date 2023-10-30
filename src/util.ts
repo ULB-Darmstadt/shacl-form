@@ -79,3 +79,13 @@ export function findInstancesOf(clazz: NamedNode, config: Config): InputListEntr
     }
     return entries
 }
+
+export function isURL(input: string): boolean {
+    let url: URL
+    try {
+        url = new URL(input)
+    } catch (_) {
+        return false
+    }
+    return url.protocol === 'http:' || url.protocol === 'https:'
+}

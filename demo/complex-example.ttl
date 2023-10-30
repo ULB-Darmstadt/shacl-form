@@ -66,7 +66,7 @@ example:Dataset
   sh:property   [ sh:datatype     rdf:langString ;
                   sh:languageIn   ( "en" "de" ) ;
                   sh:uniqueLang   true ;
-                  sh:description  "The name of the dataset" , "Der Name des Datensatzes"@de ;
+                  sh:description  "Name of the dataset" , "Der Name des Datensatzes"@de ;
                   sh:minCount     1 ;
                   sh:maxCount     2 ;
                   sh:name         "Name" ;
@@ -95,7 +95,7 @@ example:Dataset
                   )
                 ] ;
   sh:property   [ sh:datatype     xsd:date ;
-                  sh:description  "Date when this dataset has been issued" ;
+                  sh:description  "Date this dataset has been issued" ;
                   sh:maxCount     1 ;
                   sh:minCount     1 ;
                   sh:name         "Issued" ;
@@ -176,7 +176,7 @@ example:Attribution
   sh:property   [ sh:name      "Role" ;
                   sh:minCount  1 ;
                   sh:path      dcat:hadRole ;
-                  sh:class     prov:Role
+                  sh:class     prov:Role ;
                 ] ;
   sh:targetClass  prov:Attribution .
 

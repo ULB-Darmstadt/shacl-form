@@ -20,5 +20,4 @@ export function createShaclGroup(groupSubject: string, config: Config): HTMLElem
     header.innerText = name
     group.appendChild(header)
     return group
-
 }

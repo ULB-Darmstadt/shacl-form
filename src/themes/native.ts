@@ -1,11 +1,59 @@
 import { Term } from '@rdfjs/types'
 import { ShaclPropertyTemplate } from "../property-template"
 import { Editor, InputListEntry, Theme } from "../theme"
-import { PREFIX_XSD } from '../constants'
-import { Literal } from 'n3'
+import { PREFIX_XSD, SHAPES_GRAPH } from '../constants'
+import { Literal, NamedNode } from 'n3'
+import css from './native.css'
+import { findLabel, isURL } from '../util'
 
 export class NativeTheme extends Theme {
-    createDate(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement {
+    idCtr = 0
+
+    constructor(overiddenCss?: string) {
+        super(overiddenCss ? overiddenCss : css)
+    }
+
+    createDefaultTemplate(label: string, value: Term | null, required: boolean, editor: Editor, template?: ShaclPropertyTemplate): HTMLElement {
+        editor.id = `e${this.idCtr++}`
+        editor.classList.add('editor')
+        if (template?.datatype) {
+            // store datatype on editor, this is used for RDF serialization
+            editor['shacl-datatype'] = template.datatype
+        }
+        if (template?.minCount !== undefined) {
+            editor.dataset.minCount = String(template.minCount)
+        }
+        if (template?.class) {
+            editor.dataset.class = template.class.value
+        }
+        if (template?.nodeKind) {
+            editor.dataset.nodeKind = template.nodeKind.value
+        }
+        editor.value = value?.value || template?.defaultValue?.value || ''
+    
+        const labelElem = document.createElement('label')
+        labelElem.htmlFor = editor.id
+        labelElem.innerText = label
+        if (template?.description) {
+            labelElem.setAttribute('title', template.description.value)
+        }
+    
+        const placeholder = template?.description ? template.description.value : template?.pattern ? template.pattern : null
+        if (placeholder) {
+            editor.setAttribute('placeholder', placeholder)
+        }
+        if (required) {
+            editor.setAttribute('required', 'true')
+            labelElem.classList.add('required')
+        }
+    
+        const result = document.createElement('div')
+        result.appendChild(labelElem)
+        result.appendChild(editor)
+        return result
+    }
+
+    createDateEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = document.createElement('input')
         if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
             editor.type = 'datetime-local'
@@ -14,7 +62,7 @@ export class NativeTheme extends Theme {
             editor.type = 'date'
         }
         editor.classList.add('pr-0')
-        const result = this.createDefaultTemplate(template, editor)
+        const result = this.createDefaultTemplate(label, null, required, editor, template)
         if (value) {
             let isoDate = new Date(value.value).toISOString()
             if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
@@ -27,7 +75,7 @@ export class NativeTheme extends Theme {
         return result
     }
 
-    createText(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement {
+    createTextEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         let editor
         if (template.singleLine === false) {
             editor = document.createElement('textarea')
@@ -47,11 +95,11 @@ export class NativeTheme extends Theme {
         if (template.pattern) {
             editor.pattern = template.pattern
         }
-        return this.createDefaultTemplate(template, editor, value)
+        return this.createDefaultTemplate(label, value, required, editor, template)
     }
 
-    createLangString(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement {
-        const result = this.createText(template, editMode, value)
+    createLangStringEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
+        const result = this.createTextEditor(label, value, required, template)
         const editor = result.querySelector(':scope .editor') as Editor
         let langChooser
         if (template.languageIn?.length) {
@@ -84,12 +132,12 @@ export class NativeTheme extends Theme {
         return result
     }
 
-    createBoolean(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement {
+    createBooleanEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = document.createElement('input')
         editor.type = 'checkbox'
         editor.classList.add('ml-0')
     
-        const result = this.createDefaultTemplate(template, editor, value)
+        const result = this.createDefaultTemplate(label, null, required, editor, template)
     
         // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here
         editor.removeAttribute('required')
@@ -100,7 +148,7 @@ export class NativeTheme extends Theme {
         return result
     }
 
-    createNumber(template: ShaclPropertyTemplate, editMode: boolean, value?: Term): HTMLElement {
+    createNumberEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = document.createElement('input')
         editor.type = 'number'
         editor.classList.add('pr-0')
@@ -115,16 +163,13 @@ export class NativeTheme extends Theme {
         if (template.datatype?.value !== PREFIX_XSD + 'integer') {
             editor.step = '0.1'
         }
-        return this.createDefaultTemplate(template, editor, value)
+        return this.createDefaultTemplate(label, value, required, editor, template)
     }
 
-    createList(template: ShaclPropertyTemplate, editMode: boolean, listEntries: InputListEntry[], value?: Term): HTMLElement {
+    createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement {
         const editor = document.createElement('select')
-        const result = this.createDefaultTemplate(template, editor)
-        // add an empty element
-        const emptyOption = document.createElement('option')
-        emptyOption.value = ''
-        editor.options.add(emptyOption)
+        const result = this.createDefaultTemplate(label, null, required, editor, template)
+        let addEmptyOption = true
     
         for (const item of listEntries) {
             const option = document.createElement('option')
@@ -134,11 +179,30 @@ export class NativeTheme extends Theme {
             if (value && value.value === itemValue) {
                 option.selected = true
             }
-            editor.options.add(option)
+            if (itemValue === '') {
+                addEmptyOption = false
+            }
+            editor.appendChild(option)
+        }
+        if (addEmptyOption) {
+            // add an empty element
+            const emptyOption = document.createElement('option')
+            emptyOption.value = ''
+            if (!value) {
+                emptyOption.selected = true
+            }
+            editor.prepend(emptyOption)
         }
         if (value) {
             editor.value = value.value
         }
         return result
+    }
+
+    createButton(label: string, primary: boolean): HTMLElement {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.innerHTML = label
+        return button
     }
 }

@@ -125,10 +125,15 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
     } else {
         const plugin = template.config.plugins.find(template.path, template.datatype?.value)
         if (plugin) {
-            instance = plugin.createInstance(template, value)
+            if (template.config.editMode) {
+                instance = plugin.createEditor(template, value)
+            } else {
+                instance = plugin.createViewer(template, value!)
+            }
         } else {
-            instance = fieldFactory(template, value)
+            instance = fieldFactory(template, value || null)
         }
+        instance.classList.add('property-instance')
     }
     if (template.config.editMode) {
         appendRemoveButton(instance, template.label, forceRemovable)

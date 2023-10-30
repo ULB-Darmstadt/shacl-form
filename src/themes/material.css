@@ -1,0 +1,11 @@
+:host {
+    /* Generated from Material Theme Builder Figma plugin
+       or `material-color-utilities`. */
+    --md-sys-color-primary: #006A6A;
+    --md-sys-color-on-primary: #FFFFFF;
+    --md-sys-color-primary-container: #6FF7F6;
+    --md-sys-color-on-primary-container: #002020;
+    /* ... */
+}
+:host form.mode-edit { --label-width: 0em; }
+:host .property-instance { margin-top:24px; }

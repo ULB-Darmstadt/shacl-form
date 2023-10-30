@@ -1,25 +1,26 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
-import { ClassInstanceProvider, Plugin } from './plugin'
+import { ClassInstanceProvider, Plugin, PluginOptions } from './plugin'
 import { Quad, Store, NamedNode, DataFactory } from 'n3'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
-import { focusFirstInputElement } from './util'
+import { RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import SHACLValidator from 'rdf-validate-shacl'
-import './styles.css'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.dataAttributes() }
 
-    config: Config = new Config()
+    config: Config
     shape: ShaclNode | null = null
     form: HTMLFormElement
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 
-    constructor() {
+    constructor(theme: Theme) {
         super()
+
+        this.attachShadow({ mode: 'open' })
         this.form = document.createElement('form')
+        this.config = new Config(theme, this.form)
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
             if (this.config.editMode) {
@@ -31,7 +32,7 @@ export class ShaclForm extends HTMLElement {
     }
 
     connectedCallback() {
-        this.prepend(this.form)
+        this.shadowRoot!.prepend(this.form)
     }
 
     attributeChangedCallback() {
@@ -53,23 +54,36 @@ export class ShaclForm extends HTMLElement {
                 if (!rootShapeShaclSubject) {
                     throw new Error('shacl root node shape not found')
                 }
+                // remove all previous css classes to have a defined state
+                this.form.classList.forEach(value => { this.form.classList.remove(value) })
+                this.form.classList.toggle('mode-edit', this.config.editMode)
+                this.form.classList.toggle('mode-view', !this.config.editMode)
+                // let theme add classes to form element
+                this.config.theme.apply(this.form)
+                // adopt stylesheets from theme and plugins
+                const styles: CSSStyleSheet[] = [ this.config.theme.stylesheet ]
+                for (const plugin of this.config.plugins.list()) {
+                    if (plugin.stylesheet) {
+                        styles.push(plugin.stylesheet)
+                    }
+                }
+                this.shadowRoot!.adoptedStyleSheets = styles
+
                 this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valueSubject ? DataFactory.namedNode(this.config.attributes.valueSubject) : undefined)
                 this.form.appendChild(this.shape)
-                this.form.classList.toggle('edit-mode', this.config.editMode)
 
                 if (this.config.editMode) {
                     // add submit button
                     if (this.config.attributes.submitButton !== null) {
-                        const button = document.createElement('button')
-                        button.type = 'button'
-                        button.innerText = this.config.attributes.submitButton || 'Submit'
-                        button.addEventListener('click', () => {
+                        const button = this.config.theme.createButton(this.config.attributes.submitButton || 'Submit', true)
+                        button.addEventListener('click', (event) => {
+                            event.preventDefault()
                             this.validate().then(valid => {
                                 if (valid && this.form.checkValidity()) {
-                                    this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true, composed: true }))
+                                    this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
                                 } else {
                                     // focus first invalid element
-                                    const firstInvalidElement = this.querySelector(':scope .invalid > .editor') as HTMLElement | null
+                                    const firstInvalidElement = this.form.querySelector(':scope .invalid > .editor') as HTMLElement | null
                                     if (firstInvalidElement) {
                                         firstInvalidElement.focus()
                                     } else {
@@ -98,13 +112,8 @@ export class ShaclForm extends HTMLElement {
         return serialize(quads, format, this.config.prefixes)
     }
 
-    public registerPlugin(plugin: Plugin) {
+    public registerPlugin(plugin: Plugin, options?: PluginOptions) {
         this.config.plugins.register(plugin)
-        this.initialize()
-    }
-
-    public setClassInstanceProvider(provider: ClassInstanceProvider) {
-        this.config.classInstanceProvider = provider
         this.initialize()
     }
 
@@ -113,11 +122,16 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
+    public setClassInstanceProvider(provider: ClassInstanceProvider) {
+        this.config.classInstanceProvider = provider
+        this.initialize()
+    }
+
     public async validate(ignoreEmptyValues = false): Promise<boolean> {
-        for (const elem of this.querySelectorAll(':scope .validation-error')) {
+        for (const elem of this.form.querySelectorAll(':scope .validation-error')) {
             elem.remove()
         }
-        for (const elem of this.querySelectorAll(':scope .property-instance')) {
+        for (const elem of this.form.querySelectorAll(':scope .property-instance')) {
             elem.classList.remove('invalid')
             if (((elem.querySelector(':scope > .editor')) as Editor)?.value) {
                 elem.classList.add('valid')
@@ -145,10 +159,10 @@ export class ShaclForm extends HTMLElement {
             // result.path can be null, e.g. if a focus node does not contain a required property node
             if (result.path) {
                 // try to find most specific editor elements first
-                let invalidElements = this.querySelectorAll(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}'] > .editor`)
+                let invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}'] > .editor`)
                 if (invalidElements.length === 0) {
                     // if no editors found, select respective node. this will be the case for node shape violations.
-                    invalidElements = this.querySelectorAll(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
+                    invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
                 }
 
                 for (const invalidElement of invalidElements) {
@@ -168,7 +182,7 @@ export class ShaclForm extends HTMLElement {
                     }
                 }
             } else if (!ignoreEmptyValues) {
-                this.querySelector(`:scope [data-node-id='${result.focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
+                this.form.querySelector(`:scope [data-node-id='${result.focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
             }
         }
         return report.conforms
@@ -252,5 +266,3 @@ export class ShaclForm extends HTMLElement {
         return rootShapeShaclSubject
     }
 }
-
-window.customElements.define('shacl-form', ShaclForm)

@@ -1,1 +1,0 @@
-export { ShaclForm } from './form'

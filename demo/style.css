@@ -1,5 +1,6 @@
-:root {
+:root, shacl-form [data-bs-theme="light"] {
     --brand-color: #008877;
+    --bs-body-color-rgb: 255, 0, 0 !important;
 }
 
 body {

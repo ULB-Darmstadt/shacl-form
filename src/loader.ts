@@ -2,6 +2,7 @@ import { Store, Parser, Quad, Prefixes, NamedNode } from 'n3'
 import * as jsonld from 'jsonld'
 import { OWL_IMPORTS, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
+import { isURL } from './util'
 
 export class Loader {
     private abortController: AbortController | null = null
@@ -110,7 +111,7 @@ export class Loader {
     }
 
     toURL(id: string): string | null {
-        if (this.isURL(id)) {
+        if (isURL(id)) {
             return id
         }
         if (this.config.prefixes) {
@@ -121,22 +122,12 @@ export class Loader {
                     // need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
                     // @ts-ignore
                     id = id.replace(`${splitted[0]}:`, prefix)
-                    if (this.isURL(id)) {
+                    if (isURL(id)) {
                         return id
                     }
                 }
             }
         }
         return null
-    }
-    
-    isURL(input: string): boolean {
-        let url: URL
-        try {
-            url = new URL(input)
-        } catch (_) {
-            return false
-        }
-        return url.protocol === 'http:' || url.protocol === 'https:'
     }
 }
