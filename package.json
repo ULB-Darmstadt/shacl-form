@@ -1,6 +1,6 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "SHACL form generator",
     "main": "dist/index.js",
     "module": "dist/index.js",
