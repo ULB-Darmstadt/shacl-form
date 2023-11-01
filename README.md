@@ -60,9 +60,11 @@ data-values | RDF triples (e.g. a turtle string) to use as existing data graph t
 data-values-url | When `data-values` is not set, the data graph triples are loaded from this URL
 data-value-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID will be used. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form
 data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://www.w3schools.com/jsref/prop_nav_language.asp)
-data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs are fetched and the resulting RDF triples are added to the shapes graph. Set this attribute to any value in order to disable this feature
+data-loading | Text to display while the web component is initializing. Default: `"Loading..."`
+data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs are fetched and the resulting RDF triples are added to the shapes graph. Setting this attribute to any value disables this feature
 data-mode | When set to `"view"`, turns the web component into a viewer that displays the given data graph without editing functionality
-data-submit-button | Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events will only fire after successful validation
+data-collapse | When this attribute is present or set to any value, `sh:group`s and properties with `sh:node` and `sh:maxCount` > 1 are displayed in a collapsible accordion-like widget. This enhances readability in edit and view mode
+data-submit-button | [Only used in edit mode] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events will only fire after successful validation
 
 ### Element functions
 ```typescript
@@ -92,15 +94,15 @@ Sets a callback function that is called when a SHACL property has an `sh:class` 
 - `example:Instance a example:Class`
 - `example:Instance a owl:NamedIndividual; skos:broader example:Class`
 
-You can also use `rdfs:subClassOf` or `skos:broader` to build class hierarchies.
+Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
 
 ## Theming
 `<shacl-form>` comes in 3 different bundles, each providing a specific theme:
 
 Theme | Import statement
 --- | ---
-Native (opinionated raw HTML) | `import '@ulb-darmstadt/shacl-form/index.js'`
-[Bootstrap](./src/themes/bootstrap.ts) | `import '@ulb-darmstadt/shacl-form/bootstrap.js'`
-[Material Design](./src/themes/material.ts) | `import '@ulb-darmstadt/shacl-form/material.js'`
+Default (custom CSS) | `import '@ulb-darmstadt/shacl-form/index.js'`
+[Bootstrap](./src/themes/bootstrap.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/bootstrap.js'`
+[Material Design](./src/themes/material.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/material.js'`
 
-Custom themes can be employed by implementing class [Theme](./src/theme.ts) yourself, then activating it with function `setTheme()` on the `<shacl-form>` element.
+Custom themes can be employed by implementing class [Theme](./src/theme.ts), then activating it with function `setTheme()` on the `<shacl-form>` element.

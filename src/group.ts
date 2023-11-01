@@ -16,8 +16,20 @@ export function createShaclGroup(groupSubject: string, config: Config): HTMLElem
     if (order) {
         group.style.order = order
     }
-    const header = document.createElement('h2')
+    const header = document.createElement('h1')
     header.innerText = name
     group.appendChild(header)
+
+    if (config.attributes.collapse !== null) {
+        group.classList.add('collapsible')
+        if (config.attributes.collapse === 'open') {
+            group.classList.add('open')
+        }
+        header.classList.add('activator')
+        header.addEventListener('click', () => {
+            group.classList.toggle('open')
+        })
+
+    }
     return group
 }

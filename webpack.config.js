@@ -17,7 +17,6 @@ module.exports = [
         resolve: { extensions: ['.tsx', '.ts', '.js'] },
         devServer: {
             static: [
-                // { directory: path.join(__dirname, 'public'), serveIndex: true },
                 { directory: path.join(__dirname, 'demo'), serveIndex: true },
             ],
             compress: true,

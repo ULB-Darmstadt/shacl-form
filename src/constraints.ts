@@ -45,7 +45,6 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         const select = editor.querySelector('.editor') as Editor
         select.onchange = () => {
             if (select.value) {
-    
                 constraintElement.replaceWith(createPropertyInstance(context.template.clone().merge(values[parseInt(select.value)]), undefined, true))
             }
         }

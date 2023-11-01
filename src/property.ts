@@ -55,6 +55,21 @@ export class ShaclProperty extends HTMLElement {
             this.addEventListener('change', () => { this.updateControls() })
             this.updateControls()
         }
+
+        if (this.template.node && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
+            const collapsible = this
+            collapsible.classList.add('collapsible')
+            if (this.template.config.attributes.collapse === 'open') {
+                collapsible.classList.add('open')
+            }
+            const activator = document.createElement('h1')
+            activator.classList.add('activator')
+            activator.innerText = this.template.label
+            activator.addEventListener('click', () => {
+                collapsible.classList.toggle('open')
+            })
+            this.prepend(activator)
+        }
     }
 
     addPropertyInstance(value?: Term): HTMLElement {

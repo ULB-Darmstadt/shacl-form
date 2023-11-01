@@ -23,7 +23,7 @@ const dialogTemplate = `
 <button class="closeButton" type="button" onclick="this.parentElement.close()">&#x2715;</button>
 </dialog>`
 
-export class MapBoxPlugin extends Plugin {
+export class MapboxPlugin extends Plugin {
     map: mapboxgl.Map
     draw: MapboxDraw
     currentEditor: Editor | undefined

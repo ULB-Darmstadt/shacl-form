@@ -26,12 +26,8 @@ export class BootstrapTheme extends NativeTheme {
         const labelElem = result.querySelector('label')
         labelElem?.classList.add('form-label')
         if (labelElem?.title) {
-            const flexBreak = document.createElement('div')
-            flexBreak.classList.add('flex-break')
-            result.appendChild(flexBreak)
-            const description = document.createElement('div')
-            description.innerText = labelElem.title
-            result.appendChild(description)
+            result.dataset.description = labelElem.title
+            labelElem.removeAttribute('title')
         }
         
         result.prepend(editor)

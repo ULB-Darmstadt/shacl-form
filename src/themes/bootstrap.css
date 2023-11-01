@@ -1,4 +1,5 @@
-:host .lang-chooser { top: 0; right: 43px; font-size: 0.7em; }
 :host form.mode-edit { --label-width: 0em; }
-:host .property-instance.valid::before { top: 6px; }
-:host .validation-error { top: 6px; }
+:host .lang-chooser { right: 32px; font-size: 0.8em; }
+:host .property-instance::after { content: attr(data-description); position: absolute; bottom: -12px; left: 13px; font-size: 12px; opacity: 0.7;}
+.form-floating[data-description] { margin-bottom: 18px; }
+.remove-button { padding: 6px; }

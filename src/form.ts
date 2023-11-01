@@ -44,7 +44,7 @@ export class ShaclForm extends HTMLElement {
         clearTimeout(this.initDebounceTimeout)
         this.initDebounceTimeout = setTimeout(async () => {
             // remove all child elements from form and show loading indicator
-            this.form.replaceChildren(document.createTextNode('Loading...'))
+            this.form.replaceChildren(document.createTextNode(this.config.attributes.loading))
             try {
                 await this.config.loader.loadGraphs()
                 // remove loading indicator
@@ -102,7 +102,7 @@ export class ShaclForm extends HTMLElement {
                 errorDisplay.innerText = String(e)
                 this.form.replaceChildren(errorDisplay)
             }
-        }, 50)
+        }, 200)
     }
 
     public serialize(format = 'text/turtle'): string {
@@ -169,10 +169,16 @@ export class ShaclForm extends HTMLElement {
                     if (invalidElement.classList.contains('editor')) {
                         // this is a property shape violation
                         if (!ignoreEmptyValues || invalidElement['value']) {
-                            const parent = invalidElement.parentElement!
+                            let parent: HTMLElement | null = invalidElement.parentElement!
                             parent.classList.add('invalid')
                             parent.classList.remove('valid')
                             parent.appendChild(this.createValidationErrorDisplay(result))
+                            do {
+                                if (parent.classList.contains('collapsible')) {
+                                    parent.classList.add('open')
+                                }
+                                parent = parent.parentElement
+                            } while (parent)
                         }
                     } else if (!ignoreEmptyValues) {
                         // this is a node shape violation

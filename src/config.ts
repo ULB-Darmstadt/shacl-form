@@ -14,7 +14,9 @@ export class ElementAttributes {
     valueSubject: string | null = null
     mode: string | null = null
     language: string = navigator.language
+    loading: string = 'Loading\u2026'
     ignoreOwlImports: string | null = null
+    collapse: string | null = null
     submitButton: string | null = null
 }
 

@@ -1,8 +1,4 @@
-:root, shacl-form [data-bs-theme="light"] {
-    --brand-color: #008877;
-    --bs-body-color-rgb: 255, 0, 0 !important;
-}
-
+:root { --brand-color: #008877; }
 body {
     font-family: sans-serif;
     display: grid;
@@ -83,10 +79,11 @@ a:visited { color: inherit; }
 }
 
 .content h2 {
-    margin-top: 1em; color: #444;
+    margin: 1em 0 0.4em 0; font-size: 1.2em;
 }
 
-.content p { margin-top: 0; line-height: 1.3em; font-size: 20px; color: #444; }
+.content p { margin: 9px 0; line-height: 1.1em; font-size: 18px; color: #444; }
+.content pre { margin: 0; }
 
 .wrapper {
     display: grid;
@@ -115,6 +112,7 @@ textarea#shacl-shape-input { resize: vertical; }
 
 fieldset { border-color: var(--brand-color); }
 fieldset pre { font-size: 0.7em; }
+iframe { width: 100%; height: 80vh; border: 0; }
 .wrapper fieldset pre { max-height: 400px; }
 
 .footer {
