@@ -1,3 +1,4 @@
 :host .editor:not([type='checkbox']) { border: 1px solid #DDD; padding: 2px 4px; }
-:host .property-instance label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
+:host .property-instance label { display: inline-block; word-break: break-word; line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
 :host .property-instance:not(:first-child) > label { visibility: hidden; max-height: 0; }
+:host .mode-edit .property-instance label { width: var(--label-width); }

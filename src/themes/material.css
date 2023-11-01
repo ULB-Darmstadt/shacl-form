@@ -1,11 +1,6 @@
 :host {
-    /* Generated from Material Theme Builder Figma plugin
-       or `material-color-utilities`. */
-    --md-sys-color-primary: #006A6A;
-    --md-sys-color-on-primary: #FFFFFF;
-    --md-sys-color-primary-container: #6FF7F6;
-    --md-sys-color-on-primary-container: #002020;
-    /* ... */
+    --md-sys-color-primary: var(--brand-color);
 }
 :host form.mode-edit { --label-width: 0em; }
-:host .property-instance { margin-top:24px; }
+:host .property-instance { margin-bottom:14px; }
+label > md-checkbox  { margin-right: 8px; }

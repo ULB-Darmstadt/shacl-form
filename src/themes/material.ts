@@ -63,6 +63,7 @@ export class MaterialTheme extends Theme {
 
     createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement {
         const editor = new MdOutlinedSelect()
+        editor.label = label
         editor.supportingText = template?.description?.value || template?.label || ''
         const result = this.createDefaultTemplate(label, null, required, editor, template)
         let addEmptyOption = true
@@ -101,12 +102,17 @@ export class MaterialTheme extends Theme {
 
     createBooleanEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = new MdCheckbox()
+        editor.setAttribute('type', 'checkbox')
         const result = this.createDefaultTemplate(label, value, required, editor, template)
         // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here
         editor.removeAttribute('required')
         if (value instanceof Literal) {
             editor.checked = value.value === 'true'
         }
+        const labelElem = document.createElement('label')
+        labelElem.appendChild(editor)
+        labelElem.appendChild(document.createTextNode(label))
+        result.appendChild(labelElem)
         return result
     }
 
@@ -115,7 +121,37 @@ export class MaterialTheme extends Theme {
     }
 
     createLangStringEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
-        return this.createTextEditor(label, value, required, template)
+        const result = this.createTextEditor(label, value, required, template)
+        const editor = result.querySelector(':scope .editor') as Editor
+        let langChooser
+        if (template.languageIn?.length) {
+            langChooser = document.createElement('select')
+            for (const lang of template.languageIn) {
+                const option = document.createElement('option')
+                option.innerText = lang.value
+                langChooser.appendChild(option)
+            }
+        } else {
+            langChooser = document.createElement('input')
+            langChooser.maxLength = 5 // e.g. en-US
+        }
+        langChooser.title = 'Language of the text'
+        langChooser.placeholder = 'lang?'
+        langChooser.classList.add('lang-chooser')
+        // if lang chooser changes, fire a change event on the text input instead. this is for shacl validation handling.
+        langChooser.addEventListener('change', (ev) => {
+            ev.stopPropagation();
+            if (editor) {
+                editor.dataset.lang = langChooser.value
+                editor.dispatchEvent(new Event('change', { bubbles: true }))
+            }
+        })
+        if (value instanceof Literal) {
+            langChooser.value = value.language
+        }
+        editor.dataset.lang = langChooser.value
+        editor.after(langChooser)
+        return result
     }
 
     createButton(label: string, primary: boolean): HTMLElement {

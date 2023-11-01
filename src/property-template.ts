@@ -22,6 +22,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}pattern`]:      (template, term) => { template.pattern = term.value },
     [`${PREFIX_SHACL}order`]:        (template, term) => { template.order = term.value },
     [`${PREFIX_DASH}singleLine`]:    (template, term) => { template.singleLine = term.value === 'true' },
+    [`${PREFIX_SHACL}and`]:          (template, term) => { template.shaclAnd = term.value },
     [`${PREFIX_SHACL}in`]:           (template, term) => { template.shaclIn = term.value },
     // sh:datatype might be undefined, but sh:languageIn defined. this is undesired. the spec says, that strings without a lang tag are not valid if sh:languageIn is set. but the shacl validator accepts these as valid. to prevent this, we just set the datatype here to 'langString'.
     [`${PREFIX_SHACL}languageIn`]:   (template, term) => { template.languageIn = template.config.lists[term.value]; template.datatype = DataFactory.namedNode(PREFIX_RDF + 'langString') },
@@ -66,6 +67,7 @@ export class ShaclPropertyTemplate  {
     pattern: string | undefined
     order: string | undefined
     nodeKind: NamedNode | undefined
+    shaclAnd: string | undefined
     shaclIn: string | undefined
     shaclOr: Term[] | undefined
     languageIn: Term[] | undefined
@@ -73,6 +75,7 @@ export class ShaclPropertyTemplate  {
     hasValue: Term | undefined
 
     config: Config
+    extendedShapes: NamedNode[] | undefined
 
     constructor(quads: Quad[], nodeId: NamedNode | BlankNode, config: Config) {
         this.config = config
@@ -86,9 +89,24 @@ export class ShaclPropertyTemplate  {
         }
         // provide best fitting label for UI
         this.label = this.name?.value || findLabel(quads, this.config.attributes.language)
-        if (!this.label && !this.node) {
+        if (!this.label && !this.node && !this.shaclAnd) {
             // force label value only for non-node properties to avoid nested <h1> in UI
             this.label = this.path ? removePrefixes(this.path, this.config.prefixes) : 'unknown'
+        }
+        // resolve extended shapes
+        if (this.node || this.shaclAnd) {
+            this.extendedShapes = []
+            if (this.node) {
+                this.extendedShapes.push(this.node)
+            }
+            if (this.shaclAnd) {
+                const list = this.config.lists[this.shaclAnd]
+                if (list?.length) {
+                    for (const node of list) {
+                        this.extendedShapes.push(node as NamedNode)
+                    }
+                }
+            }
         }
         return this
     }

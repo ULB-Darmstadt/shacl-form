@@ -58,12 +58,12 @@ data-shapes-url | When `data-shapes` is not set, the SHACL shapes are loaded fro
 data-shape-subject | Optional subject (id) of the SHACL node shape to use as root for the form. If not set, the first found node shape will be used
 data-values | RDF triples (e.g. a turtle string) to use as existing data graph to fill the form
 data-values-url | When `data-values` is not set, the data graph triples are loaded from this URL
-data-value-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID will be used. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form
+data-value-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form
 data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://www.w3schools.com/jsref/prop_nav_language.asp)
 data-loading | Text to display while the web component is initializing. Default: `"Loading..."`
 data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs are fetched and the resulting RDF triples are added to the shapes graph. Setting this attribute to any value disables this feature
 data-mode | When set to `"view"`, turns the web component into a viewer that displays the given data graph without editing functionality
-data-collapse | When this attribute is present or set to any value, `sh:group`s and properties with `sh:node` and `sh:maxCount` > 1 are displayed in a collapsible accordion-like widget. This enhances readability in edit and view mode
+data-collapse | When this attribute is present, `sh:group`s and properties with `sh:node` and `sh:maxCount` > 1 are displayed in a collapsible accordion-like widget to reduce visual complexity of the form. The collapsible element is initially shown closed, except when the attribute value is `"open"`
 data-submit-button | [Only used in edit mode] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events will only fire after successful validation
 
 ### Element functions
@@ -105,4 +105,4 @@ Default (custom CSS) | `import '@ulb-darmstadt/shacl-form/index.js'`
 [Bootstrap](./src/themes/bootstrap.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/bootstrap.js'`
 [Material Design](./src/themes/material.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/material.js'`
 
-Custom themes can be employed by implementing class [Theme](./src/theme.ts), then activating it with function `setTheme()` on the `<shacl-form>` element.
+Custom themes can be employed by extending class [Theme](./src/theme.ts), then calling function `setTheme()` on the `<shacl-form>` element.

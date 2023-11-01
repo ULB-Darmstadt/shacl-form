@@ -27,7 +27,7 @@ export abstract class Theme {
     createViewer(label: string, value: Term, template: ShaclPropertyTemplate): HTMLElement {
         const viewer = document.createElement('div')
         const labelElem = document.createElement('label')
-        labelElem.innerHTML = label
+        labelElem.innerHTML = label + ':'
         if (template.description) {
             labelElem.setAttribute('title', template.description.value)
         }
@@ -57,6 +57,7 @@ export abstract class Theme {
         } else {
             valueElem = document.createElement('div')
         }
+        valueElem.classList.add('d-flex')
         valueElem.innerHTML = name
         viewer.appendChild(valueElem)
         return viewer
@@ -86,7 +87,7 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
             }
             return DataFactory.literal(value, datatype)
         }
-    } else if (editor['type'] === 'checkbox') {
+    } else if (editor['type'] === 'checkbox' || editor.getAttribute('type')) {
         // emit boolean 'false' only when required
         if (editor['checked'] || parseInt(editor.dataset.minCount || '0') > 0) {
             return DataFactory.literal(editor['checked'] ? 'true' : 'false', datatype)

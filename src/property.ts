@@ -56,7 +56,7 @@ export class ShaclProperty extends HTMLElement {
             this.updateControls()
         }
 
-        if (this.template.node && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
+        if (this.template.extendedShapes?.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
             const collapsible = this
             collapsible.classList.add('collapsible')
             if (this.template.config.attributes.collapse === 'open') {
@@ -94,7 +94,7 @@ export class ShaclProperty extends HTMLElement {
 
     updateControls() {
         let instanceCount = this.querySelectorAll(":scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node").length
-        if (instanceCount === 0 && (!this.template.node || (this.template.minCount !== undefined && this.template.minCount > 0))) {
+        if (instanceCount === 0 && (!this.template.extendedShapes?.length || (this.template.minCount !== undefined && this.template.minCount > 0))) {
             this.addPropertyInstance()
             instanceCount = this.querySelectorAll(":scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node").length
         }
@@ -102,7 +102,7 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.minCount !== undefined) {
             mayRemove = instanceCount > this.template.minCount
         } else {
-            mayRemove = this.template.node !== undefined || instanceCount > 1
+            mayRemove = (this.template.extendedShapes && this.template.extendedShapes.length > 0) || instanceCount > 1
         }
 
         const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
@@ -133,10 +133,12 @@ export class ShaclProperty extends HTMLElement {
 
 export function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false): HTMLElement {
     let instance: HTMLElement
-    if (template.node) {
+    if (template.extendedShapes?.length) {
         instance = document.createElement('div')
         instance.classList.add('property-instance')
-        instance.appendChild(new ShaclNode(template.node, template.config, value as NamedNode | BlankNode | undefined, template.label))
+        for (const node of template.extendedShapes) {
+            instance.appendChild(new ShaclNode(node, template.config, value as NamedNode | BlankNode | undefined, template.label))
+        }
     } else {
         const plugin = template.config.plugins.find(template.path, template.datatype?.value)
         if (plugin) {

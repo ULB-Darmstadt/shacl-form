@@ -30,7 +30,9 @@ shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.per
 :host .ml-0  { margin-left: 0 !important; }
 :host .pr-0  { padding-right: 0 !important; }
 :host .mode-view .property-instance:not(:first-child) > label { visibility: hidden; }
+:host .mode-view .property-instance label { width: var(--label-width); }
 
+.d-flex { display: flex; }
 .lang { opacity: 0.65; font-size: 0.6em; }
 a, a:visited { color: inherit; }
 
