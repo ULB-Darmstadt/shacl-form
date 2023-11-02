@@ -17,11 +17,13 @@ export class BootstrapTheme extends DefaultTheme {
 
     createDefaultTemplate(label: string, value: Term | null, required: boolean, editor: Editor, template?: ShaclPropertyTemplate | undefined): HTMLElement {
         const result = super.createDefaultTemplate(label, value, required, editor, template)
-        result.classList.add('form-floating')
-        if (editor.tagName === 'SELECT') {
-            editor.classList.add('form-select')
-        } else {
-            editor.classList.add('form-control')
+        if (editor.type !== 'checkbox') {
+            result.classList.add('form-floating')
+            if (editor.tagName === 'SELECT') {
+                editor.classList.add('form-select')
+            } else {
+                editor.classList.add('form-control')
+            }
         }
         const labelElem = result.querySelector('label')
         labelElem?.classList.add('form-label')

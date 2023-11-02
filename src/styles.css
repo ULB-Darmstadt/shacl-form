@@ -1,6 +1,6 @@
-:host { padding-left: 1em; box-sizing: border-box; display:block; --label-width: 8em; }
-:host *, :host ::after, :host ::before { box-sizing: inherit; }
-shacl-node, :host .shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
+form { padding-left: 1em; box-sizing: border-box; display:block; --label-width: 8em; }
+form *, form ::after, form ::before { box-sizing: inherit; }
+shacl-node, .shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
 shacl-node .control-button { cursor: pointer; }
 shacl-node .control-button:not(:hover) { border-color: transparent; background: 0; }
 shacl-node .remove-button { margin-left: 4px; }
@@ -12,25 +12,25 @@ shacl-property { display: flex; flex-direction: column; align-items: end; positi
 shacl-property:not(.may-add) > .add-button { display: none; }
 shacl-property:not(.may-remove) > .property-instance > .remove-button:not(.persistent) { visibility: hidden; }
 shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.persistent) { visibility: hidden; }
-:host .shacl-group { margin-bottom: 1em; padding-bottom: 1em; }
-:host .property-instance, :host .shacl-or-constraint { display: flex; align-items: flex-start; padding: 4px 0; width: 100%; position: relative; }
-:host .shacl-or-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
-:host .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
-:host .mode-edit .property-instance label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
-:host .property-instance.valid::before { position: absolute; left: calc(var(--label-width) - 1em); top: 6px; color: green; content: '\2713'; }
-:host .editor:not([type='checkbox']), :host .shacl-or-constraint select { flex-grow: 1; }
-:host .shacl-or-constraint select { border: 1px solid #DDD; padding: 2px 4px; }
-:host textarea.editor { resize: vertical; }
-:host .lang-chooser { position: absolute; top: 5px; right: 24px; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
-:host .lang-chooser+.editor { padding-right: 55px; }
-:host .validation-error { position: absolute; left: calc(var(--label-width) - 1em); top: 6px; color: red; cursor: help; }
-:host .validation-error::before { content: '\26a0' }
-:host .validation-error.node { left: -1em; }
-:host .invalid > .editor { border-color: red !important; }
-:host .ml-0  { margin-left: 0 !important; }
-:host .pr-0  { padding-right: 0 !important; }
-:host .mode-view .property-instance:not(:first-child) > label { visibility: hidden; }
-:host .mode-view .property-instance label { width: var(--label-width); }
+.shacl-group { margin-bottom: 1em; padding-bottom: 1em; }
+.property-instance, .shacl-or-constraint { display: flex; align-items: flex-start; padding: 4px 0; width: 100%; position: relative; }
+.shacl-or-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
+.property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
+.mode-edit .property-instance label.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; top: 0.15rem; }
+.property-instance.valid::before { position: absolute; left: calc(var(--label-width) - 1em); top: 6px; color: green; content: '\2713'; }
+.editor:not([type='checkbox']), .shacl-or-constraint select { flex-grow: 1; }
+.shacl-or-constraint select { border: 1px solid #DDD; padding: 2px 4px; }
+textarea.editor { resize: vertical; }
+.lang-chooser { position: absolute; top: 5px; right: 24px; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
+.lang-chooser+.editor { padding-right: 55px; }
+.validation-error { position: absolute; left: calc(var(--label-width) - 1em); top: 6px; color: red; cursor: help; }
+.validation-error::before { content: '\26a0' }
+.validation-error.node { left: -1em; }
+.invalid > .editor { border-color: red !important; }
+.ml-0  { margin-left: 0 !important; }
+.pr-0  { padding-right: 0 !important; }
+.mode-view .property-instance:not(:first-child) > label { visibility: hidden; }
+.mode-view .property-instance label { width: var(--label-width); }
 
 .d-flex { display: flex; }
 .lang { opacity: 0.65; font-size: 0.6em; }

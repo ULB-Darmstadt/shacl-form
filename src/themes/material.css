@@ -1,6 +1,6 @@
-:host {
+form {
     --md-sys-color-primary: var(--brand-color);
 }
-:host form.mode-edit { --label-width: 0em; }
-:host .property-instance { margin-bottom:14px; }
+form.mode-edit { --label-width: 0em; }
+.property-instance { margin-bottom:14px; }
 label > md-checkbox  { margin-right: 8px; }
