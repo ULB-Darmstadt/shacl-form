@@ -1,5 +1,5 @@
 import { Store, Parser, Quad, Prefixes, NamedNode } from 'n3'
-import * as jsonld from 'jsonld'
+import { toRDF } from 'jsonld'
 import { OWL_IMPORTS, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { isURL } from './util'
@@ -84,7 +84,8 @@ export class Loader {
         if (input) {
             try {
                 // check if input is JSON
-                input = jsonld.toRDF(JSON.parse(input), {format: 'application/n-quads'}) as string
+                // @ts-ignore, because result of toRDF is a string and not an object
+                input = await toRDF(JSON.parse(input), {format: 'application/n-quads'}) as string
             } catch(_) {
                 // NOP, it wasn't JSON
             }

@@ -157,18 +157,20 @@ export class ShaclForm extends HTMLElement {
 
         for (const result of report.results) {
             // result.path can be null, e.g. if a focus node does not contain a required property node
+            const focusNode = result.focusNode as NamedNode
             if (result.path) {
+                const path = result.path as NamedNode
                 // try to find most specific editor elements first
-                let invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}'] > .editor`)
+                let invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}'] > .editor`)
                 if (invalidElements.length === 0) {
                     // if no editors found, select respective node. this will be the case for node shape violations.
-                    invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${result.focusNode.id}'] [data-path='${result.path.id}']`)
+                    invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}']`)
                 }
 
                 for (const invalidElement of invalidElements) {
                     if (invalidElement.classList.contains('editor')) {
                         // this is a property shape violation
-                        if (!ignoreEmptyValues || invalidElement['value']) {
+                        if (!ignoreEmptyValues || (invalidElement as Editor).value) {
                             let parent: HTMLElement | null = invalidElement.parentElement!
                             parent.classList.add('invalid')
                             parent.classList.remove('valid')
@@ -188,7 +190,7 @@ export class ShaclForm extends HTMLElement {
                     }
                 }
             } else if (!ignoreEmptyValues) {
-                this.form.querySelector(`:scope [data-node-id='${result.focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
+                this.form.querySelector(`:scope [data-node-id='${focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
             }
         }
         return report.conforms

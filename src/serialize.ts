@@ -1,5 +1,6 @@
 import { Writer, Quad, Literal, Prefixes } from 'n3'
 import { PREFIX_XSD, RDF_PREDICATE_TYPE } from './constants'
+import { NodeObject } from 'jsonld'
 
 export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): string {
     if (format === 'application/ld+json') {
@@ -19,9 +20,9 @@ export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): s
 }
 
 function serializeJsonld(quads: Quad[]): string {
-    const triples: {}[] = []
+    const triples: NodeObject[] = []
     for (const quad of quads) {
-        const triple = { '@id': quad.subject.id }
+        const triple: NodeObject = { '@id': quad.subject.id }
   
         if (quad.predicate === RDF_PREDICATE_TYPE) {
           triple['@type'] = quad.object.id

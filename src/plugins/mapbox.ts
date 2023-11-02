@@ -2,10 +2,11 @@ import { Term } from '@rdfjs/types'
 import { Plugin, PluginOptions } from '../plugin'
 import { ShaclPropertyTemplate } from '../property-template'
 import { Editor, fieldFactory } from '../theme'
-import mapboxgl from 'mapbox-gl'
+import { Map, NavigationControl, FullscreenControl, LngLatBounds, LngLatLike } from 'mapbox-gl'
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import mapboxGlCss from 'mapbox-gl/dist/mapbox-gl.css'
 import mapboxGlDrawCss from '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
+import { Point, Polygon } from 'geojson'
 
 const css = `
 #shaclMapDialog .closeButton { position: absolute; right: 0; top: 0; z-index: 1; padding: 6px 8px; cursor: pointer; border: 0; background-color: #FFFA; font-size: 24px; }
@@ -23,29 +24,54 @@ const dialogTemplate = `
 <button class="closeButton" type="button" onclick="this.parentElement.close()">&#x2715;</button>
 </dialog>`
 
+type Geometry = Point | Polygon
+
 export class MapboxPlugin extends Plugin {
-    map: mapboxgl.Map
-    draw: MapboxDraw
+    map: Map | undefined
+    draw: MapboxDraw | undefined
     currentEditor: Editor | undefined
+    apiKey: string
 
     constructor(options: PluginOptions, apiKey: string) {
         super(options, mapboxGlCss + '\n' + mapboxGlDrawCss + '\n' + css)
-        mapboxgl.accessToken = apiKey
+        this.apiKey = apiKey
     }
 
     initEditMode(form: HTMLElement): HTMLDialogElement {
         form.insertAdjacentHTML('beforeend', dialogTemplate)
+        const container = form.querySelector('#shaclMapDialogContainer') as HTMLElement
+        this.map = new Map({
+            container: container,
+            style: 'mapbox://styles/mapbox/satellite-streets-v11',
+            zoom: 5,
+            center: { lng: 8.657238961696038, lat: 49.87627570549512 },
+            attributionControl: false,
+            accessToken: this.apiKey
+        })
+
+        this.draw = new MapboxDraw({
+            displayControlsDefault: false,
+            controls: { point: true, polygon: true }
+        })
+        this.map.addControl(new NavigationControl(), 'top-left')
+        this.map.addControl(this.draw, 'top-left')
+
+        this.map.on('idle', () => {
+            // this fixes wrong size of canvas
+            this.map!.resize()
+        })
+        this.map.on('draw.create', () => this.deleteAllButLastDrawing())
+
         const dialog = form.querySelector('#shaclMapDialog') as HTMLDialogElement
-        const container = form.querySelector('#shaclMapDialogContainer')
         dialog.addEventListener('close', () => {
             const scrollY = document.body.style.top
             document.body.style.position = ''
             document.body.style.top = ''
             window.scrollTo(0, parseInt(scrollY || '0') * -1)
             // set wkt in editor
-            const data = this.draw.getAll()
-            if (data.features.length && this.currentEditor) {
-                const geometry = data.features[0].geometry
+            const data = this.draw!.getAll()
+            if (data && data.features.length && this.currentEditor) {
+                const geometry = data.features[0].geometry as Geometry
                 if (geometry.coordinates?.length) {
                     const wkt = this.geometryToWkt(geometry)
                     this.currentEditor.value = wkt
@@ -53,26 +79,6 @@ export class MapboxPlugin extends Plugin {
                 }
             }
         })
-        this.map = new mapboxgl.Map({
-            container: container,
-            style: 'mapbox://styles/mapbox/satellite-streets-v11',
-            zoom: 5,
-            center: { lng: 8.657238961696038, lat: 49.87627570549512 },
-            attributionControl: false
-        })
-
-        this.draw = new MapboxDraw({
-            displayControlsDefault: false,
-            controls: { point: true, polygon: true }
-        })
-        this.map.addControl(new mapboxgl.NavigationControl(), 'top-left')
-        this.map.addControl(this.draw, 'top-left')
-
-        this.map.on('idle', () => {
-            // this fixes wrong size of canvas
-            this.map.resize()
-        })
-        this.map.on('draw.create', () => this.deleteAllButLastDrawing())
         return dialog
     }
 
@@ -86,15 +92,15 @@ export class MapboxPlugin extends Plugin {
         button.classList.add('open-map-button')
         button.onclick = () => {
             this.currentEditor = instance.querySelector('.editor') as Editor
-            this.draw.deleteAll()
+            this.draw?.deleteAll()
 
             const wkt = this.currentEditor.value || ''
             const geometry = this.wktToGeometry(wkt)
             if (geometry && geometry.coordinates?.length) {
-                this.draw.add(geometry)
-                this.fitToGeometry(this.map, geometry)
+                this.draw?.add(geometry)
+                this.fitToGeometry(this.map!, geometry)
             } else {
-                this.map.setZoom(5)
+                this.map?.setZoom(5)
             }
             document.body.style.top = `-${window.scrollY}px`
             document.body.style.position = 'fixed'
@@ -112,14 +118,15 @@ export class MapboxPlugin extends Plugin {
             // wait for container to be available in DOM
             setTimeout(() => {
                 const draw = new MapboxDraw({ displayControlsDefault: false })
-                const map = new mapboxgl.Map({
+                const map = new Map({
                     container: container,
                     style: 'mapbox://styles/mapbox/satellite-streets-v11',
                     zoom: 5,
-                    attributionControl: false
+                    attributionControl: false,
+                    accessToken: this.apiKey
                 })
                 map.addControl(draw)
-                map.addControl(new mapboxgl.FullscreenControl())
+                map.addControl(new FullscreenControl())
                 draw.add(geometry)
                 this.fitToGeometry(map, geometry)
             })
@@ -127,28 +134,28 @@ export class MapboxPlugin extends Plugin {
         return container
     }
 
-    fitToGeometry(map, geometry) {
+    fitToGeometry(map: Map, geometry: Geometry) {
         if (typeof geometry.coordinates[0] === 'number') {
             // e.g. Point
-            map.setCenter(geometry.coordinates as mapboxgl.LngLatLike)
+            map.setCenter(geometry.coordinates as LngLatLike)
             map.setZoom(15)
         } else {
             // e.g. Polygon
             const bounds = geometry.coordinates[0].reduce((bounds, coord) => {
                 return bounds.extend(coord as mapboxgl.LngLatLike)
-            }, new mapboxgl.LngLatBounds(geometry.coordinates[0][0] as mapboxgl.LngLatLike, geometry.coordinates[0][0] as mapboxgl.LngLatLike))
+            }, new LngLatBounds(geometry.coordinates[0][0] as mapboxgl.LngLatLike, geometry.coordinates[0][0] as mapboxgl.LngLatLike))
             map.fitBounds(bounds, { padding: 20, animate: false })
         }
     }
 
     deleteAllButLastDrawing() {
-        const data = this.draw.getAll()
+        const data = this.draw!.getAll()
         for (let i = 0; i < data.features.length - 1; i++) {
-            this.draw.delete(data.features[i].id as string)
+            this.draw!.delete(data.features[i].id as string)
         }
     }
 
-    wktToGeometry(wkt: string): any {
+    wktToGeometry(wkt: string): Geometry | undefined {
         const pointCoords = wkt.match(/^POINT\((.*)\)$/)
         if (pointCoords?.length == 2) {
             const xy = pointCoords[1].split(' ')
@@ -172,10 +179,9 @@ export class MapboxPlugin extends Plugin {
                 return { type: 'Polygon', coordinates: coords }
             }
         }
-        return undefined
     }
 
-    geometryToWkt(geometry: any): string {
+    geometryToWkt(geometry: Geometry): string {
         if (geometry.type === 'Point') {
             return `POINT(${geometry.coordinates.join(' ')})`
         } else if (geometry.type === 'Polygon') {

@@ -13,7 +13,7 @@ An HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data t
 <html>
   <head>
     <!-- load web component -->
-    <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/index.js" type="module"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/form-default.js" type="module"></script>
   </head>
   <body>
     <!--
@@ -63,7 +63,7 @@ data-language | Language to use if shapes contain langStrings, e.g. in `sh:name`
 data-loading | Text to display while the web component is initializing. Default: `"Loading..."`
 data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs are fetched and the resulting RDF triples are added to the shapes graph. Setting this attribute to any value disables this feature
 data-mode | When set to `"view"`, turns the web component into a viewer that displays the given data graph without editing functionality
-data-collapse | When this attribute is present, `sh:group`s and properties with `sh:node` and `sh:maxCount` > 1 are displayed in a collapsible accordion-like widget to reduce visual complexity of the form. The collapsible element is initially shown closed, except when the attribute value is `"open"`
+data-collapse | When this attribute is present, `sh:group`s and properties with `sh:node` and `sh:maxCount` > 1 are displayed in a collapsible accordion-like widget to reduce visual complexity of the form. The collapsible element is initially shown closed, except when this attribute's value is `"open"`
 data-submit-button | [Only used in edit mode] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events will only fire after successful validation
 
 ### Element functions
@@ -101,8 +101,8 @@ Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
 
 Theme | Import statement
 --- | ---
-Default (custom CSS) | `import '@ulb-darmstadt/shacl-form/index.js'`
-[Bootstrap](./src/themes/bootstrap.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/bootstrap.js'`
-[Material Design](./src/themes/material.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/material.js'`
+Default (slightly customized default browser styles) | `import '@ulb-darmstadt/shacl-form/form-default.js'`
+[Bootstrap](./src/themes/bootstrap.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-bootstrap.js'`
+[Material Design](./src/themes/material.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-material.js'`
 
 Custom themes can be employed by extending class [Theme](./src/theme.ts), then calling function `setTheme()` on the `<shacl-form>` element.

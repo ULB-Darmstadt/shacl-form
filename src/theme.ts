@@ -5,7 +5,7 @@ import { createInputListEntries, findInstancesOf, findLabel, isURL } from './uti
 import { ShaclPropertyTemplate } from './property-template'
 import css from './styles.css'
 
-export type Editor = HTMLElement & { value: string }
+export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, checked?: boolean }
 export type InputListEntry = { value: Term | string, label?: string }
 
 export abstract class Theme {
@@ -73,24 +73,24 @@ export abstract class Theme {
 }
 
 export function toRDF(editor: Editor): Literal | NamedNode | undefined {
-    let datatype = editor['shacl-datatype']
+    let languageOrDatatype: NamedNode<string> | string | undefined = editor['shaclDatatype']
     let value: number | string = editor.value
     if (value) {
         if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
             return DataFactory.namedNode(value)
         } else {
             if (editor.dataset.lang) {
-                datatype = editor.dataset.lang
+                languageOrDatatype = editor.dataset.lang
             }
             else if (editor['type'] === 'number') {
                 value = parseFloat(value)
             }
-            return DataFactory.literal(value, datatype)
+            return DataFactory.literal(value, languageOrDatatype)
         }
-    } else if (editor['type'] === 'checkbox' || editor.getAttribute('type')) {
+    } else if (editor['type'] === 'checkbox' || editor.getAttribute('type') === 'checkbox') {
         // emit boolean 'false' only when required
         if (editor['checked'] || parseInt(editor.dataset.minCount || '0') > 0) {
-            return DataFactory.literal(editor['checked'] ? 'true' : 'false', datatype)
+            return DataFactory.literal(editor['checked'] ? 'true' : 'false', languageOrDatatype)
         }
     }
 }

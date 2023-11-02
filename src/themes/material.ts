@@ -20,7 +20,7 @@ export class MaterialTheme extends Theme {
         editor.classList.add('editor')
         if (template?.datatype) {
             // store datatype on editor, this is used for RDF serialization
-            editor['shacl-datatype'] = template.datatype
+            editor['shaclDatatype'] = template.datatype
         }
         if (template?.minCount !== undefined) {
             editor.dataset.minCount = String(template.minCount)
@@ -123,7 +123,7 @@ export class MaterialTheme extends Theme {
     createLangStringEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const result = this.createTextEditor(label, value, required, template)
         const editor = result.querySelector(':scope .editor') as Editor
-        let langChooser
+        let langChooser: HTMLSelectElement | HTMLInputElement
         if (template.languageIn?.length) {
             langChooser = document.createElement('select')
             for (const lang of template.languageIn) {
@@ -134,9 +134,9 @@ export class MaterialTheme extends Theme {
         } else {
             langChooser = document.createElement('input')
             langChooser.maxLength = 5 // e.g. en-US
+            langChooser.placeholder = 'lang?'
         }
         langChooser.title = 'Language of the text'
-        langChooser.placeholder = 'lang?'
         langChooser.classList.add('lang-chooser')
         // if lang chooser changes, fire a change event on the text input instead. this is for shacl validation handling.
         langChooser.addEventListener('change', (ev) => {

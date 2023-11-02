@@ -1,12 +1,11 @@
 import { Term } from '@rdfjs/types'
 import { ShaclPropertyTemplate } from "../property-template"
 import { Editor, InputListEntry, Theme } from "../theme"
-import { PREFIX_XSD, SHAPES_GRAPH } from '../constants'
-import { Literal, NamedNode } from 'n3'
-import css from './native.css'
-import { findLabel, isURL } from '../util'
+import { PREFIX_XSD } from '../constants'
+import { Literal } from 'n3'
+import css from './default.css'
 
-export class NativeTheme extends Theme {
+export class DefaultTheme extends Theme {
     idCtr = 0
 
     constructor(overiddenCss?: string) {
@@ -18,7 +17,7 @@ export class NativeTheme extends Theme {
         editor.classList.add('editor')
         if (template?.datatype) {
             // store datatype on editor, this is used for RDF serialization
-            editor['shacl-datatype'] = template.datatype
+            editor['shaclDatatype'] = template.datatype
         }
         if (template?.minCount !== undefined) {
             editor.dataset.minCount = String(template.minCount)
@@ -54,7 +53,7 @@ export class NativeTheme extends Theme {
     }
 
     createDateEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
-        const editor = document.createElement('input')
+        const editor: Editor = document.createElement('input')
         if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
             editor.type = 'datetime-local'
         }
@@ -64,13 +63,17 @@ export class NativeTheme extends Theme {
         editor.classList.add('pr-0')
         const result = this.createDefaultTemplate(label, null, required, editor, template)
         if (value) {
-            let isoDate = new Date(value.value).toISOString()
-            if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
-                isoDate = isoDate.slice(0, 19)
-            } else {
-                isoDate = isoDate.slice(0, 10)
+            try {
+                let isoDate = new Date(value.value).toISOString()
+                if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
+                    isoDate = isoDate.slice(0, 19)
+                } else {
+                    isoDate = isoDate.slice(0, 10)
+                }
+                editor.value = isoDate
+            } catch(ex) {
+                console.error(ex, value)
             }
-            editor.value = isoDate
         }
         return result
     }
@@ -84,16 +87,16 @@ export class NativeTheme extends Theme {
         else {
             editor = document.createElement('input')
             editor.type = 'text'
+            if (template.pattern) {
+                editor.pattern = template.pattern
+            }
         }
     
         if (template.minLength) {
-                editor.minLength = template.minLength
-            }
+            editor.minLength = template.minLength
+        }
         if (template.maxLength) {
             editor.maxLength = template.maxLength
-        }
-        if (template.pattern) {
-            editor.pattern = template.pattern
         }
         return this.createDefaultTemplate(label, value, required, editor, template)
     }
@@ -101,7 +104,7 @@ export class NativeTheme extends Theme {
     createLangStringEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const result = this.createTextEditor(label, value, required, template)
         const editor = result.querySelector(':scope .editor') as Editor
-        let langChooser
+        let langChooser: HTMLSelectElement | HTMLInputElement
         if (template.languageIn?.length) {
             langChooser = document.createElement('select')
             for (const lang of template.languageIn) {
@@ -112,9 +115,9 @@ export class NativeTheme extends Theme {
         } else {
             langChooser = document.createElement('input')
             langChooser.maxLength = 5 // e.g. en-US
+            langChooser.placeholder = 'lang?'
         }
         langChooser.title = 'Language of the text'
-        langChooser.placeholder = 'lang?'
         langChooser.classList.add('lang-chooser')
         // if lang chooser changes, fire a change event on the text input instead. this is for shacl validation handling.
         langChooser.addEventListener('change', (ev) => {

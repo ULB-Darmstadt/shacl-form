@@ -1,11 +1,11 @@
 import { ShaclForm as FormBase } from "./form"
-import { BootstrapTheme } from "./themes/bootstrap"
+import { DefaultTheme } from "./themes/default"
 
 export * from './exports'
 
 export class ShaclForm extends FormBase {
     constructor() {
-        super(new BootstrapTheme())
+        super(new DefaultTheme())
     }
 }
 

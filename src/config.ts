@@ -41,12 +41,13 @@ export class Config {
     }
  
     updateAttributes(elem: HTMLElement) {
-        const atts = new ElementAttributes()
-        for (const key of Object.keys(atts)) {
-            if (elem.dataset[key] !== undefined) {
-                atts[key] = elem.dataset[key]
+        const atts = new ElementAttributes();
+        (Object.keys(atts) as Array<keyof ElementAttributes>).forEach(key => {
+            const value = elem.dataset[key]
+            if (value !== undefined) {
+                atts[key] = value
             }
-        }
+        })
         this.editMode = atts.mode !== 'view'
         this.attributes = atts
     }
