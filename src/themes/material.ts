@@ -10,6 +10,7 @@ import { Theme } from '../theme'
 import { InputListEntry, Editor } from '../theme'
 import { Literal } from 'n3'
 import css from './material.css'
+import { PREFIX_XSD } from '../constants'
 
 export class MaterialTheme extends Theme {
     constructor() {
@@ -50,6 +51,17 @@ export class MaterialTheme extends Theme {
         const editor = new MdOutlinedTextField()
         editor.label = label
         editor.supportingText = template.description ?.value || ''
+        if (template.singleLine === false) {
+            editor.type = 'textarea'
+            editor.rows = 5
+        }
+        else {
+            editor.type = 'text'
+            if (template.pattern) {
+                editor.pattern = template.pattern
+            }
+        }
+
         return this.createDefaultTemplate(label, value, required, editor, template)
     }
 
@@ -58,6 +70,17 @@ export class MaterialTheme extends Theme {
         editor.type = 'number'
         editor.label = label
         editor.supportingText = template.description ?.value || ''
+        const min = template.minInclusive ? template.minInclusive : template.minExclusive ? template.minExclusive + 1 : undefined
+        const max = template.maxInclusive ? template.maxInclusive : template.maxExclusive ? template.maxExclusive - 1 : undefined
+        if (min) {
+            editor.min = String(min)
+        }
+        if (max) {
+            editor.max = String(max)
+        }
+        if (template.datatype?.value !== PREFIX_XSD + 'integer') {
+            editor.step = '0.1'
+        }
         return this.createDefaultTemplate(label, value, required, editor, template)
     }
 
