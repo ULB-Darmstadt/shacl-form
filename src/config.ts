@@ -12,7 +12,7 @@ export class ElementAttributes {
     values: string | null = null
     valuesUrl: string | null = null
     valueSubject: string | null = null
-    mode: string | null = null
+    view: string | null = null
     language: string = navigator.language
     loading: string = 'Loading\u2026'
     ignoreOwlImports: string | null = null
@@ -48,7 +48,7 @@ export class Config {
                 atts[key] = value
             }
         })
-        this.editMode = atts.mode !== 'view'
+        this.editMode = atts.view === null
         this.attributes = atts
     }
 

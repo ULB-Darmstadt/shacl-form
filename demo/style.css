@@ -79,11 +79,12 @@ a:visited { color: inherit; }
 }
 
 .content h2 {
-    margin: 1em 0 0.4em 0; font-size: 1.2em;
+    margin: 3em 0 0.4em 0; font-size: 1.2em;
 }
 
-.content p { margin: 9px 0; line-height: 1.2em; font-size: 18px; color: #444; }
+.content p { margin: 9px 0; line-height: 1.5em; font-size: 18px; color: #444; }
 .content pre { margin: 0; }
+.content pre code.hljs { padding: 0; }
 
 .wrapper {
     display: grid;
@@ -96,7 +97,7 @@ a:visited { color: inherit; }
 .mt-1 { margin-top: 1em !important; }
 .mb-1 { margin-bottom: 1em !important; }
 .my-0 { margin-top: 0 !important; margin-bottom: 0 !important; }
-.code { font-family: monospace; background-color: #ededed; padding: 3px; border-radius: 4px; color: #333; font-size: 14px; }
+.code { font-family: monospace; background-color: #ededed; padding: 3px 5px; border-radius: 4px; color: #080822; font-size: 14px; font-weight: bold; }
 #shacl-output.valid legend::after { content: "[valid]"; padding-left: 5px; }
 #shacl-output.invalid legend::after { content: "[not valid]"; padding-left: 5px; }
 #shacl-output.valid pre, #shacl-output.valid legend::after { color: #272; }

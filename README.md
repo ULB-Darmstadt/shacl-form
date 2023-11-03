@@ -1,6 +1,6 @@
 # SHACL Form Generator
 
-```
+```console
 npm i @ulb-darmstadt/shacl-form
 ```
 
@@ -9,6 +9,7 @@ An HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data t
 ## [See demo here](https://ulb-darmstadt.github.io/shacl-form/)
 
 ### Basic usage
+
 ```html
 <html>
   <head>
@@ -38,8 +39,8 @@ An HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data t
       form.addEventListener('change', event => {
         // check if form data validates according to the SHACL shapes
         if (event.detail?.valid) {
-          // get data graph as RDF triples (default format is 'text/turtle')
-          // and log them to the browser console
+          // get data graph as RDF triples and
+          // log them to the browser console
           const triples = form.serialize() 
           console.log('entered form data', triples)
           // store the data somewhere, e.g. in a triple store
@@ -51,6 +52,7 @@ An HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data t
 ```
 
 ### Element attributes
+
 Attribute | Description
 ---|---
 data-shapes | SHACL shape definitions (e.g. a turtle string) to generate the form from
@@ -62,16 +64,17 @@ data-value-subject | The subject (id) of the generated data. If this is not set,
 data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://www.w3schools.com/jsref/prop_nav_language.asp)
 data-loading | Text to display while the web component is initializing. Default: `"Loading..."`
 data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs are fetched and the resulting RDF triples are added to the shapes graph. Setting this attribute to any value disables this feature
-data-mode | When set to `"view"`, turns the web component into a viewer that displays the given data graph without editing functionality
-data-collapse | When this attribute is present, `sh:group`s and properties with `sh:node` and `sh:maxCount` > 1 are displayed in a collapsible accordion-like widget to reduce visual complexity of the form. The collapsible element is initially shown closed, except when this attribute's value is `"open"`
-data-submit-button | [Only used in edit mode] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events will only fire after successful validation
+data-view | When set, turns the web component into a viewer that displays the given data graph without editing functionality
+data-collapse | When set, `sh:group`s and properties with `sh:node` and `sh:maxCount` != 1 are displayed in a collapsible accordion-like widget to reduce visual complexity of the form. The collapsible element is initially shown closed, except when this attribute's value is `"open"`
+data-submit-button | [Ignored when `data-view` attribute is set] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events get emitted only when the form data validates
 
 ### Element functions
+
 ```typescript
 serialize(format?: string): string
 ```
 
-Serializes the form data to RDF triples. Supported formats:  `text/turtle` (default), `application/ld+json`, `application/n-triples`, `application/n-quads`, `application/trig`.
+Serializes the form data to RDF triples. <a name="formats"></a>Supported formats:  `text/turtle` (default), `application/ld+json`, `application/n-triples`, `application/n-quads`, `application/trig`.
 
 ```typescript
 validate(ignoreEmptyValues: boolean): Promise<boolean>
@@ -86,7 +89,7 @@ Register a [plugin](./src/plugin.ts) to customize editing/viewing certain proper
 ```typescript
 setTheme(theme: Theme)
 ```
-Set a design theme to use for rendering. See section "Theming" below.
+Set a design theme to use for rendering. See section [Theming](#Theming).
 ```typescript
 setClassInstanceProvider((className: string) => Promise<string>)
 ```
@@ -96,12 +99,116 @@ Sets a callback function that is called when a SHACL property has an `sh:class` 
 
 Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
 
-## Theming
-`<shacl-form>` comes in 3 different bundles, each providing a specific theme:
+## Features
+
+### Data graph binding
+
+`<shacl-form>` requires only a shapes graph as input via the attribute `data-shapes` (or `data-shapes-url`) to generate an empty form and create new RDF data from the form input fields. Using the attributes `data-values` (or `data-values-url`) and `data-value-subject`, you can also bind an existing data graph to the form. The given data graph is then used to fill the form input fields.
+
+### Viewer mode
+
+`<shacl-form>` not only is an RDF data editor, but can also be used as a viewer by setting attribute `data-view` and binding both, a shapes and a data graph. See the [demo](https://ulb-darmstadt.github.io/shacl-form/#viewer-mode) for an example.
+
+### Providing additional data to the shapes graph
+
+Apart from setting the element attributes `data-shapes` or `data-shapes-url`, there are two ways of adding RDF data to the shapes graph:
+1. While parsing the triples of the shapes graph, any encountered `owl:imports` predicate that has a valid HTTP URL value will tried to be fetched with the HTTP Accept header set to all of the [supported](#formats) MIME types. A successful response will be parsed and added to the shapes graph. The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
+    ```
+    example:Attribution
+      owl:imports <https://w3id.org/nfdi4ing/metadata4ing/> ;
+      sh:property [
+        sh:name      "Role" ;
+        sh:path      dcat:hadRole ;
+        sh:class     prov:Role ;
+      ] .
+    ```
+    In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form.
+
+2. The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is called when a SHACL property has
+an `sh:class` predicate. The expected return value of this callback function is a (promise of a) string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class. Instances can be defined e.g. like:
+    - `example:Instance a example:Class`
+    - `example:Instance a owl:NamedIndividual; skos:broader example:Class`
+  
+    Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
+    
+    In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), the code:
+  
+    ```typescript
+    form.setClassInstanceProvider((clazz) => { 
+      if (clazz === 'http://example.org/Material') {
+        return `
+          <http://example.org/steel>   a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Steel".
+          <http://example.org/wood>    a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Wood".
+          <http://example.org/alloy>   a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Alloy".
+          <http://example.org/plaster> a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Plaster".
+        `
+      }
+    )
+    ```
+    returns instances of the class `http://example.org/Material` that are then used to populate the "Artwork material" dropdown in the form.
+
+    A more realistic use case of this feature is calling some API endpoint to fetch class instance definitions from existing ontologies.
+
+### SHACL "or" constraint
+
+`<shacl-form>` supports using [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) to let users select between different options on nodes or properties.
+The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) has the following triples:
+```
+example:Attribution
+  a sh:NodeShape ;
+  sh:property [
+    sh:maxCount  1 ;
+    sh:minCount  1 ;
+    sh:path prov:agent ;
+    sh:or (
+      [ sh:node example:Person ; rdfs:label "Person" ]
+      [ sh:node example:Organisation ; rdfs:label "Organisation" ]
+    )
+  ] .
+```
+When adding a new attribution, `<shacl-form>` renders a dropdown to let the user select between the two options Person/Organisation. After selecting one of the options, the dropdown is replaced by the input fields of the selected node shape.
+
+When binding an existing data graph to the form, the `sh:or` constraint is tried to be resolved depending on the respective data value:
+- For RDF literals, an `sh:or` option with a matching `sh:datatype` is chosen
+- For blank nodes or named nodes, the `rdf:type` of the value is tried to be matched with a node shape having a corresponding `sh:targetClass` or with a property shape having a corresponding `sh:class`
+
+### SHACL shape inheritance
+
+SHACL defines two ways of inheriting shapes: [sh:and](https://www.w3.org/TR/shacl/#AndConstraintComponent)
+and [sh:node](https://www.w3.org/TR/shacl/#NodeConstraintComponent). `<shacl-form>` supports both. In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), node shape `example:ArchitectureModelDataset` extends `example:Dataset` by defining the following RDF triple:
+
+```
+example:ArchitectureModelDataset sh:node example:Dataset .
+```
+
+Properties of inherited shapes are displayed first.
+
+### Plugins
+
+Plugins can modify rendering of the form and add functionality to edit and view certain RDF datatypes or predicates (or a combination of both). As an example, the JavaScript of [this page](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following code:
+```typescript
+import { MapboxPlugin } from '@ulb-darmstadt/shacl-form/plugins/mapbox.js'
+const form = document.getElementById("shacl-form")
+form.registerPlugin(new MapboxPlugin({ datatype: 'http://www.opengis.net/ont/geosparql#wktLiteral' }, API_KEY))
+```
+In effect, whenever a SHACL property has an `sh:datatype` of `http://www.opengis.net/ont/geosparql#wktLiteral`, the plugin is called to create the editor and/or viewer HTML elements. This specific plugin uses [Mapbox GL](https://docs.mapbox.com/mapbox-gl-js/guides/) to edit or view geometry in format [well known text](http://giswiki.org/wiki/Well_Known_Text) on a map.
+Custom plugins can be built by extending class [Plugin](https://github.com/ULB-Darmstadt/shacl-form/blob/main/src/plugin.ts#L40).
+
+### Property grouping and collapsing
+
+Properties can be grouped using [sh:group](https://www.w3.org/TR/shacl/#group) in the shapes graph. [This example](https://ulb-darmstadt.github.io/shacl-form/#example) defines a group "Physical properties" and assigns certain properties to it.
+
+When the element attribute `data-collapse` is set, `<shacl-form>` creates an accordion-like widget that toggles the visibility of grouped properties in order to reduce the visual complexity of the form. If the grouped properties should initially be shown, set `data-collapse="open"`.
+
+Apart from grouped properties, all properties having an `sh:node` predicate and `sh:maxCount` != 1 are collapsed.
+
+### Theming
+
+`<shacl-form>` comes in 3 different bundles, each providing a specific theme. See the [demo page](https://ulb-darmstadt.github.io/shacl-form/#theming) for an example.
 
 Theme | Import statement
 --- | ---
-Default (slightly customized default browser styles) | `import '@ulb-darmstadt/shacl-form/form-default.js'`
+[Default]((./src/themes/default.ts)) (slightly customized default browser styles) | `import '@ulb-darmstadt/shacl-form/form-default.js'`
 [Bootstrap](./src/themes/bootstrap.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-bootstrap.js'`
 [Material Design](./src/themes/material.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-material.js'`
 
