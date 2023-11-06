@@ -1,4 +1,5 @@
-form { padding-left: 1em; box-sizing: border-box; display:block; --label-width: 8em; }
+form { box-sizing: border-box; display:block; --label-width: 8em; }
+form.mode-edit { padding-left: 1em;  }
 form *, form ::after, form ::before { box-sizing: inherit; }
 shacl-node, .shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
 shacl-node .control-button { cursor: pointer; }

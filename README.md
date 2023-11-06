@@ -101,6 +101,10 @@ Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
 
 ## Features
 
+### Validation
+
+In edit mode, `<shacl-form>` validates the constructed data graph using the library [rdf-validate-shacl](https://github.com/zazuko/rdf-validate-shacl) and displays validation results as icons next to the respective form fields.
+
 ### Data graph binding
 
 `<shacl-form>` requires only a shapes graph as input via the attribute `data-shapes` (or `data-shapes-url`) to generate an empty form and create new RDF data from the form input fields. Using the attributes `data-values` (or `data-values-url`) and `data-value-subject`, you can also bind an existing data graph to the form. The given data graph is then used to fill the form input fields.

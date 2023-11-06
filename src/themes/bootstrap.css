@@ -1,5 +1,6 @@
 form.mode-edit { --label-width: 0em; }
 .lang-chooser { right: 32px; font-size: 0.8em; }
 .property-instance[data-description]::after { content: attr(data-description); position: absolute; bottom: -12px; left: 13px; font-size: 12px; opacity: 0.7;}
+.property-instance { margin-bottom:14px; }
 .form-floating[data-description] { margin-bottom: 18px; }
 .remove-button { padding: 6px; }
