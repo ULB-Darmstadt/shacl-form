@@ -2,10 +2,10 @@ form { box-sizing: border-box; display:block; --label-width: 8em; --caret-size: 
 form.mode-edit { padding-left: 1em;  }
 form *, form ::after, form ::before { box-sizing: inherit; }
 shacl-node, .shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
-shacl-node .control-button { cursor: pointer; }
-shacl-node .control-button:not(:hover) { border-color: transparent; background: 0; }
+shacl-node .control-button { text-decoration: none; cursor: pointer; border: 1px solid transparent; border-radius: 4px; padding: 2px 4px; }
+shacl-node .control-button:hover { border-color: inherit; }
 shacl-node .remove-button { margin-left: 4px; }
-shacl-node .add-button { font-size: 0.7rem; color: #555;  margin-right: 24px; text-decoration:none; padding: 6px 0; }
+shacl-node .add-button { font-size: 0.8rem; color: #555; margin: 4px 24px 0 0; }
 shacl-node .add-button:before { content: '+'; margin-right: 0.2em; }
 shacl-node .add-button:hover { color: inherit; }
 shacl-node h1 { font-size: 1.1rem; border-bottom: 1px solid; margin-top: 4px; color: #555; }
@@ -22,7 +22,7 @@ shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.per
 .editor:not([type='checkbox']), .shacl-or-constraint select { flex-grow: 1; }
 .shacl-or-constraint select { border: 1px solid #DDD; padding: 2px 4px; }
 textarea.editor { resize: vertical; }
-.lang-chooser { position: absolute; top: 5px; right: 24px; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
+.lang-chooser { position: absolute; top: 5px; right: 28px; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
 .lang-chooser+.editor { padding-right: 55px; }
 .validation-error { position: absolute; left: calc(var(--label-width) - 1em); top: 6px; color: red; cursor: help; }
 .validation-error::before { content: '\26a0' }
@@ -37,6 +37,13 @@ textarea.editor { resize: vertical; }
 .lang { opacity: 0.65; font-size: 0.6em; }
 a, a:visited { color: inherit; }
 
+.fadeIn, .fadeOut { animation: fadeIn 0.2s ease-out; }
+.fadeOut { animation-direction: reverse; animation-timing-function: ease-out;}
+@keyframes fadeIn {
+    0% { opacity: 0; transform: scaleY(0.8); }
+    100% { opacity: 1; transform: scaleY(1); }
+}
+  
 .collapsible > .activator { display: flex; justify-content: space-between; align-items: center; cursor: pointer; width: 100%; border: 0; padding: 8px 0; transition: 0.2s; }
 .collapsible > .activator:hover, .collapsible.open > .activator { background-color: #F5F5F5; }
 .collapsible > .activator::after { content:''; width: var(--caret-size); height: var(--caret-size); border-style: none solid solid none; border-width: calc(0.3 * var(--caret-size)); transform: rotate(45deg); transition: transform .15s ease-out; margin-right: calc(0.5 * var(--caret-size)); }

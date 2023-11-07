@@ -29,8 +29,12 @@ export class ShaclProperty extends HTMLElement {
             this.addButton.classList.add('control-button', 'add-button')
             this.addButton.addEventListener('click', _ => {
                 const instance = this.addPropertyInstance()
+                instance.classList.add('fadeIn')
                 this.updateControls()
                 focusFirstInputElement(instance)
+                setTimeout(() => {
+                    instance.classList.remove('fadeIn')
+                }, 200)
             })
             this.appendChild(this.addButton)
         }
@@ -160,15 +164,18 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
 }
 
 function appendRemoveButton(instance: HTMLElement, label: string, forceRemovable = false) {
-    const removeButton = document.createElement('button')
+    const removeButton = document.createElement('a')
     removeButton.innerText = '\u00d7'
-    removeButton.type = 'button'
     removeButton.classList.add('control-button', 'btn', 'remove-button')
     removeButton.title = 'Remove ' + label
     removeButton.addEventListener('click', _ => {
-        const parent = instance.parentElement
-        instance.remove()
-        parent?.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }))
+        instance.classList.remove('fadeIn')
+        instance.classList.add('fadeOut')
+        setTimeout(() => {
+            const parent = instance.parentElement
+            instance.remove()
+            parent?.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }))
+        }, 200)
     })
     if (forceRemovable) {
         removeButton.classList.add('persistent')

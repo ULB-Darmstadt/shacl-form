@@ -18,7 +18,7 @@ example:ArchitectureModelDataset
   sh:node         example:Dataset ;
 
   sh:property   [ sh:description  "Location of the building" ;
-                  sh:name         "Locations" ;
+                  sh:name         "Location" ;
                   sh:node         example:Location ;
                   sh:path         dcterms:spatial
                 ] ;
@@ -101,7 +101,7 @@ example:Dataset
                   sh:name         "Issued" ;
                   sh:path         dcterms:issued
                 ] ;
-  sh:property   [ sh:name         "Attributions" ;
+  sh:property   [ sh:name         "Attribution" ;
                   sh:node         example:Attribution ;
                   sh:path         prov:qualifiedAttribution ;
                 ] ;
