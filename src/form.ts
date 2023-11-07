@@ -51,50 +51,52 @@ export class ShaclForm extends HTMLElement {
                 this.form.replaceChildren()
                 // find root shacl shape
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
-                if (!rootShapeShaclSubject) {
-                    throw new Error('shacl root node shape not found')
-                }
-                // remove all previous css classes to have a defined state
-                this.form.classList.forEach(value => { this.form.classList.remove(value) })
-                this.form.classList.toggle('mode-edit', this.config.editMode)
-                this.form.classList.toggle('mode-view', !this.config.editMode)
-                // let theme add classes to form element
-                this.config.theme.apply(this.form)
-                // adopt stylesheets from theme and plugins
-                const styles: CSSStyleSheet[] = [ this.config.theme.stylesheet ]
-                for (const plugin of this.config.plugins.list()) {
-                    if (plugin.stylesheet) {
-                        styles.push(plugin.stylesheet)
+                if (rootShapeShaclSubject) {
+                    // remove all previous css classes to have a defined state
+                    this.form.classList.forEach(value => { this.form.classList.remove(value) })
+                    this.form.classList.toggle('mode-edit', this.config.editMode)
+                    this.form.classList.toggle('mode-view', !this.config.editMode)
+                    // let theme add classes to form element
+                    this.config.theme.apply(this.form)
+                    // adopt stylesheets from theme and plugins
+                    const styles: CSSStyleSheet[] = [ this.config.theme.stylesheet ]
+                    for (const plugin of this.config.plugins.list()) {
+                        if (plugin.stylesheet) {
+                            styles.push(plugin.stylesheet)
+                        }
                     }
-                }
-                this.shadowRoot!.adoptedStyleSheets = styles
+                    this.shadowRoot!.adoptedStyleSheets = styles
 
-                this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valueSubject ? DataFactory.namedNode(this.config.attributes.valueSubject) : undefined)
-                this.form.appendChild(this.shape)
+                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valueSubject ? DataFactory.namedNode(this.config.attributes.valueSubject) : undefined)
+                    this.form.appendChild(this.shape)
 
-                if (this.config.editMode) {
-                    // add submit button
-                    if (this.config.attributes.submitButton !== null) {
-                        const button = this.config.theme.createButton(this.config.attributes.submitButton || 'Submit', true)
-                        button.addEventListener('click', (event) => {
-                            event.preventDefault()
-                            this.validate().then(valid => {
-                                if (valid && this.form.checkValidity()) {
-                                    this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-                                } else {
-                                    // focus first invalid element
-                                    const firstInvalidElement = this.form.querySelector(':scope .invalid > .editor') as HTMLElement | null
-                                    if (firstInvalidElement) {
-                                        firstInvalidElement.focus()
+                    if (this.config.editMode) {
+                        // add submit button
+                        if (this.config.attributes.submitButton !== null) {
+                            const button = this.config.theme.createButton(this.config.attributes.submitButton || 'Submit', true)
+                            button.addEventListener('click', (event) => {
+                                event.preventDefault()
+                                this.validate().then(valid => {
+                                    if (valid && this.form.checkValidity()) {
+                                        this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
                                     } else {
-                                        this.form.reportValidity()
+                                        // focus first invalid element
+                                        const firstInvalidElement = this.form.querySelector(':scope .invalid > .editor') as HTMLElement | null
+                                        if (firstInvalidElement) {
+                                            firstInvalidElement.focus()
+                                        } else {
+                                            this.form.reportValidity()
+                                        }
                                     }
-                                }
+                                })
                             })
-                        })
-                        this.form.appendChild(button)
+                            this.form.appendChild(button)
+                        }
+                        await this.validate(true)
                     }
-                    await this.validate(true)
+                } else if (this.config.shapesGraph.size > 0) {
+                    // raise error only when shapes graph is not empty
+                    throw new Error('shacl root node shape not found')
                 }
             } catch (e) {
                 console.error(e)

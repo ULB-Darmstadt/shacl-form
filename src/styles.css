@@ -1,4 +1,4 @@
-form { box-sizing: border-box; display:block; --label-width: 8em; }
+form { box-sizing: border-box; display:block; --label-width: 8em; --caret-size: 10px; }
 form.mode-edit { padding-left: 1em;  }
 form *, form ::after, form ::before { box-sizing: inherit; }
 shacl-node, .shacl-group { display: flex; flex-direction: column; width: 100%; position: relative; }
@@ -37,11 +37,11 @@ textarea.editor { resize: vertical; }
 .lang { opacity: 0.65; font-size: 0.6em; }
 a, a:visited { color: inherit; }
 
-.collapsible > .activator { cursor: pointer; width: 100%; padding: 8px 0; border: 0; }
+.collapsible > .activator { display: flex; justify-content: space-between; align-items: center; cursor: pointer; width: 100%; border: 0; padding: 8px 0; transition: 0.2s; }
 .collapsible > .activator:hover, .collapsible.open > .activator { background-color: #F5F5F5; }
-.collapsible > .activator::after { content: '\25BC'; float: right; margin: 0 5px; font-size: 14px; }
-.collapsible.open > .activator::after { content: '\25B2';  }
-/* .collapsible > *:not(.activator) { overflow: hidden; } */
-.collapsible:not(.open) > *:not(.activator) { display: none; }
+.collapsible > .activator::after { content:''; width: var(--caret-size); height: var(--caret-size); border-style: none solid solid none; border-width: calc(0.3 * var(--caret-size)); transform: rotate(45deg); transition: transform .15s ease-out; margin-right: calc(0.5 * var(--caret-size)); }
+.collapsible.open > .activator::after { transform: rotate(225deg); }
+.collapsible > *:not(.activator) { transition: all 0.2s ease-out; opacity: 1; }
+.collapsible:not(.open) > *:not(.activator) { max-height: 0; padding: 0; opacity: 0; overflow: hidden; }
 .collapsible shacl-node > h1 { display: none; }
 .collapsible.open > .property-instance:nth-child(odd) { background-color: #F5F5F5; }

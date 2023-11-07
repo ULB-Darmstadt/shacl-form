@@ -4,7 +4,7 @@
 npm i @ulb-darmstadt/shacl-form
 ```
 
-An HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that conform to [SHACL shapes](https://www.w3.org/TR/shacl/).
+HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that conform to [SHACL shapes](https://www.w3.org/TR/shacl/).
 
 ## [See demo here](https://ulb-darmstadt.github.io/shacl-form/)
 
@@ -128,8 +128,8 @@ Apart from setting the element attributes `data-shapes` or `data-shapes-url`, th
     ```
     In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form.
 
-2. The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is called when a SHACL property has
-an `sh:class` predicate. The expected return value of this callback function is a (promise of a) string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class. Instances can be defined e.g. like:
+2. The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is invoked when a SHACL property has
+an `sh:class` predicate. The expected return value is a (promise of a) string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class. Instances can be defined e.g. like:
     - `example:Instance a example:Class`
     - `example:Instance a owl:NamedIndividual; skos:broader example:Class`
   
