@@ -77,9 +77,6 @@ export class ShaclNode extends HTMLElement {
             }
         }
 
-        if (!label) {
-            label = findLabel(quads, config.attributes.language)
-        }
         if (label) {
             const header = document.createElement('h1')
             header.innerText = label
