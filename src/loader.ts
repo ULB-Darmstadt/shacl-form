@@ -4,8 +4,13 @@ import { OWL_IMPORTS, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { isURL } from './util'
 
+// cache external data in module scope (and not in Loader instance) to avoid requesting
+// them multiple times, e.g. when more than one shacl-form element is on the page
+// that import the same resources
+const loadedURLCache: Record<string, Promise<string>> = {}
+const loadedClassesCache: Record<string, Promise<string>> = {}
+
 export class Loader {
-    private abortController: AbortController | null = null
     private config: Config
     private loadedOwlImports: string[] = []
     private loadedClasses: string[] = []
@@ -15,10 +20,7 @@ export class Loader {
     }
 
     async loadGraphs() {
-        if (this.abortController) {
-            this.abortController.abort()
-        }
-        this.abortController = new AbortController()
+        // clear local caches
         this.loadedOwlImports = []
         this.loadedClasses = []
 
@@ -57,10 +59,19 @@ export class Loader {
                         }
                         // check if this is an sh:class predicate and invoke class instance provider
                         if (this.config.classInstanceProvider && SHACL_PREDICATE_CLASS.equals(quad.predicate)) {
+                            const className = quad.object.value
                             // import class definitions only once
-                            if (this.loadedClasses.indexOf(quad.object.value) < 0) {
-                                this.loadedClasses.push(quad.object.value)
-                                dependencies.push(this.importRDF(this.config.classInstanceProvider(quad.object.value), store, graph, parser))
+                            if (this.loadedClasses.indexOf(className) < 0) {
+                                let promise: Promise<string>
+                                // check if class is in module scope cache
+                                if (className in loadedClassesCache) {
+                                    promise = loadedClassesCache[className]
+                                } else {
+                                    promise = this.config.classInstanceProvider(className)
+                                    loadedClassesCache[className] = promise
+                                }
+                                this.loadedClasses.push(className)
+                                dependencies.push(this.importRDF(promise, store, graph, parser))
                             }
                         }
                         return
@@ -85,7 +96,7 @@ export class Loader {
             try {
                 // check if input is JSON
                 // @ts-ignore, because result of toRDF is a string and not an object
-                input = await toRDF(JSON.parse(input), {format: 'application/n-quads'}) as string
+                input = await toRDF(JSON.parse(input), { format: 'application/n-quads' }) as string
             } catch(_) {
                 // NOP, it wasn't JSON
             }
@@ -94,21 +105,17 @@ export class Loader {
     }
 
     async fetchRDF(url: string): Promise<string> {
-        try {
-            const response = await fetch(url, {
-                headers: {
-                    'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3, application/ld+json'
-                },
-                signal: this.abortController?.signal
-            })
-            if (response.ok) {
-                return response.text()
-            }
+        // try to load from cache first
+        if (url in loadedURLCache) {
+            return loadedURLCache[url]
         }
-        catch(e) {
-            throw new Error('failed loading ' + url + ', reason:' + e)
-        }
-        throw new Error('failed loading ' + url)
+        const promise = fetch(url, {
+            headers: {
+                'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3, application/ld+json'
+            },
+        }).then(resp => resp.text())
+        loadedURLCache[url] = promise
+        return promise
     }
 
     toURL(id: string): string | null {
