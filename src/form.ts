@@ -112,8 +112,7 @@ export class ShaclForm extends HTMLElement {
         return serialize(quads, format, this.config.prefixes)
     }
 
-    public toRDF(): Store {
-        const graph = new Store()
+    public toRDF(graph = new Store()): Store {
         this.shape?.toRDF(graph)
         return graph
     }
