@@ -77,10 +77,10 @@ toRDF(): Store
 Returns the form values as RDF data graph. The return value is an instance of [N3 Store](https://github.com/rdfjs/N3.js#storing).
 
 ```typescript
-serialize(format?: string): string
+serialize(format?: string, graph?: Store): string
 ```
 
-Serializes the form data to RDF triples. <a name="formats"></a>Supported formats:  `text/turtle` (default), `application/ld+json`, `application/n-triples`, `application/n-quads`, `application/trig`.
+Serializes the given RDF graph to triples. If no graph is provided, this function calls toRDF() (see above) to construct the form data graph. <a name="formats"></a>Supported formats:  `text/turtle` (default), `application/ld+json`, `application/n-triples`, `application/n-quads`, `application/trig`.
 
 ```typescript
 validate(ignoreEmptyValues: boolean): Promise<boolean>

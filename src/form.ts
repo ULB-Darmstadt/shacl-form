@@ -107,8 +107,7 @@ export class ShaclForm extends HTMLElement {
         }, 200)
     }
 
-    public serialize(format = 'text/turtle'): string {
-        const graph = this.toRDF()
+    public serialize(format = 'text/turtle', graph = this.toRDF()): string {
         const quads = graph.getQuads(null, null, null, null)
         return serialize(quads, format, this.config.prefixes)
     }
