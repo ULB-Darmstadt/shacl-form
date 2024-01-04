@@ -71,6 +71,12 @@ data-submit-button | [Ignored when `data-view` attribute is set] Whether to add 
 ### Element functions
 
 ```typescript
+toRDF(): Store
+```
+
+Returns the form values as RDF data graph. The return value is an instance of [N3 Store](https://github.com/rdfjs/N3.js#storing).
+
+```typescript
 serialize(format?: string): string
 ```
 
