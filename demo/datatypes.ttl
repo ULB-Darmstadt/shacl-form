@@ -1,10 +1,11 @@
 @prefix sh:      <http://www.w3.org/ns/shacl#> .
 @prefix dash:    <http://datashapes.org/dash#> .
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix ex:      <http://example.org/> .
 
-ex:Demo a sh:NodeShape ;
+ex:Demo a sh:NodeShape, rdfs:Class ;
   sh:property [
     sh:datatype     xsd:string ;
     sh:maxCount     1 ;

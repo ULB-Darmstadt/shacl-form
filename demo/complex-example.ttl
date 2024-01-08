@@ -14,7 +14,7 @@
 @prefix example: <http://example.org/> .
 
 example:ArchitectureModelDataset
-  a               sh:NodeShape ;
+  a               sh:NodeShape, rdfs:Class ;
   sh:node         example:Dataset ;
 
   sh:property   [ sh:description  "Location of the building" ;
@@ -62,7 +62,7 @@ example:ArchitectureModelDataset
                 ] .
 
 example:Dataset
-  a               sh:NodeShape ;
+  a               sh:NodeShape, rdfs:Class ;
   sh:property   [ sh:datatype     rdf:langString ;
                   sh:languageIn   ( "en" "de" ) ;
                   sh:uniqueLang   true ;
