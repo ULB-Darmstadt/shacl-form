@@ -1,5 +1,6 @@
-import { Writer, Quad, Literal, Prefixes } from 'n3'
-import { PREFIX_XSD, RDF_PREDICATE_TYPE } from './constants'
+import { DataFactory, NamedNode, Writer, Quad, Literal, Prefixes } from 'n3'
+import { PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL } from './constants'
+import { Editor } from './theme'
 import { NodeObject } from 'jsonld'
 
 export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): string {
@@ -42,4 +43,27 @@ function serializeJsonld(quads: Quad[]): string {
         triples.push(triple)
     }
     return JSON.stringify(triples)
+}
+
+export function toRDF(editor: Editor): Literal | NamedNode | undefined {
+    let languageOrDatatype: NamedNode<string> | string | undefined = editor['shaclDatatype']
+    let value: number | string = editor.value
+    if (value) {
+        if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
+            return DataFactory.namedNode(value)
+        } else {
+            if (editor.dataset.lang) {
+                languageOrDatatype = editor.dataset.lang
+            }
+            else if (editor['type'] === 'number') {
+                value = parseFloat(value)
+            }
+            return DataFactory.literal(value, languageOrDatatype)
+        }
+    } else if (editor['type'] === 'checkbox' || editor.getAttribute('type') === 'checkbox') {
+        // emit boolean 'false' only when required
+        if (editor['checked'] || parseInt(editor.dataset.minCount || '0') > 0) {
+            return DataFactory.literal(editor['checked'] ? 'true' : 'false', languageOrDatatype)
+        }
+    }
 }

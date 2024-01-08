@@ -6,7 +6,8 @@ import { SHAPES_GRAPH } from './constants'
 import { createShaclOrConstraint, resolveShaclOrConstraint } from './constraints'
 import { Config } from './config'
 import { ShaclPropertyTemplate } from './property-template'
-import { Editor, fieldFactory, toRDF } from './theme'
+import { Editor, fieldFactory } from './theme'
+import { toRDF } from './serialize'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate

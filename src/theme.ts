@@ -1,6 +1,6 @@
-import { DataFactory, Literal, NamedNode } from 'n3'
+import { Literal, NamedNode } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, PREFIX_XSD, PREFIX_RDF, SHAPES_GRAPH } from './constants'
+import { PREFIX_XSD, PREFIX_RDF, SHAPES_GRAPH } from './constants'
 import { createInputListEntries, findInstancesOf, findLabel, isURL } from './util'
 import { ShaclPropertyTemplate } from './property-template'
 import css from './styles.css'
@@ -70,29 +70,6 @@ export abstract class Theme {
     abstract createDateEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement
     abstract createBooleanEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement
     abstract createButton(label: string, primary: boolean): HTMLElement
-}
-
-export function toRDF(editor: Editor): Literal | NamedNode | undefined {
-    let languageOrDatatype: NamedNode<string> | string | undefined = editor['shaclDatatype']
-    let value: number | string = editor.value
-    if (value) {
-        if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
-            return DataFactory.namedNode(value)
-        } else {
-            if (editor.dataset.lang) {
-                languageOrDatatype = editor.dataset.lang
-            }
-            else if (editor['type'] === 'number') {
-                value = parseFloat(value)
-            }
-            return DataFactory.literal(value, languageOrDatatype)
-        }
-    } else if (editor['type'] === 'checkbox' || editor.getAttribute('type') === 'checkbox') {
-        // emit boolean 'false' only when required
-        if (editor['checked'] || parseInt(editor.dataset.minCount || '0') > 0) {
-            return DataFactory.literal(editor['checked'] ? 'true' : 'false', languageOrDatatype)
-        }
-    }
 }
 
 export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null): HTMLElement {

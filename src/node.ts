@@ -6,7 +6,6 @@ import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
 import { createShaclOrConstraint } from './constraints'
 import { Config } from './config'
-import { findLabel } from './util'
 
 export class ShaclNode extends HTMLElement {
     shaclSubject: NamedNode
