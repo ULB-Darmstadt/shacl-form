@@ -70,12 +70,12 @@ export class MaterialTheme extends Theme {
         editor.type = 'number'
         editor.label = label
         editor.supportingText = template.description ?.value || ''
-        const min = template.minInclusive ? template.minInclusive : template.minExclusive ? template.minExclusive + 1 : undefined
-        const max = template.maxInclusive ? template.maxInclusive : template.maxExclusive ? template.maxExclusive - 1 : undefined
-        if (min) {
+        const min = template.minInclusive !== undefined ? template.minInclusive : template.minExclusive !== undefined ? template.minExclusive + 1 : undefined
+        const max = template.maxInclusive !== undefined ? template.maxInclusive : template.maxExclusive !== undefined ? template.maxExclusive - 1 : undefined
+        if (min !== undefined) {
             editor.min = String(min)
         }
-        if (max) {
+        if (max !== undefined) {
             editor.max = String(max)
         }
         if (template.datatype?.value !== PREFIX_XSD + 'integer') {
