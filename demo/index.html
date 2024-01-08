@@ -11,7 +11,7 @@
   <script type="importmap">
     {
       "imports": {
-        "@ulb-darmstadt/shacl-form/": "./"
+        "@ulb-darmstadt/shacl-form/": "https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/"
       }
     }
   </script>
@@ -87,10 +87,11 @@
     or can be loaded by setting attribute 'data-shapes-url' --&gt;
     &lt;shacl-form data-shapes="
       @prefix sh: &lt;http://www.w3.org/ns/shacl#&gt; .
+      @prefix rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt; .
       @prefix ex: &lt;http://example.org#&gt; .
 
       ex:ExampleShape
-        a sh:NodeShape ;
+        a sh:NodeShape, rdfs:Class ;
         sh:property [
           sh:name 'my value' ;
           sh:path ex:exampleValue ;
@@ -120,9 +121,10 @@
       <shacl-form data-shapes="
         @prefix sh: <http://www.w3.org/ns/shacl#> .
         @prefix ex: <http://example.org#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
         ex:ExampleShape
-          a sh:NodeShape ;
+          a sh:NodeShape, rdfs:Class ;
           sh:property [
             sh:name 'my value' ;
             sh:path ex:exampleValue ;
