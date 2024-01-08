@@ -160,7 +160,7 @@ export class MapboxPlugin extends Plugin {
         if (pointCoords?.length == 2) {
             const xy = pointCoords[1].split(' ')
             if (xy.length === 2) {
-                return { type: 'Point', coordinates: [parseFloat(xy[0]), parseFloat(xy[1])] }
+                return { type: 'Point', coordinates: [parseFloat(xy[1]), parseFloat(xy[0])] }
             }
         }
         const polygonCoords = wkt.match(/^POLYGON[(]{2}(.*)[)]{2}$/)
@@ -173,7 +173,7 @@ export class MapboxPlugin extends Plugin {
                 for (const coord of split) {
                     const xy = coord.split(' ')
                     if (xy.length === 2) {
-                        outer.push([parseFloat(xy[0]), parseFloat(xy[1])])
+                        outer.push([parseFloat(xy[1]), parseFloat(xy[0])])
                     }
                 }
                 return { type: 'Polygon', coordinates: coords }
@@ -183,9 +183,9 @@ export class MapboxPlugin extends Plugin {
 
     geometryToWkt(geometry: Geometry): string {
         if (geometry.type === 'Point') {
-            return `POINT(${geometry.coordinates.join(' ')})`
+            return `POINT(${geometry.coordinates.reverse().join(' ')})`
         } else if (geometry.type === 'Polygon') {
-            return `POLYGON((${geometry.coordinates[0].map(item => { return item.join(' ') }).join(',')}))`
+            return `POLYGON((${geometry.coordinates[0].map(item => { return item.reverse().join(' ') }).join(',')}))`
         } else {
             return ''
         }
