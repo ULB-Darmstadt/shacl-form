@@ -76,19 +76,19 @@ export class ShaclForm extends HTMLElement {
                             const button = this.config.theme.createButton(this.config.attributes.submitButton || 'Submit', true)
                             button.addEventListener('click', (event) => {
                                 event.preventDefault()
-                                this.validate().then(valid => {
-                                    if (valid && this.form.checkValidity()) {
-                                        this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-                                    } else {
-                                        // focus first invalid element
-                                        const firstInvalidElement = this.form.querySelector(':scope .invalid > .editor') as HTMLElement | null
-                                        if (firstInvalidElement) {
-                                            firstInvalidElement.focus()
+                                // let browser check form validity first
+                                if (this.form.reportValidity()) {
+                                    // now validate data graph
+                                    this.validate().then(valid => {
+                                        if (valid) {
+                                            // form and data graph are valid, so fire submit event
+                                            this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
                                         } else {
-                                            this.form.reportValidity()
+                                            // focus first invalid element
+                                            (this.form.querySelector(':scope .invalid > .editor') as HTMLElement)?.focus()
                                         }
-                                    }
-                                })
+                                    })
+                                }
                             })
                             this.form.appendChild(button)
                         }
