@@ -56,6 +56,8 @@ export class DefaultTheme extends Theme {
         const editor: Editor = document.createElement('input')
         if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
             editor.type = 'datetime-local'
+            // this enables seconds in dateTime input
+            editor.setAttribute('step', '1')
         }
         else {
             editor.type = 'date'

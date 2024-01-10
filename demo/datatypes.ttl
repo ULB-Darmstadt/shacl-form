@@ -60,8 +60,6 @@ ex:Demo a sh:NodeShape, rdfs:Class ;
   ] ;
   sh:property [
     sh:datatype     xsd:integer ;
-    sh:minInclusive 1 ;
-    sh:maxInclusive 5 ;
     sh:maxCount     1 ;
     sh:name         "integer" ;
     sh:path         ex:myInteger ;
