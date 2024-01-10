@@ -33,6 +33,7 @@ export abstract class Theme {
         }
         viewer.appendChild(labelElem)
         let name = value.value
+        let lang: HTMLElement | null = null
         if (value instanceof NamedNode) {
             const quads = template.config.shapesGraph.getQuads(name, null, null, SHAPES_GRAPH)
             if (quads.length) {
@@ -43,7 +44,9 @@ export abstract class Theme {
             }
         } else if (value instanceof Literal) {
             if (value.language) {
-                name += '<span class="lang">@' + value.language + '</span>'
+                lang = document.createElement('span')
+                lang.classList.add('lang')
+                lang.innerText = `@${value.language}`
             } else if (value.datatype.value === `${PREFIX_XSD}date`) {
                 name = new Date(Date.parse(value.value)).toDateString()
             } else if (value.datatype.value === `${PREFIX_XSD}dateTime`) {
@@ -58,7 +61,10 @@ export abstract class Theme {
             valueElem = document.createElement('div')
         }
         valueElem.classList.add('d-flex')
-        valueElem.innerHTML = name
+        valueElem.innerText = name
+        if (lang) {
+            valueElem.appendChild(lang)
+        }
         viewer.appendChild(valueElem)
         return viewer
     }
