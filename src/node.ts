@@ -32,7 +32,7 @@ export class ShaclNode extends HTMLElement {
                     if (groupRef.length > 0) {
                         const groupSubject = groupRef[0].object.value
                         if (config.groups.indexOf(groupSubject) > -1) {
-                            // check if group element already exists
+                            // check if group element already exists, otherwise create it
                             let group = this.querySelector(`:scope > .shacl-group[data-subject='${groupSubject}']`) as HTMLElement
                             if (!group) {
                                 group = createShaclGroup(groupSubject, config)
