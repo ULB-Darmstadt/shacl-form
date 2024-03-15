@@ -91,7 +91,7 @@ Validates the form data against the SHACL shapes graph and displays validation r
 ```typescript
 registerPlugin(plugin: Plugin)
 ```
-Register a [plugin](./src/plugin.ts) to customize editing/viewing certain property values. Plugins handle specific RDF predicates or `xsd:datatype`s or both. Examples: [Mapbox](./src/plugins/mapbox.ts), [FixedList](./src/plugins/fixed-list.ts)
+Register a [plugin](./src/plugin.ts) to customize editing/viewing certain property values. Plugins handle specific RDF predicates or `xsd:datatype`s or both. Examples: [Leaflet](./src/plugins/leaflet.ts), [Mapbox](./src/plugins/mapbox.ts), [FixedList](./src/plugins/fixed-list.ts)
 
 ```typescript
 setTheme(theme: Theme)
@@ -198,11 +198,11 @@ Properties of inherited shapes are displayed first.
 
 Plugins can modify rendering of the form and add functionality to edit and view certain RDF datatypes or predicates (or a combination of both). As an example, the JavaScript of [this page](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following code:
 ```typescript
-import { MapboxPlugin } from '@ulb-darmstadt/shacl-form/plugins/mapbox.js'
+import { LeafletPlugin } from '@ulb-darmstadt/shacl-form/plugins/leaflet.js'
 const form = document.getElementById("shacl-form")
-form.registerPlugin(new MapboxPlugin({ datatype: 'http://www.opengis.net/ont/geosparql#wktLiteral' }, API_KEY))
+form.registerPlugin(new LeafletPlugin({ datatype: 'http://www.opengis.net/ont/geosparql#wktLiteral' }))
 ```
-In effect, whenever a SHACL property has an `sh:datatype` of `http://www.opengis.net/ont/geosparql#wktLiteral`, the plugin is called to create the editor and/or viewer HTML elements. This specific plugin uses [Mapbox GL](https://docs.mapbox.com/mapbox-gl-js/guides/) to edit or view geometry in format [well known text](http://giswiki.org/wiki/Well_Known_Text) on a map.
+In effect, whenever a SHACL property has an `sh:datatype` of `http://www.opengis.net/ont/geosparql#wktLiteral`, the plugin is called to create the editor and/or viewer HTML elements. This specific plugin uses [Leaflet](https://leafletjs.com/) to edit or view geometry in format [well known text](http://giswiki.org/wiki/Well_Known_Text) on a map.
 Custom plugins can be built by extending class [Plugin](https://github.com/ULB-Darmstadt/shacl-form/blob/main/src/plugin.ts#L40).
 
 ### Property grouping and collapsing
