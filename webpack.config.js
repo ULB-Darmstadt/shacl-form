@@ -7,6 +7,7 @@ module.exports = [
             'form-material': './src/form-material.ts',
             'form-bootstrap': './src/form-bootstrap.ts',
             'plugins/mapbox': './src/plugins/mapbox.ts',
+            'plugins/leaflet': './src/plugins/leaflet.ts',
             'plugins/fixed-list': './src/plugins/fixed-list.ts',
         },
         experiments: { outputModule: true },

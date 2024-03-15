@@ -40,7 +40,7 @@ export function focusFirstInputElement(context: HTMLElement) {
     (context.querySelector('input,select,textarea') as HTMLElement)?.focus()
 }
 
-export function findLabel(quads: Quad[], language: string): string {
+export function findLabel(quads: Quad[], language?: string): string {
     let label = findObjectValueByPredicate(quads, 'prefLabel', PREFIX_SKOS, language)
     if (label) {
         return label

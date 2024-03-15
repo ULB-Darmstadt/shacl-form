@@ -6,7 +6,7 @@ import { Map, NavigationControl, FullscreenControl, LngLatBounds, LngLatLike } f
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import mapboxGlCss from 'mapbox-gl/dist/mapbox-gl.css'
 import mapboxGlDrawCss from '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
-import { Point, Polygon } from 'geojson'
+import { Geometry, geometryToWkt, wktToGeometry } from './map-util'
 
 const css = `
 #shaclMapDialog .closeButton { position: absolute; right: 0; top: 0; z-index: 1; padding: 6px 8px; cursor: pointer; border: 0; background-color: #FFFA; font-size: 24px; }
@@ -24,7 +24,6 @@ const dialogTemplate = `
 <button class="closeButton" type="button" onclick="this.parentElement.close()">&#x2715;</button>
 </dialog>`
 
-type Geometry = Point | Polygon
 
 export class MapboxPlugin extends Plugin {
     map: Map | undefined
@@ -73,7 +72,7 @@ export class MapboxPlugin extends Plugin {
             if (data && data.features.length && this.currentEditor) {
                 const geometry = data.features[0].geometry as Geometry
                 if (geometry.coordinates?.length) {
-                    const wkt = this.geometryToWkt(geometry)
+                    const wkt = geometryToWkt(geometry)
                     this.currentEditor.value = wkt
                     this.currentEditor.dispatchEvent(new Event('change', { bubbles: true }))
                 }
@@ -95,7 +94,7 @@ export class MapboxPlugin extends Plugin {
             this.draw?.deleteAll()
 
             const wkt = this.currentEditor.value || ''
-            const geometry = this.wktToGeometry(wkt)
+            const geometry = wktToGeometry(wkt)
             if (geometry && geometry.coordinates?.length) {
                 this.draw?.add(geometry)
                 this.fitToGeometry(this.map!, geometry)
@@ -113,8 +112,8 @@ export class MapboxPlugin extends Plugin {
 
     createViewer(template: ShaclPropertyTemplate, value: Term): HTMLElement {
         const container = document.createElement('div')
-        const geometry = this.wktToGeometry(value.value)
-        if (geometry && geometry.coordinates?.length) {
+        const geometry = wktToGeometry(value.value)
+        if (geometry?.coordinates?.length) {
             // wait for container to be available in DOM
             setTimeout(() => {
                 const draw = new MapboxDraw({ displayControlsDefault: false })
@@ -152,42 +151,6 @@ export class MapboxPlugin extends Plugin {
         const data = this.draw!.getAll()
         for (let i = 0; i < data.features.length - 1; i++) {
             this.draw!.delete(data.features[i].id as string)
-        }
-    }
-
-    wktToGeometry(wkt: string): Geometry | undefined {
-        const pointCoords = wkt.match(/^POINT\((.*)\)$/)
-        if (pointCoords?.length == 2) {
-            const xy = pointCoords[1].split(' ')
-            if (xy.length === 2) {
-                return { type: 'Point', coordinates: [parseFloat(xy[0]), parseFloat(xy[1])] }
-            }
-        }
-        const polygonCoords = wkt.match(/^POLYGON[(]{2}(.*)[)]{2}$/)
-        if (polygonCoords?.length == 2) {
-            const split = polygonCoords[1].split(',')
-            if (split.length > 2) {
-                const coords: number[][][] = []
-                const outer: number[][] = []
-                coords.push(outer)
-                for (const coord of split) {
-                    const xy = coord.split(' ')
-                    if (xy.length === 2) {
-                        outer.push([parseFloat(xy[0]), parseFloat(xy[1])])
-                    }
-                }
-                return { type: 'Polygon', coordinates: coords }
-            }
-        }
-    }
-
-    geometryToWkt(geometry: Geometry): string {
-        if (geometry.type === 'Point') {
-            return `POINT(${geometry.coordinates.join(' ')})`
-        } else if (geometry.type === 'Polygon') {
-            return `POLYGON((${geometry.coordinates[0].map(item => { return item.join(' ') }).join(',')}))`
-        } else {
-            return ''
         }
     }
 }
