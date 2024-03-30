@@ -58,6 +58,9 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
             else if (editor['type'] === 'number') {
                 value = parseFloat(value)
             }
+            else if (editor['type'] === 'file' && editor['binaryData']) {
+                value = editor['binaryData']
+            }
             return DataFactory.literal(value, languageOrDatatype)
         }
     } else if (editor['type'] === 'checkbox' || editor.getAttribute('type') === 'checkbox') {

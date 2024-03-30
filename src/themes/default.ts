@@ -153,6 +153,25 @@ export class DefaultTheme extends Theme {
         return result
     }
 
+    createFileEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
+        const editor = document.createElement('input')
+        editor.type = 'file'
+        editor.addEventListener('change', (e) => {
+            if (editor.files?.length) {
+                e.stopPropagation()
+                const reader = new FileReader()
+                reader.readAsDataURL(editor.files[0])
+                reader.onload = () => {
+                    (editor as Editor)['binaryData'] = btoa(reader.result as string)
+                    editor.parentElement?.dispatchEvent(new Event('change', { bubbles: true }))
+                }
+            } else {
+                (editor as Editor)['binaryData'] = undefined               
+            }
+        })
+        return this.createDefaultTemplate(label, value, required, editor, template)
+    }
+
     createNumberEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = document.createElement('input')
         editor.type = 'number'

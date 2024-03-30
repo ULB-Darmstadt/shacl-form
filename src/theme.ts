@@ -5,7 +5,7 @@ import { createInputListEntries, findInstancesOf, findLabel, isURL } from './uti
 import { ShaclPropertyTemplate } from './property-template'
 import css from './styles.css'
 
-export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, checked?: boolean }
+export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, binaryData?: string, checked?: boolean }
 export type InputListEntry = { value: Term | string, label?: string }
 
 export abstract class Theme {
@@ -75,6 +75,7 @@ export abstract class Theme {
     abstract createNumberEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement
     abstract createDateEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement
     abstract createBooleanEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement
+    abstract createFileEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement
     abstract createButton(label: string, primary: boolean): HTMLElement
 }
 
@@ -114,6 +115,8 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
                 return template.config.theme.createDateEditor(template.label, value, required, template)
             case 'boolean':
                 return template.config.theme.createBooleanEditor(template.label, value, required, template)
+            case 'base64Binary':
+                return template.config.theme.createFileEditor(template.label, value, required, template)
             }
 
         // nothing found (or datatype is 'string'), fallback to 'text'

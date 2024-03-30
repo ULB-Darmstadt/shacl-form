@@ -43,6 +43,12 @@ export class MaterialTheme extends Theme {
         }
     
         const result = document.createElement('div')
+        if (label) {
+            const labelElem = document.createElement('label')
+            labelElem.htmlFor = editor.id
+            labelElem.innerText = label
+            result.appendChild(labelElem)
+        }
         result.appendChild(editor)
         return result
     }
@@ -62,7 +68,7 @@ export class MaterialTheme extends Theme {
             }
         }
 
-        return this.createDefaultTemplate(label, value, required, editor, template)
+        return this.createDefaultTemplate('', value, required, editor, template)
     }
 
     createNumberEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
@@ -81,14 +87,14 @@ export class MaterialTheme extends Theme {
         if (template.datatype?.value !== PREFIX_XSD + 'integer') {
             editor.step = '0.1'
         }
-        return this.createDefaultTemplate(label, value, required, editor, template)
+        return this.createDefaultTemplate('', value, required, editor, template)
     }
 
     createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement {
         const editor = new MdOutlinedSelect()
         editor.label = label
         editor.supportingText = template?.description?.value || template?.label || ''
-        const result = this.createDefaultTemplate(label, null, required, editor, template)
+        const result = this.createDefaultTemplate('', null, required, editor, template)
         let addEmptyOption = true
     
         for (const item of listEntries) {
@@ -126,7 +132,7 @@ export class MaterialTheme extends Theme {
     createBooleanEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = new MdCheckbox()
         editor.setAttribute('type', 'checkbox')
-        const result = this.createDefaultTemplate(label, value, required, editor, template)
+        const result = this.createDefaultTemplate('', value, required, editor, template)
         // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here
         editor.removeAttribute('required')
         if (value instanceof Literal) {
@@ -175,6 +181,25 @@ export class MaterialTheme extends Theme {
         editor.dataset.lang = langChooser.value
         editor.after(langChooser)
         return result
+    }
+
+    createFileEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
+        const editor = document.createElement('input')
+        editor.type = 'file'
+        editor.addEventListener('change', (e) => {
+            if (editor.files?.length) {
+                e.stopPropagation()
+                const reader = new FileReader()
+                reader.readAsDataURL(editor.files[0])
+                reader.onload = () => {
+                    (editor as Editor)['binaryData'] = btoa(reader.result as string)
+                    editor.parentElement?.dispatchEvent(new Event('change', { bubbles: true }))
+                }
+            } else {
+                (editor as Editor)['binaryData'] = undefined               
+            }
+        })
+        return this.createDefaultTemplate(label, value, required, editor, template)
     }
 
     createButton(label: string, primary: boolean): HTMLElement {
