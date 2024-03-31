@@ -61,7 +61,7 @@ data-shapes-url | When `data-shapes` is not set, the SHACL shapes are loaded fro
 data-shape-subject | Optional subject (id) of the SHACL node shape to use as root for the form. If not set, the first found node shape will be used
 data-values | RDF triples (e.g. a turtle string) to use as existing data graph to fill the form
 data-values-url | When `data-values` is not set, the data graph triples are loaded from this URL
-data-values-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form
+data-value-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form
 data-values-namespace | RDF namespace to use when generating new RDF subjects. Default is empty, so that subjects will be blank nodes.
 data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://www.w3schools.com/jsref/prop_nav_language.asp)
 data-loading | Text to display while the web component is initializing. Default: `"Loading..."`
