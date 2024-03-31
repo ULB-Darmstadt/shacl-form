@@ -15,7 +15,7 @@ export class ShaclProperty extends HTMLElement {
 
     constructor(shaclSubject: BlankNode | NamedNode, config: Config, nodeId: NamedNode | BlankNode, valueSubject?: NamedNode | BlankNode) {
         super()
-
+        console.log('--- new shacl property', nodeId)
         this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), nodeId, config)
         this.dataset.nodeId = this.template.nodeId.id
 
@@ -142,7 +142,7 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         instance = document.createElement('div')
         instance.classList.add('property-instance')
         for (const node of template.extendedShapes) {
-            instance.appendChild(new ShaclNode(node, template.config, value as NamedNode | BlankNode | undefined, template.label))
+            instance.appendChild(new ShaclNode(node, template.config, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label))
         }
     } else {
         const plugin = template.config.plugins.find(template.path, template.datatype?.value)

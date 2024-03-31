@@ -12,6 +12,7 @@ export class ElementAttributes {
     values: string | null = null
     valuesUrl: string | null = null
     valueSubject: string | null = null
+    valuesNamespace = ''
     view: string | null = null
     language: string = navigator.language
     loading: string = 'Loading\u2026'

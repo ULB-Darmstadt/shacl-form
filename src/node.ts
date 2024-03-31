@@ -13,15 +13,38 @@ export class ShaclNode extends HTMLElement {
     targetClass: NamedNode | undefined
     config: Config
 
-    constructor(shaclSubject: NamedNode, config: Config, valueSubject: NamedNode | BlankNode | undefined, label?: string) {
+    constructor(shaclSubject: NamedNode, config: Config, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string) {
         super()
 
         this.config = config
         this.shaclSubject = shaclSubject
-        this.nodeId = valueSubject || DataFactory.blankNode(uuidv4())
+        let nodeId: NamedNode | BlankNode | undefined = valueSubject
+        if (!nodeId) {
+            // if no value subject given, create new node id with a type depending on own nodeKind or given parent property nodeKind
+            if (!nodeKind) {
+                const spec = config.shapesGraph.getObjects(shaclSubject, `${PREFIX_SHACL}nodeKind`, SHAPES_GRAPH)
+                if (spec.length) {
+                    nodeKind = spec[0] as NamedNode
+                }
+            }
+            if (nodeKind === undefined && config.attributes.valuesNamespace) {
+                // no requirements on node type, so create a NamedNode and use configured value namespace
+                nodeId = DataFactory.namedNode(config.attributes.valuesNamespace + uuidv4())
+            }
+            else if (nodeKind?.id === `${PREFIX_SHACL}IRI`) {
+                nodeId = DataFactory.namedNode(config.attributes.valuesNamespace + uuidv4())
+            }
+            else {
+                // default to BlankNode
+                nodeId = DataFactory.blankNode(uuidv4())
+            }
+        }
+        this.nodeId = nodeId
+        this.dataset.nodeId = this.nodeId.id
+
+        
         const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
         let list: Term[] | undefined
-        this.dataset.nodeId = this.nodeId.id
 
         for (const quad of quads) {
             switch (quad.predicate.id) {
