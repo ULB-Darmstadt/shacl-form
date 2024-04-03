@@ -28,6 +28,8 @@ export class ShaclProperty extends HTMLElement {
             this.addButton.innerText = this.template.label
             this.addButton.title = 'Add ' + this.template.label
             this.addButton.classList.add('control-button', 'add-button')
+            if (this.template.cssClass)
+              this.addButton.classList.add(this.template.cssClass);
             this.addButton.addEventListener('click', _ => {
                 const instance = this.addPropertyInstance()
                 instance.classList.add('fadeIn')
