@@ -5,8 +5,8 @@ import { ShaclPropertyTemplate } from '../property-template'
 import {  InputListEntry } from '../theme'
 
 export class FileUploadPlugin extends Plugin {   
-  	onChange: any
-    constructor(options: PluginOptions, onChange: (event: any) => void, fileType?: string) {
+  	onChange: (event: Event) => void
+    constructor(options: PluginOptions, onChange: (event: Event) => void, fileType?: string) {
         super(options)
       	this.onChange = onChange
     }
