@@ -15,7 +15,6 @@ export class ShaclProperty extends HTMLElement {
 
     constructor(shaclSubject: BlankNode | NamedNode, config: Config, nodeId: NamedNode | BlankNode, valueSubject?: NamedNode | BlankNode) {
         super()
-        console.log('--- new shacl property', nodeId)
         this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), nodeId, config)
         this.dataset.nodeId = this.template.nodeId.id
 
