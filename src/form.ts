@@ -1,6 +1,6 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
-import { ClassInstanceProvider, Plugin, PluginOptions } from './plugin'
+import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
 import { Quad, Store, NamedNode, DataFactory } from 'n3'
 import { RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
@@ -60,7 +60,7 @@ export class ShaclForm extends HTMLElement {
                     this.config.theme.apply(this.form)
                     // adopt stylesheets from theme and plugins
                     const styles: CSSStyleSheet[] = [ this.config.theme.stylesheet ]
-                    for (const plugin of this.config.plugins.list()) {
+                    for (const plugin of listPlugins()) {
                         if (plugin.stylesheet) {
                             styles.push(plugin.stylesheet)
                         }
@@ -117,8 +117,8 @@ export class ShaclForm extends HTMLElement {
         return graph
     }
 
-    public registerPlugin(plugin: Plugin, options?: PluginOptions) {
-        this.config.plugins.register(plugin)
+    public registerPlugin(plugin: Plugin) {
+        registerPlugin(plugin)
         this.initialize()
     }
 
