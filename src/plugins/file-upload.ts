@@ -1,30 +1,26 @@
 import { Plugin, PluginOptions } from '../plugin'
-import { Term } from '@rdfjs/types'
-
 import { ShaclPropertyTemplate } from '../property-template'
-import {  InputListEntry } from '../theme'
 
 export class FileUploadPlugin extends Plugin {   
   	onChange: (event: Event) => void
+    fileType: string | undefined
+
     constructor(options: PluginOptions, onChange: (event: Event) => void, fileType?: string) {
         super(options)
       	this.onChange = onChange
+        this.fileType = fileType
     }
 
-    createEditor(template: ShaclPropertyTemplate, value?: Term ): HTMLElement {
+    createEditor(template: ShaclPropertyTemplate): HTMLElement {
         const required = template.minCount !== undefined && template.minCount > 0
-        let editor
-        editor = document.createElement('input')
-        editor.type = 'file'
-        if (fileType)
-          editor.setAttribute('accept', filetype) 
-      	editor.addEventListener('change', this.onChange);
-
-        return template.config.theme.createDefaultTemplate(
-        	template.label,
-        	value || null,
-        	required,
-        	editor,
-        	template)
+        const editor = template.config.theme.createFileEditor(template.label, null, required, template)
+      	editor.addEventListener('change', event => {
+          event.stopPropagation()
+          this.onChange(event)
+        })
+        if (this.fileType) {
+          editor.querySelector('input[type="file"]')?.setAttribute('accept', this.fileType)
+        }
+        return editor
     }
 }
