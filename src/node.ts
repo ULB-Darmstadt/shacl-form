@@ -27,21 +27,17 @@ export class ShaclNode extends HTMLElement {
                     nodeKind = spec[0] as NamedNode
                 }
             }
-            if (nodeKind === undefined && config.attributes.valuesNamespace) {
+            // if nodeKind is not set, but a value namespace is configured or if nodeKind is sh:IRI, then create a NamedNode
+            if ((nodeKind === undefined && config.attributes.valuesNamespace) || nodeKind?.id === `${PREFIX_SHACL}IRI`) {
                 // no requirements on node type, so create a NamedNode and use configured value namespace
                 nodeId = DataFactory.namedNode(config.attributes.valuesNamespace + uuidv4())
-            }
-            else if (nodeKind?.id === `${PREFIX_SHACL}IRI`) {
-                nodeId = DataFactory.namedNode(config.attributes.valuesNamespace + uuidv4())
-            }
-            else {
-                // default to BlankNode
+            } else {
+                // otherwise create a BlankNode
                 nodeId = DataFactory.blankNode(uuidv4())
             }
         }
         this.nodeId = nodeId
         this.dataset.nodeId = this.nodeId.id
-
         
         const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
         let list: Term[] | undefined
@@ -66,7 +62,11 @@ export class ShaclNode extends HTMLElement {
                             console.warn('ignoring unknown group reference', groupRef[0])
                         }
                     }
-                    parent.appendChild(new ShaclProperty(quad.object as NamedNode | BlankNode, config, this.nodeId, valueSubject))
+                    const property = new ShaclProperty(quad.object as NamedNode | BlankNode, config, this.nodeId, valueSubject)
+                    // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
+                    if (property.childElementCount > 0) {
+                        parent.appendChild(property)
+                    }
                     break;
                 case `${PREFIX_SHACL}and`:
                     // inheritance via sh:and
