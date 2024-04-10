@@ -21,7 +21,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}minExclusive`]: (template, term) => { template.minExclusive = parseInt(term.value) },
     [`${PREFIX_SHACL}maxExclusive`]: (template, term) => { template.maxExclusive = parseInt(term.value) },
     [`${PREFIX_SHACL}pattern`]:      (template, term) => { template.pattern = term.value },
-    [`${PREFIX_SHACL}order`]:        (template, term) => { template.order = term.value },
+    [`${PREFIX_SHACL}order`]:        (template, term) => { template.order = parseInt(term.value) },
     [`${PREFIX_DASH}singleLine`]:    (template, term) => { template.singleLine = term.value === 'true' },
     [`${PREFIX_SHACL}and`]:          (template, term) => { template.shaclAnd = term.value },
     [`${PREFIX_SHACL}in`]:           (template, term) => { template.shaclIn = term.value },
@@ -67,7 +67,7 @@ export class ShaclPropertyTemplate  {
     singleLine: boolean | undefined
     defaultValue: Term | undefined
     pattern: string | undefined
-    order: string | undefined
+    order: number | undefined
     nodeKind: NamedNode | undefined
     shaclAnd: string | undefined
     shaclIn: string | undefined

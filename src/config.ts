@@ -1,7 +1,7 @@
 import { Prefixes, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
-import { ClassInstanceProvider, Plugins } from './plugin'
+import { ClassInstanceProvider } from './plugin'
 import { Loader } from './loader'
 import { Theme } from './theme'
 
@@ -26,7 +26,6 @@ export class Config {
     loader = new Loader(this)
     classInstanceProvider: ClassInstanceProvider | undefined
     prefixes: Prefixes = {}
-    plugins = new Plugins()
     editMode = true
 
     dataGraph = new Store()

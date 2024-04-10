@@ -1,35 +1,34 @@
 import { ShaclPropertyTemplate } from './property-template'
 import { Term } from '@rdfjs/types'
 
-export class Plugins {
-    private plugins: Record<string, Plugin> = {}
-    
-    register(plugin: Plugin) {
-        if (plugin.predicate === undefined && plugin.datatype === undefined) {
-            console.warn('not registering plugin because it does neither define "predicate" nor "datatype"', plugin)
-        } else {
-            this.plugins[`${plugin.predicate}^${plugin.datatype}`] = plugin
-        }
-    }
+// store plugins in module scope so that they apply to all shacl-form elements
+const plugins: Record<string, Plugin> = {}
 
-    list(): Plugin[] {
-        return Object.entries(this.plugins).map((value: [_: string, plugin: Plugin]) => { return value[1] })
+export function registerPlugin(plugin: Plugin) {
+    if (plugin.predicate === undefined && plugin.datatype === undefined) {
+        console.warn('not registering plugin because it does neither define "predicate" nor "datatype"', plugin)
+    } else {
+        plugins[`${plugin.predicate}^${plugin.datatype}`] = plugin
     }
+}
 
-    find(predicate: string | undefined, datatype: string | undefined): Plugin | undefined {
-        // first try to find plugin with matching predicate and datatype
-        let plugin = this.plugins[`${predicate}^${datatype}`]
-        if (plugin) {
-            return plugin
-        }
-        // now prefer predicate over datatype
-        plugin = this.plugins[`${predicate}^${undefined}`]
-        if (plugin) {
-            return plugin
-        }
-        // last, try to find plugin with matching datatype
-        return this.plugins[`${undefined}^${datatype}`]
+export function listPlugins(): Plugin[] {
+    return Object.entries(plugins).map((value: [_: string, plugin: Plugin]) => { return value[1] })
+}
+
+export function findPlugin(predicate: string | undefined, datatype: string | undefined): Plugin | undefined {
+    // first try to find plugin with matching predicate and datatype
+    let plugin = plugins[`${predicate}^${datatype}`]
+    if (plugin) {
+        return plugin
     }
+    // now prefer predicate over datatype
+    plugin = plugins[`${predicate}^${undefined}`]
+    if (plugin) {
+        return plugin
+    }
+    // last, try to find plugin with matching datatype
+    return plugins[`${undefined}^${datatype}`]
 }
 
 export type PluginOptions = {

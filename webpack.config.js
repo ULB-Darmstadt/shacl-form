@@ -9,6 +9,7 @@ module.exports = [
             'plugins/mapbox': './src/plugins/mapbox.ts',
             'plugins/leaflet': './src/plugins/leaflet.ts',
             'plugins/fixed-list': './src/plugins/fixed-list.ts',
+            'plugins/file-upload': './src/plugins/file-upload.ts',
         },
         experiments: { outputModule: true },
         output: {

@@ -8,6 +8,7 @@ import { Config } from './config'
 import { ShaclPropertyTemplate } from './property-template'
 import { Editor, fieldFactory } from './theme'
 import { toRDF } from './serialize'
+import { findPlugin } from './plugin'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
@@ -15,12 +16,11 @@ export class ShaclProperty extends HTMLElement {
 
     constructor(shaclSubject: BlankNode | NamedNode, config: Config, nodeId: NamedNode | BlankNode, valueSubject?: NamedNode | BlankNode) {
         super()
-        console.log('--- new shacl property', nodeId)
         this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), nodeId, config)
         this.dataset.nodeId = this.template.nodeId.id
 
-        if (this.template.order) {
-            this.style.order = this.template.order
+        if (this.template.order !== undefined) {
+            this.style.order = `${this.template.order}`
         }
 
         if (config.editMode) {
@@ -64,18 +64,21 @@ export class ShaclProperty extends HTMLElement {
         }
 
         if (this.template.extendedShapes?.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
-            const collapsible = this
-            collapsible.classList.add('collapsible')
-            if (this.template.config.attributes.collapse === 'open') {
-                collapsible.classList.add('open')
+            // in view mode, show collapsible only when we have something to show
+            if (config.editMode || this.childElementCount > 0) {
+                const collapsible = this
+                collapsible.classList.add('collapsible')
+                if (this.template.config.attributes.collapse === 'open') {
+                    collapsible.classList.add('open')
+                }
+                const activator = document.createElement('h1')
+                activator.classList.add('activator')
+                activator.innerText = this.template.label
+                activator.addEventListener('click', () => {
+                    collapsible.classList.toggle('open')
+                })
+                this.prepend(activator)
             }
-            const activator = document.createElement('h1')
-            activator.classList.add('activator')
-            activator.innerText = this.template.label
-            activator.addEventListener('click', () => {
-                collapsible.classList.toggle('open')
-            })
-            this.prepend(activator)
         }
     }
 
@@ -147,7 +150,7 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
             instance.appendChild(new ShaclNode(node, template.config, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label))
         }
     } else {
-        const plugin = template.config.plugins.find(template.path, template.datatype?.value)
+        const plugin = findPlugin(template.path, template.datatype?.value)
         if (plugin) {
             if (template.config.editMode) {
                 instance = plugin.createEditor(template, value)
