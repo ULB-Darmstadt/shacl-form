@@ -1,12 +1,11 @@
 import { Literal, NamedNode, BlankNode, Quad, DataFactory } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_DASH, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
+import { PREFIX_DASH, PREFIX_OA, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { findLabel, removePrefixes } from './util'
 
 const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => void> = {
     [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; if (!template.name || literal.language === template.config.attributes.language) { template.name = literal } },
-    [`${PREFIX_SHACL}cssClass`]:         (template, term) => { template.cssClass = term.value },
     [`${PREFIX_SHACL}description`]:  (template, term) => { const literal = term as Literal; if (!template.description || literal.language === template.config.attributes.language) { template.description = literal } },
     [`${PREFIX_SHACL}path`]:         (template, term) => { template.path = term.value },
     [`${PREFIX_SHACL}node`]:         (template, term) => { template.node = term as NamedNode },
@@ -23,6 +22,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}pattern`]:      (template, term) => { template.pattern = term.value },
     [`${PREFIX_SHACL}order`]:        (template, term) => { template.order = parseInt(term.value) },
     [`${PREFIX_DASH}singleLine`]:    (template, term) => { template.singleLine = term.value === 'true' },
+    [`${PREFIX_OA}styleClass`]:      (template, term) => { template.cssClass = term.value },
     [`${PREFIX_SHACL}and`]:          (template, term) => { template.shaclAnd = term.value },
     [`${PREFIX_SHACL}in`]:           (template, term) => { template.shaclIn = term.value },
     // sh:datatype might be undefined, but sh:languageIn defined. this is undesired. the spec says, that strings without a lang tag are not valid if sh:languageIn is set. but the shacl validator accepts these as valid. to prevent this, we just set the datatype here to 'langString'.
@@ -51,7 +51,6 @@ export class ShaclPropertyTemplate  {
     label = ''
     nodeId: NamedNode | BlankNode
     name: Literal | undefined
-    cssClass: string | undefined
     description: Literal | undefined
     path: string | undefined
     node: NamedNode | undefined
@@ -65,6 +64,7 @@ export class ShaclPropertyTemplate  {
     minExclusive: number | undefined
     maxExclusive: number | undefined
     singleLine: boolean | undefined
+    cssClass: string | undefined
     defaultValue: Term | undefined
     pattern: string | undefined
     order: number | undefined

@@ -22,14 +22,15 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.order !== undefined) {
             this.style.order = `${this.template.order}`
         }
+        if (this.template.cssClass) {
+            this.classList.add(this.template.cssClass)
+        }
 
         if (config.editMode) {
             this.addButton = document.createElement('a')
             this.addButton.innerText = this.template.label
             this.addButton.title = 'Add ' + this.template.label
             this.addButton.classList.add('control-button', 'add-button')
-            if (this.template.cssClass)
-              this.addButton.classList.add(this.template.cssClass);
             this.addButton.addEventListener('click', _ => {
                 const instance = this.addPropertyInstance()
                 instance.classList.add('fadeIn')
