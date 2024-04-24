@@ -95,4 +95,11 @@ ex:Demo a sh:NodeShape, rdfs:Class ;
     sh:description  "multiline langString with no fixed languages" ;
     dash:singleLine false ;
     sh:path         ex:myLangString4
+  ] ;
+  sh:property [
+    sh:datatype     xsd:base64Binary ;
+    sh:maxCount     1 ;
+    sh:name         "base64 binary" ;
+    sh:description  "base64 encoded binary data" ;
+    sh:path         ex:myBinary
   ] .

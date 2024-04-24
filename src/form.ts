@@ -147,58 +147,63 @@ export class ShaclForm extends HTMLElement {
 
         this.config.shapesGraph.deleteGraph('')
         this.shape?.toRDF(this.config.shapesGraph)
-        const report = await new SHACLValidator(this.config.shapesGraph).validate(this.config.shapesGraph)
+        try {
+            const report = await new SHACLValidator(this.config.shapesGraph).validate(this.config.shapesGraph)
 
-        // for (const result of report.results) {
-        //     // See https://www.w3.org/TR/shacl/#results-validation-result for details
-        //     // about each property
-        //     console.log('--- message', result.message)
-        //     console.log('--- path', result.path)
-        //     console.log('--- focusNode', result.focusNode)
-        //     console.log('--- severity', result.severity)
-        //     console.log('--- sourceConstraintComponent', result.sourceConstraintComponent)
-        //     console.log('--- sourceShape', result.sourceShape)
-        // }
+            // for (const result of report.results) {
+            //     // See https://www.w3.org/TR/shacl/#results-validation-result for details
+            //     // about each property
+            //     console.log('--- message', result.message)
+            //     console.log('--- path', result.path)
+            //     console.log('--- focusNode', result.focusNode)
+            //     console.log('--- severity', result.severity)
+            //     console.log('--- sourceConstraintComponent', result.sourceConstraintComponent)
+            //     console.log('--- sourceShape', result.sourceShape)
+            // }
 
-        for (const result of report.results) {
-            // result.path can be null, e.g. if a focus node does not contain a required property node
-            const focusNode = result.focusNode as NamedNode
-            if (result.path) {
-                const path = result.path as NamedNode
-                // try to find most specific editor elements first
-                let invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}'] > .editor`)
-                if (invalidElements.length === 0) {
-                    // if no editors found, select respective node. this will be the case for node shape violations.
-                    invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}']`)
-                }
-
-                for (const invalidElement of invalidElements) {
-                    if (invalidElement.classList.contains('editor')) {
-                        // this is a property shape violation
-                        if (!ignoreEmptyValues || (invalidElement as Editor).value) {
-                            let parent: HTMLElement | null = invalidElement.parentElement!
-                            parent.classList.add('invalid')
-                            parent.classList.remove('valid')
-                            parent.appendChild(this.createValidationErrorDisplay(result))
-                            do {
-                                if (parent.classList.contains('collapsible')) {
-                                    parent.classList.add('open')
-                                }
-                                parent = parent.parentElement
-                            } while (parent)
-                        }
-                    } else if (!ignoreEmptyValues) {
-                        // this is a node shape violation
-                        invalidElement.classList.add('invalid')
-                        invalidElement.classList.remove('valid')
-                        invalidElement.appendChild(this.createValidationErrorDisplay(result, 'node'))
+            for (const result of report.results) {
+                // result.path can be null, e.g. if a focus node does not contain a required property node
+                const focusNode = result.focusNode as NamedNode
+                if (result.path) {
+                    const path = result.path as NamedNode
+                    // try to find most specific editor elements first
+                    let invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}'] > .editor`)
+                    if (invalidElements.length === 0) {
+                        // if no editors found, select respective node. this will be the case for node shape violations.
+                        invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}']`)
                     }
+
+                    for (const invalidElement of invalidElements) {
+                        if (invalidElement.classList.contains('editor')) {
+                            // this is a property shape violation
+                            if (!ignoreEmptyValues || (invalidElement as Editor).value) {
+                                let parent: HTMLElement | null = invalidElement.parentElement!
+                                parent.classList.add('invalid')
+                                parent.classList.remove('valid')
+                                parent.appendChild(this.createValidationErrorDisplay(result))
+                                do {
+                                    if (parent.classList.contains('collapsible')) {
+                                        parent.classList.add('open')
+                                    }
+                                    parent = parent.parentElement
+                                } while (parent)
+                            }
+                        } else if (!ignoreEmptyValues) {
+                            // this is a node shape violation
+                            invalidElement.classList.add('invalid')
+                            invalidElement.classList.remove('valid')
+                            invalidElement.appendChild(this.createValidationErrorDisplay(result, 'node'))
+                        }
+                    }
+                } else if (!ignoreEmptyValues) {
+                    this.form.querySelector(`:scope [data-node-id='${focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
                 }
-            } else if (!ignoreEmptyValues) {
-                this.form.querySelector(`:scope [data-node-id='${focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
             }
+            return report.conforms
+        } catch(e) {
+            console.error(e)
+            return false
         }
-        return report.conforms
     }
 
     private createValidationErrorDisplay(validatonResult?: any, clazz?: string): HTMLElement {

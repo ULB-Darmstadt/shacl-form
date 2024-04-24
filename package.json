@@ -57,7 +57,7 @@
         "leaflet.fullscreen": "^3.0.1",
         "mapbox-gl": "^3.2.0",
         "n3": "^1.17.3",
-        "rdf-validate-shacl": "^0.5.3",
+        "rdf-validate-shacl": "^0.5.4",
         "uuid": "^9.0.1"
     }
 }
