@@ -22,6 +22,9 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.order !== undefined) {
             this.style.order = `${this.template.order}`
         }
+        if (this.template.cssClass) {
+            this.classList.add(this.template.cssClass)
+        }
 
         if (config.editMode) {
             this.addButton = document.createElement('a')
