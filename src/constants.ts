@@ -7,6 +7,7 @@ export const PREFIX_RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
 export const PREFIX_RDFS = 'http://www.w3.org/2000/01/rdf-schema#'
 export const PREFIX_SKOS = 'http://www.w3.org/2004/02/skos/core#'
 export const PREFIX_OWL = 'http://www.w3.org/2002/07/owl#'
+export const PREFIX_OA = 'http://www.w3.org/ns/oa#'
 
 export const SHAPES_GRAPH = DataFactory.namedNode('shapes')
 export const OWL_IMPORTS = DataFactory.namedNode(PREFIX_OWL + 'imports')
