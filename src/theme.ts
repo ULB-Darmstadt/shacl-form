@@ -5,7 +5,7 @@ import { createInputListEntries, findInstancesOf, findLabel, isURL } from './uti
 import { ShaclPropertyTemplate } from './property-template'
 import css from './styles.css'
 
-export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, binaryData?: string, checked?: boolean }
+export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, binaryData?: string, checked?: boolean, disabled?: boolean }
 export type InputListEntry = { value: Term | string, label?: string }
 
 export abstract class Theme {

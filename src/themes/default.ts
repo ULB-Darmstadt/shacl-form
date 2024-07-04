@@ -28,6 +28,9 @@ export class DefaultTheme extends Theme {
         if (template?.nodeKind) {
             editor.dataset.nodeKind = template.nodeKind.value
         }
+        if (template?.hasValue) {
+            editor.disabled = true
+        }
         editor.value = value?.value || template?.defaultValue?.value || ''
     
         const labelElem = document.createElement('label')
