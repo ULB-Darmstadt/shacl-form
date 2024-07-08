@@ -61,6 +61,10 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
             else if (editor['type'] === 'file' && editor['binaryData']) {
                 value = editor['binaryData']
             }
+            else if (editor['type'] === 'datetime-local') {
+                // if seconds in value are 0, the input field omits them which is then not a valid xsd:dateTime
+                value = new Date(value).toISOString().slice(0, 19)
+            }
             return DataFactory.literal(value, languageOrDatatype)
         }
     } else if (editor['type'] === 'checkbox' || editor.getAttribute('type') === 'checkbox') {
