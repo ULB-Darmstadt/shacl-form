@@ -11,7 +11,11 @@ export class ElementAttributes {
     shapeSubject: string | null = null
     values: string | null = null
     valuesUrl: string | null = null
-    valueSubject: string | null = null
+    /**
+     * @deprecated Use valuesSubject instead
+     */
+    valueSubject: string | null = null // for backward compatibility
+    valuesSubject: string | null = null
     valuesNamespace = ''
     view: string | null = null
     language: string = navigator.language
@@ -50,6 +54,10 @@ export class Config {
         })
         this.editMode = atts.view === null
         this.attributes = atts
+        // for backward compatibility
+        if (this.attributes.valueSubject && !this.attributes.valuesSubject) {
+            this.attributes.valuesSubject = this.attributes.valueSubject
+        }
     }
 
     static dataAttributes(): Array<string> {

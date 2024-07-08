@@ -67,7 +67,7 @@ export class ShaclForm extends HTMLElement {
                     }
                     this.shadowRoot!.adoptedStyleSheets = styles
 
-                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valueSubject ? DataFactory.namedNode(this.config.attributes.valueSubject) : undefined)
+                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
                     this.form.appendChild(this.shape)
 
                     if (this.config.editMode) {
@@ -236,12 +236,12 @@ export class ShaclForm extends HTMLElement {
             }
         }
         else {
-            // if we have a data graph and data-value-subject is set, use shape of that
-            if (this.config.attributes.valueSubject && this.config.dataGraph.size > 0) {
-                const rootValueSubject = DataFactory.namedNode(this.config.attributes.valueSubject)
+            // if we have a data graph and data-values-subject is set, use shape of that
+            if (this.config.attributes.valuesSubject && this.config.dataGraph.size > 0) {
+                const rootValueSubject = DataFactory.namedNode(this.config.attributes.valuesSubject)
                 const rootValueSubjectTypes = this.config.dataGraph.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, null)
                 if (rootValueSubjectTypes.length === 0) {
-                    console.warn(`value subject '${this.config.attributes.valueSubject}' has no ${RDF_PREDICATE_TYPE.id} statement`)
+                    console.warn(`value subject '${this.config.attributes.valuesSubject}' has no ${RDF_PREDICATE_TYPE.id} statement`)
                     return
                 }
                 // if type refers to a node shape, prioritize that over targetClass resolution
@@ -254,14 +254,14 @@ export class ShaclForm extends HTMLElement {
                 if (!rootShapeShaclSubject) {
                     const rootShapes = this.config.shapesGraph.getQuads(null, SHACL_PREDICATE_TARGET_CLASS, rootValueSubjectTypes[0].object, SHAPES_GRAPH)
                     if (rootShapes.length === 0) {
-                        console.error(`value subject '${this.config.attributes.valueSubject}' has no shacl shape definition in the shapes graph`)
+                        console.error(`value subject '${this.config.attributes.valuesSubject}' has no shacl shape definition in the shapes graph`)
                         return
                     }
                     if (rootShapes.length > 1) {
-                        console.warn(`value subject '${this.config.attributes.valueSubject}' has multiple shacl shape definitions in the shapes graph, choosing the first found (${rootShapes[0].subject})`)
+                        console.warn(`value subject '${this.config.attributes.valuesSubject}' has multiple shacl shape definitions in the shapes graph, choosing the first found (${rootShapes[0].subject})`)
                     }
                     if (this.config.shapesGraph.getQuads(rootShapes[0].subject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH).length === 0) {
-                        console.error(`value subject '${this.config.attributes.valueSubject}' references a shape which is not a NodeShape (${rootShapes[0].subject})`)
+                        console.error(`value subject '${this.config.attributes.valuesSubject}' references a shape which is not a NodeShape (${rootShapes[0].subject})`)
                         return
                     }
                     rootShapeShaclSubject = rootShapes[0].subject as NamedNode
