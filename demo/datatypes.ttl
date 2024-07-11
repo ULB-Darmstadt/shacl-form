@@ -21,6 +21,13 @@ ex:Demo a sh:NodeShape, rdfs:Class ;
   ] ;
   sh:property [
     sh:datatype     xsd:string ;
+    sh:maxCount     1 ;
+    sh:name         "string with fixed value" ;
+    sh:hasValue     "fixed value of string" ;
+    sh:path         ex:mySimpleStringWithFixedValue
+  ] ;
+  sh:property [
+    sh:datatype     xsd:string ;
     dash:singleLine false ;
     sh:maxCount     1 ;
     sh:name         "multiline string" ;
