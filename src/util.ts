@@ -67,6 +67,8 @@ export function removePrefixes(id: string, prefixes: Prefixes): string {
 
 export function findInstancesOf(clazz: NamedNode, config: Config): InputListEntry[] {
     const instances: Term[] = config.shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, null)
+    // merge instances from the data graph
+    instances.push(...config.dataGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, null))
     const entries = createInputListEntries(instances, config.shapesGraph, config.attributes.language)
     for (const subClass of config.shapesGraph.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, clazz, null)) {
         entries.push(...findInstancesOf(subClass as NamedNode, config))
