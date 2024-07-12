@@ -3,7 +3,7 @@ import { Term } from '@rdfjs/types'
 import { ShaclNode } from "./node"
 import { ShaclProperty, createPropertyInstance } from "./property"
 import { Config } from './config'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHAPES_GRAPH } from './constants'
 import { findLabel, removePrefixes } from './util'
 import { ShaclPropertyTemplate } from './property-template'
 import { Editor, InputListEntry } from './theme'
@@ -74,11 +74,10 @@ export function resolveShaclOrConstraint(template: ShaclPropertyTemplate, value:
         // value is a NamedNode or BlankNode, try to resolve sh:or by matching rdf:type of given value with sh:node or sh:class in data graph or shapes graph
         let types = template.config.dataGraph.getObjects(value, RDF_PREDICATE_TYPE, null)
         types.push(...template.config.shapesGraph.getObjects(value, RDF_PREDICATE_TYPE, SHAPES_GRAPH))
-
-        if (types.length > 0) {
-            for (const subject of template.shaclOr) {
-                const options = template.config.shapesGraph.getQuads(subject, null, null, SHAPES_GRAPH)
-                for (const quad of options) {
+        for (const subject of template.shaclOr) {
+            const options = template.config.shapesGraph.getQuads(subject, null, null, SHAPES_GRAPH)
+            for (const quad of options) {
+                if (types.length > 0) {
                     // try to find matching sh:node in sh:or values
                     if (quad.predicate.value === `${PREFIX_SHACL}node`) {
                         for (const type of types) {
@@ -95,6 +94,9 @@ export function resolveShaclOrConstraint(template: ShaclPropertyTemplate, value:
                             }
                         }
                     }
+                } else if (quad.predicate.equals(SHACL_PREDICATE_NODE_KIND) && quad.object.equals(SHACL_OBJECT_IRI)) {
+                    // if sh:nodeKind is sh:IRI, just use that
+                    return template.clone().merge(options)
                 }
             }
         }
