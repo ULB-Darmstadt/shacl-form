@@ -154,7 +154,7 @@ an `sh:class` predicate. The expected return value is a (promise of a) string (e
           <http://example.org/alloy>   a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Alloy".
           <http://example.org/plaster> a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Plaster".
         `
-      }
+      }}
     )
     ```
     returns instances of the class `http://example.org/Material` that are then used to populate the "Artwork material" dropdown in the form.
