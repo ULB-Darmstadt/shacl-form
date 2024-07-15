@@ -18,7 +18,7 @@ export class ElementAttributes {
     valuesSubject: string | null = null
     valuesNamespace = ''
     view: string | null = null
-    language: string = navigator.language
+    language: string | null = null
     loading: string = 'Loading\u2026'
     ignoreOwlImports: string | null = null
     collapse: string | null = null
@@ -31,12 +31,14 @@ export class Config {
     classInstanceProvider: ClassInstanceProvider | undefined
     prefixes: Prefixes = {}
     editMode = true
+    languages: string[] = Array.from(navigator.languages)
 
     dataGraph = new Store()
     lists: Record<string, Term[]> = {}
     groups: Array<string> = []
     theme: Theme
     form: HTMLElement
+    renderedNodes = new Set<string>()
     private _shapesGraph = new Store()
 
     constructor(theme: Theme, form: HTMLElement) {
@@ -57,6 +59,15 @@ export class Config {
         // for backward compatibility
         if (this.attributes.valueSubject && !this.attributes.valuesSubject) {
             this.attributes.valuesSubject = this.attributes.valueSubject
+        }
+        if (atts.language) {
+            // remove preferred language from list of navigator languages
+            const index = this.languages.indexOf(atts.language)
+            if (index > -1) {
+                this.languages.splice(index, 1)
+            }
+            // now prepend preferred language at start of list of navigator languages
+            this.languages.unshift(atts.language)
         }
     }
 

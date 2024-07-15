@@ -37,7 +37,7 @@ export abstract class Theme {
         if (value instanceof NamedNode) {
             const quads = template.config.shapesGraph.getQuads(name, null, null, SHAPES_GRAPH)
             if (quads.length) {
-                const s = findLabel(quads, template.config.attributes.language)
+                const s = findLabel(quads, template.config.languages)
                 if (s) {
                     name = s
                 }
@@ -91,7 +91,7 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
         if (template.shaclIn) {
             const list = template.config.lists[template.shaclIn]
             if (list?.length) {
-                const listEntries = createInputListEntries(list, template.config.shapesGraph, template.config.attributes.language)
+                const listEntries = createInputListEntries(list, template.config.shapesGraph, template.config.languages)
                 return template.config.theme.createListEditor(template.label, value, required, listEntries, template)
             }
             else {

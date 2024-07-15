@@ -90,7 +90,7 @@ export class ShaclPropertyTemplate  {
             mappers[quad.predicate.id]?.call(this, this, quad.object)
         }
         // provide best fitting label for UI
-        this.label = this.name?.value || findLabel(quads, this.config.attributes.language)
+        this.label = this.name?.value || findLabel(quads, this.config.languages)
         if (!this.label && !this.node && !this.shaclAnd) {
             // force label value only for non-node properties to avoid nested <h1> in UI
             this.label = this.path ? removePrefixes(this.path, this.config.prefixes) : 'unknown'

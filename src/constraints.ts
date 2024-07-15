@@ -38,7 +38,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
             const quads = config.shapesGraph.getQuads(options[i], null, null, SHAPES_GRAPH)
             if (quads.length) {
                 values.push(quads)
-                optionElements.push({ label: findLabel(quads, config.attributes.language) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes)), value: i.toString() })
+                optionElements.push({ label: findLabel(quads, config.languages) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes)), value: i.toString() })
             }
         }
         const editor = config.theme.createListEditor(context.template.label + '?', null, false, optionElements, context.template)

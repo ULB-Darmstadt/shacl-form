@@ -8,7 +8,7 @@ export function createShaclGroup(groupSubject: string, config: Config): HTMLElem
     group.classList.add('shacl-group')
     let name = groupSubject
     const quads = config.shapesGraph.getQuads(groupSubject, null, null, SHAPES_GRAPH)
-    const label = findObjectValueByPredicate(quads, "label", PREFIX_RDFS, config.attributes.language)
+    const label = findObjectValueByPredicate(quads, "label", PREFIX_RDFS, config.languages)
     if (label) {
         name = label
     }
