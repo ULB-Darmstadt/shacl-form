@@ -63,7 +63,7 @@ data-values | RDF triples (e.g. a turtle string) to use as existing data graph t
 data-values-url | When `data-values` is not set, the data graph triples are loaded from this URL
 data-values-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form
 data-values-namespace | RDF namespace to use when generating new RDF subjects. Default is empty, so that subjects will be blank nodes.
-data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://www.w3schools.com/jsref/prop_nav_language.asp)
+data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/language) with fallback to [`navigator.languages`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/languages)
 data-loading | Text to display while the web component is initializing. Default: `"Loading..."`
 data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs are fetched and the resulting RDF triples are added to the shapes graph. Setting this attribute to any value disables this feature
 data-view | When set, turns the web component into a viewer that displays the given data graph without editing functionality
@@ -111,7 +111,7 @@ Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
 
 ### Validation
 
-In edit mode, `<shacl-form>` validates the constructed data graph using the library [rdf-validate-shacl](https://github.com/zazuko/rdf-validate-shacl) and displays validation results as icons next to the respective form fields.
+In edit mode, `<shacl-form>` validates the constructed data graph using the library [shacl-engine](https://github.com/rdf-ext/shacl-engine) and displays validation results as icons next to the respective form fields.
 
 ### Data graph binding
 
@@ -182,7 +182,7 @@ When adding a new attribution, `<shacl-form>` renders a dropdown to let the user
 
 When binding an existing data graph to the form, the `sh:or` constraint is tried to be resolved depending on the respective data value:
 - For RDF literals, an `sh:or` option with a matching `sh:datatype` is chosen
-- For blank nodes or named nodes, the `rdf:type` of the value is tried to be matched with a node shape having a corresponding `sh:targetClass` or with a property shape having a corresponding `sh:class`
+- For blank nodes or named nodes, the `rdf:type` of the value is tried to be matched with a node shape having a corresponding `sh:targetClass` or with a property shape having a corresponding `sh:class`. If there is no `rdf:type` but a `sh:nodeKind` of `sh:IRI`, the id of the the node is used as the value.
 
 ### SHACL shape inheritance
 

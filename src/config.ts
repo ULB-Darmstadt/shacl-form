@@ -31,7 +31,7 @@ export class Config {
     classInstanceProvider: ClassInstanceProvider | undefined
     prefixes: Prefixes = {}
     editMode = true
-    languages: string[] = Array.from(navigator.languages)
+    languages: string[]
 
     dataGraph = new Store()
     lists: Record<string, Term[]> = {}
@@ -44,6 +44,12 @@ export class Config {
     constructor(theme: Theme, form: HTMLElement) {
         this.theme = theme
         this.form = form
+        this.languages = [... new Set(navigator.languages.flatMap(lang => {
+            if (lang.length > 2) {
+                return [lang, lang.substring(0, 2)]
+            } 
+            return lang
+        }))]
     }
  
     updateAttributes(elem: HTMLElement) {
@@ -61,12 +67,12 @@ export class Config {
             this.attributes.valuesSubject = this.attributes.valueSubject
         }
         if (atts.language) {
-            // remove preferred language from list of navigator languages
             const index = this.languages.indexOf(atts.language)
             if (index > -1) {
+                // remove preferred language from the list of languages
                 this.languages.splice(index, 1)
             }
-            // now prepend preferred language at start of list of navigator languages
+            // now prepend preferred language at start of the list of languages
             this.languages.unshift(atts.language)
         }
     }
