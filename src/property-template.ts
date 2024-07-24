@@ -91,8 +91,7 @@ export class ShaclPropertyTemplate  {
         }
         // provide best fitting label for UI
         this.label = this.name?.value || findLabel(quads, this.config.languages)
-        if (!this.label && !this.node && !this.shaclAnd) {
-            // force label value only for non-node properties to avoid nested <h1> in UI
+        if (!this.label && !this.shaclAnd) {
             this.label = this.path ? removePrefixes(this.path, this.config.prefixes) : 'unknown'
         }
         // resolve extended shapes

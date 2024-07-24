@@ -127,10 +127,7 @@ export class ShaclProperty extends HTMLElement {
             if (instance.firstChild instanceof ShaclNode) {
                 const quadCount = graph.size
                 const shapeSubject = instance.firstChild.toRDF(graph)
-                // check if shape generated at least one quad. if not, omit path for this property.
-                if (graph.size > quadCount) {
-                    graph.addQuad(subject, pathNode, shapeSubject)
-                }
+                graph.addQuad(subject, pathNode, shapeSubject)
             } else {
                 const editor = instance.querySelector('.editor') as Editor
                 const value = toRDF(editor)

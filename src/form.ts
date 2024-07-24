@@ -26,7 +26,7 @@ export class ShaclForm extends HTMLElement {
             if (this.config.editMode) {
                 this.validate(true).then(valid => {
                     this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': valid } }))
-                }).catch(e => { console.log(e) })
+                }).catch(e => { console.warn(e) })
             }
         })
     }
@@ -49,6 +49,8 @@ export class ShaclForm extends HTMLElement {
                 await this.config.loader.loadGraphs()
                 // remove loading indicator
                 this.form.replaceChildren()
+                // reset rendered node references
+                this.config.renderedNodes.clear()
                 // find root shacl shape
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
                 if (rootShapeShaclSubject) {
@@ -223,7 +225,6 @@ export class ShaclForm extends HTMLElement {
         }
         return messageElement
     }
-
 
     private findRootShaclShapeSubject(): NamedNode | undefined {
         let rootShapeShaclSubject: NamedNode | null = null

@@ -37,72 +37,90 @@ export class ShaclNode extends HTMLElement {
             }
         }
         this.nodeId = nodeId
-        this.dataset.nodeId = this.nodeId.id
-        
-        const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
-        let list: Term[] | undefined
 
-        for (const quad of quads) {
-            switch (quad.predicate.id) {
-                case `${PREFIX_SHACL}property`:
-                    let parent: HTMLElement = this
-                    // check if property belongs to a group
-                    const groupRef = config.shapesGraph.getQuads(quad.object as Term, `${PREFIX_SHACL}group`, null, SHAPES_GRAPH)
-                    if (groupRef.length > 0) {
-                        const groupSubject = groupRef[0].object.value
-                        if (config.groups.indexOf(groupSubject) > -1) {
-                            // check if group element already exists, otherwise create it
-                            let group = this.querySelector(`:scope > .shacl-group[data-subject='${groupSubject}']`) as HTMLElement
-                            if (!group) {
-                                group = createShaclGroup(groupSubject, config)
-                                this.appendChild(group)
-                            }
-                            parent = group
-                        } else {
-                            console.warn('ignoring unknown group reference', groupRef[0])
-                        }
-                    }
-                    const property = new ShaclProperty(quad.object as NamedNode | BlankNode, config, this.nodeId, valueSubject)
-                    // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
-                    if (property.childElementCount > 0) {
-                        parent.appendChild(property)
-                    }
-                    break;
-                case `${PREFIX_SHACL}and`:
-                    // inheritance via sh:and
-                    list = config.lists[quad.object.value]
-                    if (list?.length) {
-                        for (const shape of list) {
-                            this.prepend(new ShaclNode(shape as NamedNode, config, valueSubject))
-                        }
-                    }
-                    else {
-                        console.error('list not found:', quad.object.value, 'existing lists:', config.lists)
-                    }
-                    break;
-                case `${PREFIX_SHACL}node`:
-                    // inheritance via sh:node
-                    this.prepend(new ShaclNode(quad.object as NamedNode, config, valueSubject))
-                    break;
-                case `${PREFIX_SHACL}targetClass`:
-                    this.targetClass = quad.object as NamedNode
-                    break;
-                case `${PREFIX_SHACL}or`:
-                    list = config.lists[quad.object.value]
-                    if (list?.length) {
-                        this.appendChild(createShaclOrConstraint(list, this, config))
-                    }
-                    else {
-                        console.error('list not found:', quad.object.value, 'existing lists:', config.lists)
-                    }
-                    break;
+        // check if the form already contains the node/value pair to prevent recursion
+        const id = JSON.stringify([shaclSubject, valueSubject])
+        if (valueSubject && config.renderedNodes.has(id)) {
+            // node/value pair is already rendered in the form, so just display a reference
+            if (label && config.attributes.collapse === null) {
+                const labelElem = document.createElement('label')
+                labelElem.innerText = label
+                this.appendChild(labelElem)
             }
-        }
+            const span = document.createElement('span')
+            span.innerText = valueSubject.id
+            this.appendChild(span)
+            this.style.flexDirection = 'row'
+        } else {
+            if (valueSubject) {
+                config.renderedNodes.add(id)
+            }
+            this.dataset.nodeId = this.nodeId.id
+            const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
+            let list: Term[] | undefined
 
-        if (label) {
-            const header = document.createElement('h1')
-            header.innerText = label
-            this.prepend(header)
+            for (const quad of quads) {
+                switch (quad.predicate.id) {
+                    case `${PREFIX_SHACL}property`:
+                        let parent: HTMLElement = this
+                        // check if property belongs to a group
+                        const groupRef = config.shapesGraph.getQuads(quad.object as Term, `${PREFIX_SHACL}group`, null, SHAPES_GRAPH)
+                        if (groupRef.length > 0) {
+                            const groupSubject = groupRef[0].object.value
+                            if (config.groups.indexOf(groupSubject) > -1) {
+                                // check if group element already exists, otherwise create it
+                                let group = this.querySelector(`:scope > .shacl-group[data-subject='${groupSubject}']`) as HTMLElement
+                                if (!group) {
+                                    group = createShaclGroup(groupSubject, config)
+                                    this.appendChild(group)
+                                }
+                                parent = group
+                            } else {
+                                console.warn('ignoring unknown group reference', groupRef[0])
+                            }
+                        }
+                        const property = new ShaclProperty(quad.object as NamedNode | BlankNode, config, this.nodeId, valueSubject)
+                        // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
+                        if (property.childElementCount > 0) {
+                            parent.appendChild(property)
+                        }
+                        break;
+                    case `${PREFIX_SHACL}and`:
+                        // inheritance via sh:and
+                        list = config.lists[quad.object.value]
+                        if (list?.length) {
+                            for (const shape of list) {
+                                this.prepend(new ShaclNode(shape as NamedNode, config, valueSubject))
+                            }
+                        }
+                        else {
+                            console.error('list not found:', quad.object.value, 'existing lists:', config.lists)
+                        }
+                        break;
+                    case `${PREFIX_SHACL}node`:
+                        // inheritance via sh:node
+                        this.prepend(new ShaclNode(quad.object as NamedNode, config, valueSubject))
+                        break;
+                    case `${PREFIX_SHACL}targetClass`:
+                        this.targetClass = quad.object as NamedNode
+                        break;
+                    case `${PREFIX_SHACL}or`:
+                        list = config.lists[quad.object.value]
+                        if (list?.length) {
+                            this.appendChild(createShaclOrConstraint(list, this, config))
+                        }
+                        else {
+                            console.error('list not found:', quad.object.value, 'existing lists:', config.lists)
+                        }
+                        break;
+                }
+            }
+
+            if (label) {
+                const header = document.createElement('h1')
+                header.innerText = label
+                this.prepend(header)
+            }
         }
     }
 
