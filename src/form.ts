@@ -2,7 +2,7 @@ import { ShaclNode } from './node'
 import { Config } from './config'
 import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
 import { Quad, Store, NamedNode, DataFactory } from 'n3'
-import { RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
+import { DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import SHACLValidator from 'rdf-validate-shacl'
@@ -240,12 +240,15 @@ export class ShaclForm extends HTMLElement {
             // if we have a data graph and data-values-subject is set, use shape of that
             if (this.config.attributes.valuesSubject && this.config.dataGraph.size > 0) {
                 const rootValueSubject = DataFactory.namedNode(this.config.attributes.valuesSubject)
-                const rootValueSubjectTypes = this.config.dataGraph.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, null)
+                const rootValueSubjectTypes = [
+                    ...this.config.dataGraph.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, null),
+                    ...this.config.dataGraph.getQuads(rootValueSubject, DCTERMS_PREDICATE_CONFORMS_TO, null, null)
+                ]
                 if (rootValueSubjectTypes.length === 0) {
-                    console.warn(`value subject '${this.config.attributes.valuesSubject}' has no ${RDF_PREDICATE_TYPE.id} statement`)
+                    console.warn(`value subject '${this.config.attributes.valuesSubject}' has neither ${RDF_PREDICATE_TYPE.id} nor ${DCTERMS_PREDICATE_CONFORMS_TO.id} statement`)
                     return
                 }
-                // if type refers to a node shape, prioritize that over targetClass resolution
+                // if type/conformsTo refers to a node shape, prioritize that over targetClass resolution
                 for (const rootValueSubjectType of rootValueSubjectTypes) {
                     if (this.config.shapesGraph.has(new Quad(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH))) {
                         rootShapeShaclSubject = rootValueSubjectType.object as NamedNode

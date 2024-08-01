@@ -1,6 +1,6 @@
 import { Store, Parser, Quad, Prefixes, NamedNode } from 'n3'
 import { toRDF } from 'jsonld'
-import { OWL_IMPORTS, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
+import { DCTERMS_PREDICATE_CONFORMS_TO, OWL_IMPORTS, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { isURL } from './util'
 
@@ -12,7 +12,7 @@ const loadedClassesCache: Record<string, Promise<string>> = {}
 
 export class Loader {
     private config: Config
-    private loadedOwlImports: string[] = []
+    private loadedExternalUrls: string[] = []
     private loadedClasses: string[] = []
 
     constructor(config: Config) {
@@ -21,19 +21,42 @@ export class Loader {
 
     async loadGraphs() {
         // clear local caches
-        this.loadedOwlImports = []
+        this.loadedExternalUrls = []
         this.loadedClasses = []
 
-        const store = new Store()
+        const shapesStore = new Store()
         const valuesStore = new Store()
         this.config.prefixes = {}
 
         await Promise.all([
-            this.importRDF(this.config.attributes.shapes ? this.config.attributes.shapes : this.config.attributes.shapesUrl ? this.fetchRDF(this.config.attributes.shapesUrl) : '', store, SHAPES_GRAPH),
+            this.importRDF(this.config.attributes.shapes ? this.config.attributes.shapes : this.config.attributes.shapesUrl ? this.fetchRDF(this.config.attributes.shapesUrl) : '', shapesStore, SHAPES_GRAPH),
             this.importRDF(this.config.attributes.values ? this.config.attributes.values : this.config.attributes.valuesUrl ? this.fetchRDF(this.config.attributes.valuesUrl) : '', valuesStore, undefined, new Parser({ blankNodePrefix: '' })),
         ])
 
-        this.config.shapesGraph = store
+        // if shapes graph is empty, but we have the following triples:
+        // <valueSubject> a <uri> or <valueSubject> dcterms:conformsTo <uri>
+        // then try to load the referenced object into the shapes graph
+        if (shapesStore.size == 0 && this.config.attributes.valuesSubject) {
+            const shapeCandidates = [
+                ...valuesStore.getObjects(this.config.attributes.valuesSubject, RDF_PREDICATE_TYPE, null),
+                ...valuesStore.getObjects(this.config.attributes.valuesSubject, DCTERMS_PREDICATE_CONFORMS_TO, null)
+            ]
+            const promises: Promise<void>[] = []
+            for (const uri of shapeCandidates) {
+                const url = this.toURL(uri.value)
+                if (url && this.loadedExternalUrls.indexOf(url) < 0) {
+                    this.loadedExternalUrls.push(url)
+                    promises.push(this.importRDF(this.fetchRDF(url), shapesStore, SHAPES_GRAPH))
+                }
+            }
+            try {
+                await Promise.all(promises)
+            } catch (e) {
+                console.warn(e)
+            }
+        }
+
+        this.config.shapesGraph = shapesStore
         this.config.dataGraph = valuesStore
     }
     
@@ -52,8 +75,8 @@ export class Loader {
                         if (this.config.attributes.ignoreOwlImports === null && OWL_IMPORTS.equals(quad.predicate)) {
                             const url = this.toURL(quad.object.value)
                             // import url only once
-                            if (url && this.loadedOwlImports.indexOf(url) < 0) {
-                                this.loadedOwlImports.push(url)
+                            if (url && this.loadedExternalUrls.indexOf(url) < 0) {
+                                this.loadedExternalUrls.push(url)
                                 dependencies.push(this.importRDF(this.fetchRDF(url), store, graph, parser))
                             }
                         }

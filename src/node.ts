@@ -1,6 +1,6 @@
 import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, SHAPES_GRAPH, RDF_PREDICATE_TYPE } from './constants'
+import { PREFIX_SHACL, SHAPES_GRAPH, RDF_PREDICATE_TYPE, DCTERMS_PREDICATE_CONFORMS_TO } from './constants'
 import { ShaclProperty } from './property'
 import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
@@ -134,9 +134,13 @@ export class ShaclNode extends HTMLElement {
         if (this.targetClass) {
             graph.addQuad(subject, RDF_PREDICATE_TYPE, this.targetClass)
         }
-        // if this is the root shacl node, add the type predicate
-        if (!this.closest('shacl-node shacl-node')) {
-            graph.addQuad(subject, RDF_PREDICATE_TYPE, this.shaclSubject)
+        // if this is the root shacl node, check if we should add one of the rdf:type or dcterms:conformsTo predicates
+        if (this.config.attributes.generateNodeShapeReference && !this.closest('shacl-node shacl-node')) {
+            if (this.config.attributes.generateNodeShapeReference === 'rdf:type') {
+                graph.addQuad(subject, RDF_PREDICATE_TYPE, this.shaclSubject)
+            } else if (this.config.attributes.generateNodeShapeReference === 'dcterms:conformsTo') {
+                graph.addQuad(subject, DCTERMS_PREDICATE_CONFORMS_TO, this.shaclSubject)
+            }
         }
         return subject
     }

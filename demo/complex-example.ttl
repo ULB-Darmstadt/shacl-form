@@ -120,7 +120,7 @@ example:Location
                   sh:minCount     1 ;
                   sh:name         "Coordinates" ;
                   sh:path         geo:asWKT ;
-                  sh:pattern      "^POINT\\([+\\-]?(?:[0-9]*[.])?[0-9]+ [+\\-]?(?:[0-9]*[.])?[0-9]+\\)|POLYGON\\(\\((?:[+\\-]?(?:[0-9]*[.])?[0-9]+[ ,]?){3,}\\)\\)$"
+                  sh:pattern      "^POINT\\([+\\-]?(?:[0-9]*[.])?[0-9]+ [+\\-]?(?:[0-9]*[.])?[0-9]+\\)$|^POLYGON\\(\\((?:[+\\-]?(?:[0-9]*[.])?[0-9]+[ ,]?){3,}\\)\\)$"
                 ] ;
   sh:property   [ dash:singleLine false ;
                   sh:description  "Description of the location" ;

@@ -8,11 +8,13 @@ export const PREFIX_RDFS = 'http://www.w3.org/2000/01/rdf-schema#'
 export const PREFIX_SKOS = 'http://www.w3.org/2004/02/skos/core#'
 export const PREFIX_OWL = 'http://www.w3.org/2002/07/owl#'
 export const PREFIX_OA = 'http://www.w3.org/ns/oa#'
+export const PREFIX_DCTERMS = 'http://purl.org/dc/terms/'
 
 export const SHAPES_GRAPH = DataFactory.namedNode('shapes')
 export const OWL_IMPORTS = DataFactory.namedNode(PREFIX_OWL + 'imports')
 
 export const RDF_PREDICATE_TYPE = DataFactory.namedNode(PREFIX_RDF + 'type')
+export const DCTERMS_PREDICATE_CONFORMS_TO = DataFactory.namedNode(PREFIX_DCTERMS + 'conformsTo')
 export const RDFS_PREDICATE_SUBCLASS_OF = DataFactory.namedNode(PREFIX_RDFS + 'subClassOf')
 export const SKOS_PREDICATE_BROADER = DataFactory.namedNode(PREFIX_SKOS + 'broader')
 export const OWL_OBJECT_NAMED_INDIVIDUAL = DataFactory.namedNode(PREFIX_OWL + 'NamedIndividual')

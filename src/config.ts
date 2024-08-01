@@ -23,6 +23,7 @@ export class ElementAttributes {
     ignoreOwlImports: string | null = null
     collapse: string | null = null
     submitButton: string | null = null
+    generateNodeShapeReference: string | null = null
 }
 
 export class Config {

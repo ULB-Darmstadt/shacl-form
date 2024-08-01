@@ -69,6 +69,7 @@ data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs ar
 data-view | When set, turns the web component into a viewer that displays the given data graph without editing functionality
 data-collapse | When set, `sh:group`s and properties with `sh:node` and `sh:maxCount` != 1 are displayed in a collapsible accordion-like widget to reduce visual complexity of the form. The collapsible element is initially shown closed, except when this attribute's value is `"open"`
 data-submit-button | [Ignored when `data-view` attribute is set] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events get emitted only when the form data validates
+data-generate-node-shape-reference | When generating the RDF data graph, &lt;shacl-form&gt; can create a triple that references the root `sh:NodeShape` of the data. Supported values of this attribute are `rdf:type` or `dcterms:conformsTo`. Default is empty, so that no such triple is created
 
 ### Element functions
 
