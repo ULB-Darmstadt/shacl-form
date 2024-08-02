@@ -112,7 +112,7 @@ Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
 
 ### Validation
 
-In edit mode, `<shacl-form>` validates the constructed data graph using the library [shacl-engine](https://github.com/rdf-ext/shacl-engine) and displays validation results as icons next to the respective form fields.
+In edit mode, `<shacl-form>` validates the constructed data graph using the library [rdf-validate-shacl](https://github.com/zazuko/rdf-validate-shacl) and displays validation results as icons next to the respective form fields.
 
 ### Data graph binding
 

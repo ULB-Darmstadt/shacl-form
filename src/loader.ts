@@ -50,7 +50,7 @@ export class Loader {
                 }
             }
             try {
-                await Promise.all(promises)
+                await Promise.allSettled(promises)
             } catch (e) {
                 console.warn(e)
             }
@@ -106,7 +106,7 @@ export class Loader {
                 })
             })
             try {
-                await Promise.all(dependencies)
+                await Promise.allSettled(dependencies)
             } catch (e) {
                 console.warn(e)
             }
