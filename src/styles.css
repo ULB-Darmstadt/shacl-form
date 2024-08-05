@@ -54,3 +54,6 @@ a, a:visited { color: inherit; }
 .collapsible:not(.open) > *:not(.activator) { max-height: 0; padding: 0; opacity: 0; overflow: hidden; }
 .collapsible shacl-node > h1 { display: none; }
 .collapsible.open > .property-instance:nth-child(odd) { background-color: #F5F5F5; }
+.ref-link { cursor: pointer; }
+.ref-link:hover { text-decoration: underline; }
+.node-id-display { color: #999; font-size: 11px; }

@@ -24,6 +24,7 @@ export class ElementAttributes {
     collapse: string | null = null
     submitButton: string | null = null
     generateNodeShapeReference: string | null = null
+    showNodeIds: string | null = null
 }
 
 export class Config {

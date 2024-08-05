@@ -47,9 +47,14 @@ export class ShaclNode extends HTMLElement {
                 labelElem.innerText = label
                 this.appendChild(labelElem)
             }
-            const span = document.createElement('span')
-            span.innerText = valueSubject.id
-            this.appendChild(span)
+            const anchor = document.createElement('a')
+            anchor.innerText = valueSubject.id
+            anchor.classList.add('ref-link')
+            anchor.onclick = () => {
+                // if anchor is clicked, scroll referenced shacl node into view
+                this.config.form.querySelector(`shacl-node[data-node-id='${this.nodeId.id}']`)?.scrollIntoView()
+            }
+            this.appendChild(anchor)
             this.style.flexDirection = 'row'
         } else {
             if (valueSubject) {
@@ -58,6 +63,13 @@ export class ShaclNode extends HTMLElement {
             this.dataset.nodeId = this.nodeId.id
             const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
             let list: Term[] | undefined
+
+            if (this.config.attributes.showNodeIds !== null) {
+                const div = document.createElement('div')
+                div.innerText = `id: ${this.nodeId.id}`
+                div.classList.add('node-id-display')
+                this.appendChild(div)
+            }
 
             for (const quad of quads) {
                 switch (quad.predicate.id) {
