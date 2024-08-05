@@ -148,11 +148,7 @@ export class ShaclNode extends HTMLElement {
         }
         // if this is the root shacl node, check if we should add one of the rdf:type or dcterms:conformsTo predicates
         if (this.config.attributes.generateNodeShapeReference && !this.closest('shacl-node shacl-node')) {
-            if (this.config.attributes.generateNodeShapeReference === 'rdf:type') {
-                graph.addQuad(subject, RDF_PREDICATE_TYPE, this.shaclSubject)
-            } else if (this.config.attributes.generateNodeShapeReference === 'dcterms:conformsTo') {
-                graph.addQuad(subject, DCTERMS_PREDICATE_CONFORMS_TO, this.shaclSubject)
-            }
+            graph.addQuad(subject, DataFactory.namedNode(this.config.attributes.generateNodeShapeReference), this.shaclSubject)
         }
         return subject
     }
