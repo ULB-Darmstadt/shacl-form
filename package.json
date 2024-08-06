@@ -1,6 +1,6 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "1.5.2",
+    "version": "1.5.3",
     "description": "SHACL form generator",
     "main": "dist/form-default.js",
     "module": "dist/form-default.js",
@@ -57,7 +57,7 @@
         "leaflet.fullscreen": "^3.0.1",
         "mapbox-gl": "^3.3.0",
         "n3": "^1.17.3",
-        "rdf-validate-shacl": "^0.5.6",
+        "shacl-engine": "^1.0.1",
         "uuid": "^9.0.1"
     }
 }
