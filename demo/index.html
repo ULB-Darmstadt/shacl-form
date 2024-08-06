@@ -216,8 +216,8 @@
             `
           }
         })
-        const shapesTTL = await fetch("complex-example-thing.ttl").then(resp => resp.text())
-        const dataTTL = await fetch("complex-example-thing-data.ttl").then(resp => resp.text())
+        const shapesTTL = await fetch("complex-example.ttl").then(resp => resp.text())
+        const dataTTL = await fetch("complex-example-data.ttl").then(resp => resp.text())
         shapes.innerText = shapesTTL
         data.innerText = dataTTL
         form.dataset['shapes'] = shapesTTL
