@@ -216,6 +216,43 @@ When the element attribute `data-collapse` is set, `<shacl-form>` creates an acc
 
 Apart from grouped properties, all properties having an `sh:node` predicate and `sh:maxCount` != 1 are collapsed.
 
+### Use with Solid Pods
+
+`<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDFJS N3 Store, as explained above, it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF Graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod Example](https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/getting-started/) shows how to merge data from a `<shacl-form>` with a Solid Data Resource at `readingListDataResourceURI`:
+ 
+```js
+  // Authentication is assumed, resulting in a fetch able to read and write into the Pod
+  try {
+    // Get data out of the shacl-form
+    const form = document.querySelector('shacl-form')
+
+    // Extract the RDF Graph from the form
+    const shaclFormGraphStore = await form.toRDF()
+
+    // Convert RDF store into a Solid dataset
+    const shaclFormDataset = await fromRdfJsDataset(shaclFormGraphStore)
+
+    // First get the current dataset
+    myReadingList = await getSolidDataset(readingListDataResourceURI, { fetch: fetch })
+
+    // get all Things from the shaclFormDataset
+    const shaclFormThings = getThingAll(shaclFormDataset)
+
+    // add the things from ShaclForm to the existing set
+    shaclFormThings.forEach((thing) => (myReadingList = setThing(myReadingList, thing)))
+
+    // save the new dataset
+    let savedReadingList = await saveSolidDatasetAt(readingListDataResourceURI, myReadingList, {
+      fetch: fetch
+    })
+
+    // Other handling here
+
+  } catch (err) {
+    console.error(`Storing SHACL data from Form failed with error ${err}!`)
+  }
+```
+
 ### Theming
 
 `<shacl-form>` comes in 3 different bundles, each providing a specific theme. See the [demo page](https://ulb-darmstadt.github.io/shacl-form/#theming) for an example.
