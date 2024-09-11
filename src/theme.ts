@@ -6,7 +6,7 @@ import { ShaclPropertyTemplate } from './property-template'
 import css from './styles.css'
 
 export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, binaryData?: string, checked?: boolean, disabled?: boolean }
-export type InputListEntry = { value: Term | string, label?: string }
+export type InputListEntry = { value: Term | string, label?: string, indent?: number }
 
 export abstract class Theme {
     stylesheet: CSSStyleSheet
@@ -84,7 +84,7 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
         const required = template.minCount !== undefined && template.minCount > 0
         // if we have a class, find the instances and display them in a list
         if (template.class) {
-            return template.config.theme.createListEditor(template.label, value, required, findInstancesOf(template.class, template.config), template)
+            return template.config.theme.createListEditor(template.label, value, required, findInstancesOf(template.class, template), template)
         }
 
         // check if it is a list

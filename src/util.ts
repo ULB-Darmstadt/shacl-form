@@ -2,7 +2,8 @@ import { NamedNode, Prefixes, Quad, Store } from 'n3'
 import { OWL_OBJECT_NAMED_INDIVIDUAL, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
-import { Config } from './config'
+import { ShaclPropertyTemplate } from './property-template'
+import { ShaclNode } from './node'
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, languages?: string[]): string {
     let result = ''
@@ -54,10 +55,10 @@ export function findLabel(quads: Quad[], languages: string[]): string {
     return findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, languages)
 }
 
-export function createInputListEntries(subjects: Term[], shapesGraph: Store, languages: string[]): InputListEntry[] {
+export function createInputListEntries(subjects: Term[], shapesGraph: Store, languages: string[], indent?: number): InputListEntry[] {
     const entries: InputListEntry[] = []
     for (const subject of subjects) {
-        entries.push({ value: subject, label: findLabel(shapesGraph.getQuads(subject, null, null, null), languages) })
+        entries.push({ value: subject, label: findLabel(shapesGraph.getQuads(subject, null, null, null), languages), indent: indent })
     }
     return entries
 }
@@ -71,18 +72,34 @@ export function removePrefixes(id: string, prefixes: Prefixes): string {
     return id
 }
 
-export function findInstancesOf(clazz: NamedNode, config: Config): InputListEntry[] {
-    const instances: Term[] = config.shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, null)
-    // merge instances from the data graph
-    instances.push(...config.dataGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, null))
-    const entries = createInputListEntries(instances, config.shapesGraph, config.languages)
-    for (const subClass of config.shapesGraph.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, clazz, null)) {
-        entries.push(...findInstancesOf(subClass as NamedNode, config))
+function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNode | ShaclPropertyTemplate, shapesGraph: Store, instances: Term[], alreadyCheckedImports = new Set<string>()) {
+    for (const owlImport of context.owlImports) {
+        if (!alreadyCheckedImports.has(owlImport.id)) {
+            alreadyCheckedImports.add(owlImport.id)
+            instances.push(...shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, owlImport))
+        }
     }
-    if (config.shapesGraph.has(new Quad(clazz, RDF_PREDICATE_TYPE, OWL_OBJECT_NAMED_INDIVIDUAL, SHAPES_GRAPH))) {
-        entries.push(...createInputListEntries([ clazz ], config.shapesGraph, config.languages))
-        for (const subClass of config.shapesGraph.getSubjects(SKOS_PREDICATE_BROADER, clazz, null)) {
-            entries.push(...findInstancesOf(subClass as NamedNode, config))
+    if (context.parent) {
+        findClassInstancesFromOwlImports(clazz, context.parent, shapesGraph, instances, alreadyCheckedImports)
+    }
+}
+
+export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplate, indent = 0): InputListEntry[] {
+    // find instances in the shapes graph
+    const instances: Term[] = template.config.shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, SHAPES_GRAPH)
+    // find instances in the data graph
+    instances.push(...template.config.dataGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, null))
+    // find instances in imported taxonomies
+    findClassInstancesFromOwlImports(clazz, template, template.config.shapesGraph, instances)
+    
+    const entries = createInputListEntries(instances, template.config.shapesGraph, template.config.languages, indent)
+    for (const subClass of template.config.shapesGraph.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, clazz, null)) {
+        entries.push(...findInstancesOf(subClass as NamedNode, template, indent + 1))
+    }
+    if (template.config.shapesGraph.has(new Quad(clazz, RDF_PREDICATE_TYPE, OWL_OBJECT_NAMED_INDIVIDUAL))) {
+        entries.push(...createInputListEntries([ clazz ], template.config.shapesGraph, template.config.languages, indent))
+        for (const subClass of template.config.shapesGraph.getSubjects(SKOS_PREDICATE_BROADER, clazz, null)) {
+            entries.push(...findInstancesOf(subClass as NamedNode, template, indent + 1))
         }
     }
     return entries

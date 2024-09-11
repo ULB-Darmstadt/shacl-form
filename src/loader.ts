@@ -1,6 +1,6 @@
-import { Store, Parser, Quad, Prefixes, NamedNode } from 'n3'
+import { Store, Parser, Quad, Prefixes, NamedNode, DataFactory } from 'n3'
 import { toRDF } from 'jsonld'
-import { DCTERMS_PREDICATE_CONFORMS_TO, OWL_IMPORTS, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
+import { DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { isURL } from './util'
 
@@ -72,12 +72,13 @@ export class Loader {
                     if (quad) {
                         store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
                         // check if this is an owl:imports predicate and try to load the url
-                        if (this.config.attributes.ignoreOwlImports === null && OWL_IMPORTS.equals(quad.predicate)) {
+                        if (this.config.attributes.ignoreOwlImports === null && OWL_PREDICATE_IMPORTS.equals(quad.predicate)) {
                             const url = this.toURL(quad.object.value)
                             // import url only once
                             if (url && this.loadedExternalUrls.indexOf(url) < 0) {
                                 this.loadedExternalUrls.push(url)
-                                dependencies.push(this.importRDF(this.fetchRDF(url), store, graph, parser))
+                                // import into separate graph
+                                dependencies.push(this.importRDF(this.fetchRDF(url), store, DataFactory.namedNode(url), parser))
                             }
                         }
                         // check if this is an sh:class predicate and invoke class instance provider

@@ -20,7 +20,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         const properties: ShaclProperty[] = []
         // expect options to be shacl properties
         for (let i = 0; i < options.length; i++) {
-            const property = new ShaclProperty(options[i] as NamedNode | BlankNode, config, context.nodeId)
+            const property = new ShaclProperty(options[i] as NamedNode | BlankNode, context, config)
             properties.push(property)
             optionElements.push({ label: property.template.label, value: i.toString() })
         }

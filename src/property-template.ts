@@ -1,8 +1,9 @@
-import { Literal, NamedNode, BlankNode, Quad, DataFactory } from 'n3'
+import { Literal, NamedNode, Quad, DataFactory } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_DASH, PREFIX_OA, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
+import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_OA, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { findLabel, removePrefixes } from './util'
+import { ShaclNode } from './node'
 
 const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => void> = {
     [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; if (!template.name || literal.language === template.config.attributes.language) { template.name = literal } },
@@ -29,7 +30,8 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}languageIn`]:   (template, term) => { template.languageIn = template.config.lists[term.value]; template.datatype = DataFactory.namedNode(PREFIX_RDF + 'langString') },
     [`${PREFIX_SHACL}defaultValue`]: (template, term) => { template.defaultValue = term },
     [`${PREFIX_SHACL}hasValue`]:     (template, term) => { template.hasValue = term },
-    [SHACL_PREDICATE_CLASS.value]:   (template, term) => {
+    [OWL_PREDICATE_IMPORTS.id]:   (template, term) => { template.owlImports.push(term as NamedNode) },
+    [SHACL_PREDICATE_CLASS.id]:   (template, term) => {
         template.class = term as NamedNode
         // try to find node shape that has requested target class
         const nodeShapes = template.config.shapesGraph.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, SHAPES_GRAPH)
@@ -48,8 +50,8 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
 }
 
 export class ShaclPropertyTemplate  {
+    parent: ShaclNode
     label = ''
-    nodeId: NamedNode | BlankNode
     name: Literal | undefined
     description: Literal | undefined
     path: string | undefined
@@ -75,13 +77,14 @@ export class ShaclPropertyTemplate  {
     languageIn: Term[] | undefined
     datatype: NamedNode | undefined
     hasValue: Term | undefined
+    owlImports: NamedNode[] = []
 
     config: Config
     extendedShapes: NamedNode[] | undefined
 
-    constructor(quads: Quad[], nodeId: NamedNode | BlankNode, config: Config) {
+    constructor(quads: Quad[], parent: ShaclNode, config: Config) {
+        this.parent = parent
         this.config = config
-        this.nodeId = nodeId
         this.merge(quads)
     }
 

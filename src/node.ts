@@ -1,6 +1,6 @@
 import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, SHAPES_GRAPH, RDF_PREDICATE_TYPE, DCTERMS_PREDICATE_CONFORMS_TO } from './constants'
+import { PREFIX_SHACL, SHAPES_GRAPH, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS } from './constants'
 import { ShaclProperty } from './property'
 import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
@@ -8,14 +8,17 @@ import { createShaclOrConstraint } from './constraints'
 import { Config } from './config'
 
 export class ShaclNode extends HTMLElement {
+    parent: ShaclNode | undefined
     shaclSubject: NamedNode
     nodeId: NamedNode | BlankNode
     targetClass: NamedNode | undefined
+    owlImports: NamedNode[] = []
     config: Config
 
-    constructor(shaclSubject: NamedNode, config: Config, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string) {
+    constructor(shaclSubject: NamedNode, config: Config, valueSubject: NamedNode | BlankNode | undefined, parent?: ShaclNode, nodeKind?: NamedNode, label?: string) {
         super()
 
+        this.parent = parent
         this.config = config
         this.shaclSubject = shaclSubject
         let nodeId: NamedNode | BlankNode | undefined = valueSubject
@@ -74,7 +77,7 @@ export class ShaclNode extends HTMLElement {
             for (const quad of quads) {
                 switch (quad.predicate.id) {
                     case `${PREFIX_SHACL}property`:
-                        let parent: HTMLElement = this
+                        let parentElement: HTMLElement = this
                         // check if property belongs to a group
                         const groupRef = config.shapesGraph.getQuads(quad.object as Term, `${PREFIX_SHACL}group`, null, SHAPES_GRAPH)
                         if (groupRef.length > 0) {
@@ -86,23 +89,27 @@ export class ShaclNode extends HTMLElement {
                                     group = createShaclGroup(groupSubject, config)
                                     this.appendChild(group)
                                 }
-                                parent = group
+                                parentElement = group
                             } else {
                                 console.warn('ignoring unknown group reference', groupRef[0])
                             }
                         }
-                        const property = new ShaclProperty(quad.object as NamedNode | BlankNode, config, this.nodeId, valueSubject)
-                        // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
-                        if (property.childElementCount > 0) {
-                            parent.appendChild(property)
-                        }
+                        // delay creating/appending the property until we finished parsing the node.
+                        // This is needed to have possible owlImports parsed before creating the property.
+                        setTimeout(() => {
+                            const property = new ShaclProperty(quad.object as NamedNode | BlankNode, this, config, valueSubject)
+                            // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
+                            if (property.childElementCount > 0) {
+                                parentElement.appendChild(property)
+                            }
+                        })
                         break;
                     case `${PREFIX_SHACL}and`:
                         // inheritance via sh:and
                         list = config.lists[quad.object.value]
                         if (list?.length) {
                             for (const shape of list) {
-                                this.prepend(new ShaclNode(shape as NamedNode, config, valueSubject))
+                                this.prepend(new ShaclNode(shape as NamedNode, config, valueSubject, this))
                             }
                         }
                         else {
@@ -111,10 +118,13 @@ export class ShaclNode extends HTMLElement {
                         break;
                     case `${PREFIX_SHACL}node`:
                         // inheritance via sh:node
-                        this.prepend(new ShaclNode(quad.object as NamedNode, config, valueSubject))
+                        this.prepend(new ShaclNode(quad.object as NamedNode, config, valueSubject, this))
                         break;
                     case `${PREFIX_SHACL}targetClass`:
                         this.targetClass = quad.object as NamedNode
+                        break;
+                    case OWL_PREDICATE_IMPORTS.id:
+                        this.owlImports.push(quad.object as NamedNode)
                         break;
                     case `${PREFIX_SHACL}or`:
                         list = config.lists[quad.object.value]
@@ -147,7 +157,7 @@ export class ShaclNode extends HTMLElement {
             graph.addQuad(subject, RDF_PREDICATE_TYPE, this.targetClass)
         }
         // if this is the root shacl node, check if we should add one of the rdf:type or dcterms:conformsTo predicates
-        if (this.config.attributes.generateNodeShapeReference && !this.closest('shacl-node shacl-node')) {
+        if (this.config.attributes.generateNodeShapeReference && !this.parent) {
             graph.addQuad(subject, DataFactory.namedNode(this.config.attributes.generateNodeShapeReference), this.shaclSubject)
         }
         return subject

@@ -108,6 +108,11 @@ export class MaterialTheme extends Theme {
             if (value && value.value === itemValue) {
                 option.selected = true
             }
+            if (item.indent) {
+                for (let i = 0; i < item.indent; i++) {
+                    option.innerHTML = '&#160;&#160;' + option.innerHTML
+                }
+            }
             if (itemValue === '') {
                 addEmptyOption = false
                 option.ariaLabel = 'blank'

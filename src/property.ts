@@ -14,10 +14,9 @@ export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
     addButton: HTMLElement | undefined
 
-    constructor(shaclSubject: BlankNode | NamedNode, config: Config, nodeId: NamedNode | BlankNode, valueSubject?: NamedNode | BlankNode) {
+    constructor(shaclSubject: BlankNode | NamedNode, parent: ShaclNode, config: Config, valueSubject?: NamedNode | BlankNode) {
         super()
-        this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), nodeId, config)
-        this.dataset.nodeId = this.template.nodeId.id
+        this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), parent, config)
 
         if (this.template.order !== undefined) {
             this.style.order = `${this.template.order}`
@@ -145,7 +144,7 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         instance = document.createElement('div')
         instance.classList.add('property-instance')
         for (const node of template.extendedShapes) {
-            instance.appendChild(new ShaclNode(node, template.config, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label))
+            instance.appendChild(new ShaclNode(node, template.config, value as NamedNode | BlankNode | undefined, template.parent, template.nodeKind, template.label))
         }
     } else {
         const plugin = findPlugin(template.path, template.datatype?.value)

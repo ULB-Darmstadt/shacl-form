@@ -203,6 +203,11 @@ export class DefaultTheme extends Theme {
             const itemValue = (typeof item.value === 'string') ? item.value : item.value.value
             option.innerHTML = item.label ? item.label : itemValue
             option.value = itemValue
+            if (item.indent) {
+                for (let i = 0; i < item.indent; i++) {
+                    option.innerHTML = '&#160;&#160;' + option.innerHTML
+                }
+            }
             if (value && value.value === itemValue) {
                 option.selected = true
             }

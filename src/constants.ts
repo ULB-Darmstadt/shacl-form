@@ -11,12 +11,12 @@ export const PREFIX_OA = 'http://www.w3.org/ns/oa#'
 export const PREFIX_DCTERMS = 'http://purl.org/dc/terms/'
 
 export const SHAPES_GRAPH = DataFactory.namedNode('shapes')
-export const OWL_IMPORTS = DataFactory.namedNode(PREFIX_OWL + 'imports')
 
 export const RDF_PREDICATE_TYPE = DataFactory.namedNode(PREFIX_RDF + 'type')
 export const DCTERMS_PREDICATE_CONFORMS_TO = DataFactory.namedNode(PREFIX_DCTERMS + 'conformsTo')
 export const RDFS_PREDICATE_SUBCLASS_OF = DataFactory.namedNode(PREFIX_RDFS + 'subClassOf')
 export const SKOS_PREDICATE_BROADER = DataFactory.namedNode(PREFIX_SKOS + 'broader')
+export const OWL_PREDICATE_IMPORTS = DataFactory.namedNode(PREFIX_OWL + 'imports')
 export const OWL_OBJECT_NAMED_INDIVIDUAL = DataFactory.namedNode(PREFIX_OWL + 'NamedIndividual')
 export const SHACL_OBJECT_NODE_SHAPE = DataFactory.namedNode(PREFIX_SHACL + 'NodeShape')
 export const SHACL_OBJECT_IRI = DataFactory.namedNode(PREFIX_SHACL + 'IRI')
