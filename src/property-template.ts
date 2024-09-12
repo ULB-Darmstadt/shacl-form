@@ -1,6 +1,6 @@
 import { Literal, NamedNode, Quad, DataFactory } from 'n3'
 import { Term } from '@rdfjs/types'
-import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_OA, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
+import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_OA, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS } from './constants'
 import { Config } from './config'
 import { findLabel, removePrefixes } from './util'
 import { ShaclNode } from './node'
@@ -34,7 +34,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [SHACL_PREDICATE_CLASS.id]:   (template, term) => {
         template.class = term as NamedNode
         // try to find node shape that has requested target class
-        const nodeShapes = template.config.shapesGraph.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, SHAPES_GRAPH)
+        const nodeShapes = template.config.shapesGraph.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, null)
         if (nodeShapes.length > 0) {
             template.node = nodeShapes[0] as NamedNode
         }
@@ -117,6 +117,14 @@ export class ShaclPropertyTemplate  {
 
     clone(): ShaclPropertyTemplate {
         const copy = Object.assign({}, this)
+        // arrays are not cloned but referenced, so create them manually
+        copy.owlImports = [ ...this.owlImports ]
+        if (this.languageIn) {
+            copy.languageIn = [ ...this.languageIn ]
+        }
+        if (this.shaclOr) {
+            copy.shaclOr = [ ...this.shaclOr ]
+        }
         copy.merge = this.merge.bind(copy)
         copy.clone = this.clone.bind(copy)
         return copy

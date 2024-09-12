@@ -1,6 +1,6 @@
 import { Literal, NamedNode } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_XSD, PREFIX_RDF, SHAPES_GRAPH } from './constants'
+import { PREFIX_XSD, PREFIX_RDF } from './constants'
 import { createInputListEntries, findInstancesOf, findLabel, isURL } from './util'
 import { ShaclPropertyTemplate } from './property-template'
 import css from './styles.css'
@@ -35,7 +35,7 @@ export abstract class Theme {
         let name = value.value
         let lang: HTMLElement | null = null
         if (value instanceof NamedNode) {
-            const quads = template.config.shapesGraph.getQuads(name, null, null, SHAPES_GRAPH)
+            const quads = template.config.shapesGraph.getQuads(name, null, null, null)
             if (quads.length) {
                 const s = findLabel(quads, template.config.languages)
                 if (s) {

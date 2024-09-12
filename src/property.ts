@@ -2,7 +2,6 @@ import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { focusFirstInputElement } from './util'
-import { SHAPES_GRAPH } from './constants'
 import { createShaclOrConstraint, resolveShaclOrConstraint } from './constraints'
 import { Config } from './config'
 import { ShaclPropertyTemplate } from './property-template'
@@ -16,7 +15,7 @@ export class ShaclProperty extends HTMLElement {
 
     constructor(shaclSubject: BlankNode | NamedNode, parent: ShaclNode, config: Config, valueSubject?: NamedNode | BlankNode) {
         super()
-        this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH), parent, config)
+        this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, null), parent, config)
 
         if (this.template.order !== undefined) {
             this.style.order = `${this.template.order}`

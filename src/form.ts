@@ -2,7 +2,7 @@ import { ShaclNode } from './node'
 import { Config } from './config'
 import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
 import { Quad, Store, NamedNode, DataFactory } from 'n3'
-import { DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
+import { DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
@@ -225,7 +225,7 @@ export class ShaclForm extends HTMLElement {
         // if data-shape-subject is set, use that
         if (this.config.attributes.shapeSubject) {
             rootShapeShaclSubject = DataFactory.namedNode(this.config.attributes.shapeSubject)
-            if (!this.config.shapesGraph.has(new Quad(rootShapeShaclSubject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH))) {
+            if (this.config.shapesGraph.getQuads(rootShapeShaclSubject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length === 0) {
                 console.warn(`shapes graph does not contain requested root shape ${this.config.attributes.shapeSubject}`)
                 return
             }
@@ -244,13 +244,13 @@ export class ShaclForm extends HTMLElement {
                 }
                 // if type/conformsTo refers to a node shape, prioritize that over targetClass resolution
                 for (const rootValueSubjectType of rootValueSubjectTypes) {
-                    if (this.config.shapesGraph.has(new Quad(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH))) {
+                    if (this.config.shapesGraph.getQuads(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length > 0) {
                         rootShapeShaclSubject = rootValueSubjectType.object as NamedNode
                         break
                     }
                 }
                 if (!rootShapeShaclSubject) {
-                    const rootShapes = this.config.shapesGraph.getQuads(null, SHACL_PREDICATE_TARGET_CLASS, rootValueSubjectTypes[0].object, SHAPES_GRAPH)
+                    const rootShapes = this.config.shapesGraph.getQuads(null, SHACL_PREDICATE_TARGET_CLASS, rootValueSubjectTypes[0].object, null)
                     if (rootShapes.length === 0) {
                         console.error(`value subject '${this.config.attributes.valuesSubject}' has no shacl shape definition in the shapes graph`)
                         return
@@ -258,7 +258,7 @@ export class ShaclForm extends HTMLElement {
                     if (rootShapes.length > 1) {
                         console.warn(`value subject '${this.config.attributes.valuesSubject}' has multiple shacl shape definitions in the shapes graph, choosing the first found (${rootShapes[0].subject})`)
                     }
-                    if (this.config.shapesGraph.getQuads(rootShapes[0].subject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH).length === 0) {
+                    if (this.config.shapesGraph.getQuads(rootShapes[0].subject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length === 0) {
                         console.error(`value subject '${this.config.attributes.valuesSubject}' references a shape which is not a NodeShape (${rootShapes[0].subject})`)
                         return
                     }
@@ -267,7 +267,7 @@ export class ShaclForm extends HTMLElement {
             }
             else {
                 // choose first of all defined root shapes
-                const rootShapes = this.config.shapesGraph.getQuads(null, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH)
+                const rootShapes = this.config.shapesGraph.getQuads(null, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null)
                 if (rootShapes.length == 0) {
                     console.warn('shapes graph does not contain any root shapes')
                     return

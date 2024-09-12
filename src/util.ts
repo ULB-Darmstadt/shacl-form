@@ -96,7 +96,7 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
     for (const subClass of template.config.shapesGraph.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, clazz, null)) {
         entries.push(...findInstancesOf(subClass as NamedNode, template, indent + 1))
     }
-    if (template.config.shapesGraph.has(new Quad(clazz, RDF_PREDICATE_TYPE, OWL_OBJECT_NAMED_INDIVIDUAL))) {
+    if (template.config.shapesGraph.getQuads(clazz, RDF_PREDICATE_TYPE, OWL_OBJECT_NAMED_INDIVIDUAL, null).length > 0) {
         entries.push(...createInputListEntries([ clazz ], template.config.shapesGraph, template.config.languages, indent))
         for (const subClass of template.config.shapesGraph.getSubjects(SKOS_PREDICATE_BROADER, clazz, null)) {
             entries.push(...findInstancesOf(subClass as NamedNode, template, indent + 1))

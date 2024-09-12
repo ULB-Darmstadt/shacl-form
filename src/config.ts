@@ -1,6 +1,6 @@
 import { Prefixes, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
 import { ClassInstanceProvider } from './plugin'
 import { Loader } from './loader'
 import { Theme } from './theme'
@@ -97,9 +97,9 @@ export class Config {
         this._shapesGraph = graph
         this.lists = graph.extractLists()
         this.groups = []
-        graph.getQuads(null, RDF_PREDICATE_TYPE, `${PREFIX_SHACL}PropertyGroup`, SHAPES_GRAPH).forEach(groupQuad => {
-            this.groups.push(groupQuad.subject.value)
-        })
+        graph.forSubjects(subject => {
+            this.groups.push(subject.id)
+        }, RDF_PREDICATE_TYPE, `${PREFIX_SHACL}PropertyGroup`, null)
     }
 
     registerPrefixes(prefixes: Prefixes) {

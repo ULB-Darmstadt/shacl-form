@@ -1,6 +1,6 @@
 import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, SHAPES_GRAPH, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS } from './constants'
 import { ShaclProperty } from './property'
 import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
@@ -25,7 +25,7 @@ export class ShaclNode extends HTMLElement {
         if (!nodeId) {
             // if no value subject given, create new node id with a type depending on own nodeKind or given parent property nodeKind
             if (!nodeKind) {
-                const spec = config.shapesGraph.getObjects(shaclSubject, `${PREFIX_SHACL}nodeKind`, SHAPES_GRAPH)
+                const spec = config.shapesGraph.getObjects(shaclSubject, `${PREFIX_SHACL}nodeKind`, null)
                 if (spec.length) {
                     nodeKind = spec[0] as NamedNode
                 }
@@ -64,7 +64,7 @@ export class ShaclNode extends HTMLElement {
                 config.renderedNodes.add(id)
             }
             this.dataset.nodeId = this.nodeId.id
-            const quads = config.shapesGraph.getQuads(shaclSubject, null, null, SHAPES_GRAPH)
+            const quads = config.shapesGraph.getQuads(shaclSubject, null, null, null)
             let list: Term[] | undefined
 
             if (this.config.attributes.showNodeIds !== null) {
@@ -79,7 +79,7 @@ export class ShaclNode extends HTMLElement {
                     case `${PREFIX_SHACL}property`:
                         let parentElement: HTMLElement = this
                         // check if property belongs to a group
-                        const groupRef = config.shapesGraph.getQuads(quad.object as Term, `${PREFIX_SHACL}group`, null, SHAPES_GRAPH)
+                        const groupRef = config.shapesGraph.getQuads(quad.object as Term, `${PREFIX_SHACL}group`, null, null)
                         if (groupRef.length > 0) {
                             const groupSubject = groupRef[0].object.value
                             if (config.groups.indexOf(groupSubject) > -1) {
@@ -91,7 +91,7 @@ export class ShaclNode extends HTMLElement {
                                 }
                                 parentElement = group
                             } else {
-                                console.warn('ignoring unknown group reference', groupRef[0])
+                                console.warn('ignoring unknown group reference', groupRef[0], 'existing groups:', config.groups)
                             }
                         }
                         // delay creating/appending the property until we finished parsing the node.
