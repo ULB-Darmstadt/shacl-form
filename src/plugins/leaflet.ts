@@ -100,17 +100,8 @@ export class LeafletPlugin extends Plugin {
                 html: '•'
             }
         }))())
-        this.map.on('editable:drawing:end', () => {
-            if (this.displayedShape instanceof L.Marker) {
-                const pos = this.displayedShape.getLatLng()
-                this.createdGeometry = { type: 'Point', coordinates: [pos.lng, pos.lat] }
-            } else if (this.displayedShape instanceof L.Polygon) {
-                const positions = this.displayedShape.getLatLngs() as L.LatLng[][]
-                this.createdGeometry = { type: 'Polygon', coordinates: [positions[0].map((pos) => { return [ pos.lng, pos.lat ] })] }
-            } else {
-                this.createdGeometry = undefined
-            }
-        })
+        this.map.on('editable:drawing:end', () => { this.saveChanges() })
+        this.map.on('editable:vertex:dragend', () => { this.saveChanges() })
 
         const dialog = form.querySelector('#shaclMapDialog') as HTMLDialogElement
         dialog.addEventListener('close', () => {
@@ -184,6 +175,22 @@ export class LeafletPlugin extends Plugin {
             }, 1)
         } else {
             map.setZoom(5)
+        }
+    }
+
+    saveChanges() {
+        if (this.displayedShape instanceof L.Marker) {
+            const pos = this.displayedShape.getLatLng()
+            this.createdGeometry = { type: 'Point', coordinates: [pos.lng, pos.lat] }
+        } else if (this.displayedShape instanceof L.Polygon) {
+            const positions = this.displayedShape.getLatLngs() as L.LatLng[][]
+            // force closed polygon
+            if (!positions[0][0].equals(positions[0][positions[0].length - 1])) {
+                positions[0].push(positions[0][0])
+            }
+            this.createdGeometry = { type: 'Polygon', coordinates: [positions[0].map((pos) => { return [ pos.lng, pos.lat ] })] }
+        } else {
+            this.createdGeometry = undefined
         }
     }
 }
