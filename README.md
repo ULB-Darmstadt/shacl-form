@@ -22,9 +22,9 @@ HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that
       or can be loaded by setting attribute 'data-shapes-url'
     -->
     <shacl-form data-shapes="
-      @prefix sh: <http://www.w3.org/ns/shacl#> .
-      @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
-      @prefix ex: <http://example.org#> .
+      @prefix sh:   <http://www.w3.org/ns/shacl#> .
+      @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+      @prefix ex:   <http://example.org#> .
 
       ex:ExampleShape
         a sh:NodeShape, rdfs:Class ;
@@ -74,6 +74,7 @@ data-show-node-ids | When this attribute is set, shacl node shapes will have the
 
 ### Element functions
 
+<a id="toRDF"></a>
 ```typescript
 toRDF(graph?: Store): Store
 ```
@@ -103,11 +104,7 @@ Set a design theme to use for rendering. See section [Theming](#Theming).
 ```typescript
 setClassInstanceProvider((className: string) => Promise<string>)
 ```
-Sets a callback function that is called when a SHACL property has an `sh:class` definition. The expected return value is a string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class. Instances can be defined e.g. like:
-- `example:Instance a example:Class`
-- `example:Instance a owl:NamedIndividual; skos:broader example:Class`
-
-Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
+Sets a callback function that is invoked when a SHACL property has an `sh:class` definition to retrieve class instances. See [below](#classInstanceProvider) for more information.
 
 ## Features
 
@@ -138,7 +135,7 @@ Apart from setting the element attributes `data-shapes` or `data-shapes-url`, th
     ```
     In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form.
 
-2. The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is invoked when a SHACL property has
+2. <a id="classInstanceProvider"></a>The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is invoked when a SHACL property has
 an `sh:class` predicate. The expected return value is a (promise of a) string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class. Instances can be defined e.g. like:
     - `example:Instance a example:Class`
     - `example:Instance a owl:NamedIndividual; skos:broader example:Class`
@@ -218,7 +215,7 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
 
 ### Use with Solid Pods
 
-`<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDFJS N3 Store, as explained above, it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF Graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod Example](https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/getting-started/) shows how to merge data from a `<shacl-form>` with a Solid Data Resource at `readingListDataResourceURI`:
+`<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDF/JS N3 Store, as explained [above](#toRDF), it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod example](https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/getting-started/) shows how to merge data from a `<shacl-form>` with a Solid data resource at `readingListDataResourceURI`:
  
 ```js
   // Authentication is assumed, resulting in a fetch able to read and write into the Pod
@@ -226,7 +223,7 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
     // Get data out of the shacl-form
     const form = document.querySelector('shacl-form')
 
-    // Extract the RDF Graph from the form
+    // Extract the RDF graph from the form
     const shaclFormGraphStore = await form.toRDF()
 
     // Convert RDF store into a Solid dataset
@@ -235,7 +232,7 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
     // First get the current dataset
     myReadingList = await getSolidDataset(readingListDataResourceURI, { fetch: fetch })
 
-    // get all Things from the shaclFormDataset
+    // get all things from the shaclFormDataset
     const shaclFormThings = getThingAll(shaclFormDataset)
 
     // add the things from ShaclForm to the existing set
