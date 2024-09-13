@@ -123,7 +123,7 @@ In edit mode, `<shacl-form>` validates the constructed data graph using the libr
 ### Providing additional data to the shapes graph
 
 Apart from setting the element attributes `data-shapes` or `data-shapes-url`, there are two ways of adding RDF data to the shapes graph:
-1. While parsing the triples of the shapes graph, any encountered `owl:imports` predicate that has a valid HTTP URL value will tried to be fetched with the HTTP Accept header set to all of the [supported](#formats) MIME types. A successful response will be parsed and added to the shapes graph. The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
+1. While parsing the triples of the shapes graph, any encountered `owl:imports` predicate that has a valid HTTP URL value will be tried to fetch with the HTTP Accept header set to all of the [supported](#formats) MIME types. A successful response will be parsed and added to the shapes graph. The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
     ```
     example:Attribution
       owl:imports <https://w3id.org/nfdi4ing/metadata4ing/> ;
