@@ -1,6 +1,7 @@
-form {
-    --md-sys-color-primary: var(--brand-color);
+:host {
+    --mdui-color-primary-light: var(--mdui-color-primary-light);
+    --mdui-color-primary-dark: var(--mdui-color-primary-dark);
+    --mdui-color-background-light: var(--mdui-color-background-light);
 }
 form.mode-edit { --label-width: 0em; }
 .property-instance { margin-bottom:14px; }
-label > md-checkbox  { margin-right: 8px; }

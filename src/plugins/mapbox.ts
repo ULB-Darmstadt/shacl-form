@@ -59,6 +59,7 @@ export class MapboxPlugin extends Plugin {
             // this fixes wrong size of canvas
             this.map!.resize()
         })
+        // @ts-ignore
         this.map.on('draw.create', () => this.deleteAllButLastDrawing())
 
         const dialog = form.querySelector('#shaclMapDialog') as HTMLDialogElement

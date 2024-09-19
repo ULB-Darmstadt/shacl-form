@@ -1,20 +1,21 @@
 import { ShaclPropertyTemplate } from '../property-template'
 import { Term } from '@rdfjs/types'
-import { MdOutlinedTextField } from '@material/web/textfield/outlined-text-field'
-import { MdFilledButton } from '@material/web/button/filled-button'
-import { MdOutlinedButton } from '@material/web/button/outlined-button'
-import { MdOutlinedSelect } from '@material/web/select/outlined-select'
-import { MdSelectOption } from '@material/web/select/select-option'
-import { MdCheckbox } from '@material/web/checkbox/checkbox'
+import { TextField } from 'mdui/components/text-field.js'
+import { Button } from 'mdui/components/button.js'
+import { Select } from 'mdui/components/select.js'
+import { MenuItem } from 'mdui/components/menu-item.js'
+import { Checkbox } from 'mdui/components/checkbox.js'
 import { Theme } from '../theme'
 import { InputListEntry, Editor } from '../theme'
 import { Literal } from 'n3'
 import css from './material.css'
+import material from 'mdui/mdui.css'
 import { PREFIX_XSD } from '../constants'
 
 export class MaterialTheme extends Theme {
     constructor() {
-        super(css)
+        // need to replace :root by :host, otherwise the rules won't apply in context of web components
+        super(material.replaceAll(':root', ':host') + '\n' + css)
     }
 
     createDefaultTemplate(label: string, value: Term | null, required: boolean, editor: Editor, template?: ShaclPropertyTemplate): HTMLElement {
@@ -57,57 +58,60 @@ export class MaterialTheme extends Theme {
     }
     
     createTextEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
-        const editor = new MdOutlinedTextField()
+        const editor = new TextField()
+        editor.variant = 'outlined'
         editor.label = label
-        editor.supportingText = template.description ?.value || ''
+        editor.type = 'text'
+        if (template.description) {
+            editor.helper = template.description.value
+        }
         if (template.singleLine === false) {
-            editor.type = 'textarea'
             editor.rows = 5
         }
-        else {
-            editor.type = 'text'
-            if (template.pattern) {
-                editor.pattern = template.pattern
-            }
+        if (template.pattern) {
+            editor.pattern = template.pattern
         }
-
         return this.createDefaultTemplate('', value, required, editor, template)
     }
 
     createNumberEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
-        const editor = new MdOutlinedTextField()
+        const editor = new TextField()
+        editor.variant = 'outlined'
         editor.type = 'number'
         editor.label = label
-        editor.supportingText = template.description ?.value || ''
+        editor.helper = template.description ?.value || ''
         const min = template.minInclusive !== undefined ? template.minInclusive : template.minExclusive !== undefined ? template.minExclusive + 1 : undefined
         const max = template.maxInclusive !== undefined ? template.maxInclusive : template.maxExclusive !== undefined ? template.maxExclusive - 1 : undefined
         if (min !== undefined) {
-            editor.min = String(min)
+            editor.setAttribute('min', String(min))
         }
         if (max !== undefined) {
-            editor.max = String(max)
+            editor.setAttribute('max', String(max))
         }
         if (template.datatype?.value !== PREFIX_XSD + 'integer') {
-            editor.step = '0.1'
+            editor.setAttribute('step', '0.1')
         }
         return this.createDefaultTemplate('', value, required, editor, template)
     }
 
     createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement {
-        const editor = new MdOutlinedSelect()
+        const editor = new Select()
+        editor.variant = 'outlined'
         editor.label = label
-        editor.supportingText = template?.description?.value || template?.label || ''
+        editor.helper = template?.description?.value
+        // @ts-ignore
         const result = this.createDefaultTemplate('', null, required, editor, template)
         let addEmptyOption = true
     
         for (const item of listEntries) {
-            const option = new MdSelectOption()
+            const option = new MenuItem()
             const itemValue = (typeof item.value === 'string') ? item.value : item.value.value
             const itemLabel = item.label ? item.label : itemValue
             option.value = itemValue
-            if (value && value.value === itemValue) {
-                option.selected = true
-            }
+            option.textContent = itemLabel || itemValue
+            // if (value && value.value === itemValue) {
+            //     option.selected = true
+            // }
             if (item.indent) {
                 for (let i = 0; i < item.indent; i++) {
                     option.innerHTML = '&#160;&#160;' + option.innerHTML
@@ -117,17 +121,11 @@ export class MaterialTheme extends Theme {
                 addEmptyOption = false
                 option.ariaLabel = 'blank'
             }
-            if (itemLabel) {
-                const labelElem = document.createElement('div')
-                labelElem.innerText = itemLabel
-                labelElem.slot = 'headline'
-                option.appendChild(labelElem)
-            }
             editor.appendChild(option)
         }
         if (addEmptyOption) {
             // add an empty element
-            const empty = new MdSelectOption()
+            const empty = new MenuItem()
             empty.ariaLabel = 'blank'
             editor.prepend(empty)
         }
@@ -138,23 +136,45 @@ export class MaterialTheme extends Theme {
     }
 
     createBooleanEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
-        const editor = new MdCheckbox()
-        editor.setAttribute('type', 'checkbox')
+        const editor = new Checkbox()
         const result = this.createDefaultTemplate('', value, required, editor, template)
         // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here
         editor.removeAttribute('required')
         if (value instanceof Literal) {
             editor.checked = value.value === 'true'
         }
-        const labelElem = document.createElement('label')
-        labelElem.appendChild(editor)
-        labelElem.appendChild(document.createTextNode(label))
-        result.appendChild(labelElem)
+        editor.innerText = label
         return result
     }
 
     createDateEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
-        return this.createTextEditor(label, value, required, template)
+        const editor = new TextField()
+        editor.variant = 'outlined'
+        editor.helper = template?.description?.value || template?.label || ''
+        if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
+            editor.type = 'datetime-local'
+            // this enables seconds in dateTime input
+            editor.setAttribute('step', '1')
+        }
+        else {
+            editor.type = 'date'
+        }
+        editor.classList.add('pr-0')
+        const result = this.createDefaultTemplate('', null, required, editor, template)
+        if (value) {
+            try {
+                let isoDate = new Date(value.value).toISOString()
+                if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
+                    isoDate = isoDate.slice(0, 19)
+                } else {
+                    isoDate = isoDate.slice(0, 10)
+                }
+                editor.value = isoDate
+            } catch(ex) {
+                console.error(ex, value)
+            }
+        }
+        return result
     }
 
     createLangStringEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
@@ -213,10 +233,10 @@ export class MaterialTheme extends Theme {
     createButton(label: string, primary: boolean): HTMLElement {
         let button
         if (primary) {
-            button = new MdFilledButton()
+            button = new Button()
             button.classList.add('primary')
         } else {
-            button = new MdOutlinedButton()
+            button = new Button()
             button.classList.add('secondary')
         }
         button.innerHTML = label
