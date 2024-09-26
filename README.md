@@ -78,13 +78,11 @@ data-show-node-ids | When this attribute is set, shacl node shapes will have the
 ```typescript
 toRDF(graph?: Store): Store
 ```
-
 Adds the form values as RDF triples to the given graph. If no graph object is provided, creates a new [N3 Store](https://github.com/rdfjs/N3.js#storing).
 
 ```typescript
 serialize(format?: string, graph?: Store): string
 ```
-
 Serializes the given RDF graph to the given format. If no graph object is provided, this function calls toRDF() (see above) to construct the form data graph. <a name="formats"></a>Supported formats:  `text/turtle` (default), `application/ld+json`, `application/n-triples`, `application/n-quads`, `application/trig`.
 
 ```typescript
@@ -101,10 +99,16 @@ Register a [plugin](./src/plugin.ts) to customize editing/viewing certain proper
 setTheme(theme: Theme)
 ```
 Set a design theme to use for rendering. See section [Theming](#Theming).
+
 ```typescript
 setClassInstanceProvider((className: string) => Promise<string>)
 ```
 Sets a callback function that is invoked when a SHACL property has an `sh:class` definition to retrieve class instances. See [below](#classInstanceProvider) for more information.
+
+```typescript
+setSharedShapesGraph(graph: Store)
+```
+Set an externally managed shapes graph to use. This improves performance When using multiple instances of `shacl-form` on the same page.
 
 ## Features
 
