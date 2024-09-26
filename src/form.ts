@@ -1,11 +1,12 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
 import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
-import { Quad, Store, NamedNode, DataFactory } from 'n3'
+import { Store, NamedNode, DataFactory } from 'n3'
 import { DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
+import { setSharedShapesGraph } from './loader'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.dataAttributes() }
@@ -126,6 +127,11 @@ export class ShaclForm extends HTMLElement {
 
     public setTheme(theme: Theme) {
         this.config.theme = theme
+        this.initialize()
+    }
+
+    public setSharedShapesGraph(graph: Store) {
+        setSharedShapesGraph(graph)
         this.initialize()
     }
 

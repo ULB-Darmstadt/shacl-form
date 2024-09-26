@@ -9,6 +9,7 @@ import { isURL } from './util'
 // that import the same resources
 const loadedURLCache: Record<string, Promise<string>> = {}
 const loadedClassesCache: Record<string, Promise<string>> = {}
+let sharedShapesGraph: Store | undefined
 
 export class Loader {
     private config: Config
@@ -24,19 +25,21 @@ export class Loader {
         this.loadedExternalUrls = []
         this.loadedClasses = []
 
-        const shapesStore = new Store()
+        let shapesStore = sharedShapesGraph
         const valuesStore = new Store()
         this.config.prefixes = {}
 
-        await Promise.all([
-            this.importRDF(this.config.attributes.shapes ? this.config.attributes.shapes : this.config.attributes.shapesUrl ? this.fetchRDF(this.config.attributes.shapesUrl) : '', shapesStore, SHAPES_GRAPH),
-            this.importRDF(this.config.attributes.values ? this.config.attributes.values : this.config.attributes.valuesUrl ? this.fetchRDF(this.config.attributes.valuesUrl) : '', valuesStore, undefined, new Parser({ blankNodePrefix: '' })),
-        ])
+        const promises = [ this.importRDF(this.config.attributes.values ? this.config.attributes.values : this.config.attributes.valuesUrl ? this.fetchRDF(this.config.attributes.valuesUrl) : '', valuesStore, undefined, new Parser({ blankNodePrefix: '' })) ]
+        if (!shapesStore) {
+            shapesStore = new Store()
+            promises.push(this.importRDF(this.config.attributes.shapes ? this.config.attributes.shapes : this.config.attributes.shapesUrl ? this.fetchRDF(this.config.attributes.shapesUrl) : '', shapesStore, SHAPES_GRAPH))
+        }
+        await Promise.all(promises)
 
         // if shapes graph is empty, but we have the following triples:
         // <valueSubject> a <uri> or <valueSubject> dcterms:conformsTo <uri>
         // then try to load the referenced object into the shapes graph
-        if (shapesStore.size == 0 && this.config.attributes.valuesSubject) {
+        if (!sharedShapesGraph && shapesStore?.size == 0 && this.config.attributes.valuesSubject) {
             const shapeCandidates = [
                 ...valuesStore.getObjects(this.config.attributes.valuesSubject, RDF_PREDICATE_TYPE, null),
                 ...valuesStore.getObjects(this.config.attributes.valuesSubject, DCTERMS_PREDICATE_CONFORMS_TO, null)
@@ -162,4 +165,8 @@ export class Loader {
         }
         return null
     }
+}
+
+export function setSharedShapesGraph(graph: Store) {
+    sharedShapesGraph = graph
 }
