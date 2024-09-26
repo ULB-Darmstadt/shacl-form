@@ -260,7 +260,7 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
 
 Theme | Import statement
 --- | ---
-[Default]((./src/themes/default.ts)) (slightly customized default browser styles) | `import '@ulb-darmstadt/shacl-form/form-default.js'`
+[Default](./src/themes/default.ts) (slightly customized default browser styles) | `import '@ulb-darmstadt/shacl-form/form-default.js'`
 [Bootstrap](./src/themes/bootstrap.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-bootstrap.js'`
 [Material Design](./src/themes/material.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-material.js'`
 
