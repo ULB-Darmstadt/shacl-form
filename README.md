@@ -108,7 +108,7 @@ Sets a callback function that is invoked when a SHACL property has an `sh:class`
 ```typescript
 setSharedShapesGraph(graph: Store)
 ```
-Set an externally managed shapes graph to use. This improves performance When using multiple instances of `shacl-form` on the same page.
+Set an externally managed shapes graph to use. This improves performance When using multiple instances of `shacl-form` on the same page. Note that the shape triples need to be stored in the graph with ID `shapes` to be recognized.
 
 ## Features
 

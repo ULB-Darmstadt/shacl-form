@@ -1,12 +1,13 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "1.6.2",
+    "version": "1.6.3",
     "description": "SHACL form generator",
     "main": "dist/form-default.js",
     "module": "dist/form-default.js",
     "types": "dist/form-default.d.ts",
     "files": [
-        "dist"
+        "dist",
+        "src"
     ],
     "repository": {
         "type": "git",

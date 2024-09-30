@@ -3,7 +3,7 @@ import { Term } from '@rdfjs/types'
 import { ShaclPropertyTemplate } from '../property-template'
 import { Editor } from '../theme'
 import bootstrap from 'bootstrap/dist/css/bootstrap.min.css'
-import css from './bootstrap.css'
+import css from './bootstrap.css?raw'
 
 export class BootstrapTheme extends DefaultTheme {
     constructor() {

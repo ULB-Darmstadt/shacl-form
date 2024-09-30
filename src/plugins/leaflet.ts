@@ -1,7 +1,7 @@
 import * as L from 'leaflet'
 import 'leaflet-editable/src/Leaflet.Editable.js'
-import leafletCss from 'leaflet/dist/leaflet.css'
-import leafletFullscreenCss from 'leaflet.fullscreen/Control.FullScreen.css'
+import leafletCss from 'leaflet/dist/leaflet.css?raw'
+import leafletFullscreenCss from 'leaflet.fullscreen/Control.FullScreen.css?raw'
 import 'leaflet.fullscreen/Control.FullScreen.js'
 import { Term } from '@rdfjs/types'
 

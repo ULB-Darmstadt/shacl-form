@@ -16,10 +16,11 @@ module.exports = [
             filename: '[name].js',
             library: { type: 'module' },
         },
+        externals: /^mdui/i,
         module: {
             rules: [
                 { test: /\.tsx?$/, use: 'ts-loader' },
-                { test: /\.css$/i, use: ['raw-loader'] },
+                { test: /\.css(\?raw)?$/i, use: ['raw-loader'] },
             ],
         },
         resolve: { extensions: ['.tsx', '.ts', '.js'] },

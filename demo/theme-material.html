@@ -1,11 +1,32 @@
 <!DOCTYPE html>
-<html>
+<html class="mdui-theme-light">
     <head>
+        <link rel="stylesheet" href="https://unpkg.com/mdui@2/mdui.css">
         <style>
-            body { font-family: sans-serif; }
+            body { font-family: roboto; }
+            :root, shacl-form { 
+                --filter-column-width: 300px;
+                --mdui-color-primary-light: 0, 136, 119;
+                --mdui-color-primary-dark: 208, 188, 255;
+                --mdui-color-background-light: 255, 255, 255;
+                --mdui-color-surface-light: 255, 255, 255;
+                --mdui-color-surface-container-high: 255, 255, 255;
+                --mdui-color-surface-container-highest-light: 245, 245, 245;
+            }
         </style>
-        <link href=" https://cdn.jsdelivr.net/npm/roboto-font@0.1.0/css/fonts.min.css " rel="stylesheet">
-        <script type="module" src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/form-material.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fontsource/roboto/400.css" rel="stylesheet">
+        <script type="importmap">
+            {
+              "imports": {
+                "@ulb-darmstadt/shacl-form/": "https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/",
+                "mdui": "https://unpkg.com/mdui@2/mdui.esm.js"
+              }
+            }
+        </script>
+        <script type="module">
+            import 'mdui'
+            import '@ulb-darmstadt/shacl-form/form-material.js'
+        </script>
         <script type="module" defer>
             const form = document.getElementById("shacl-form")
             form.setClassInstanceProvider((clazz) => { 

@@ -3,7 +3,7 @@ import { ShaclPropertyTemplate } from "../property-template"
 import { Editor, InputListEntry, Theme } from "../theme"
 import { PREFIX_XSD } from '../constants'
 import { Literal } from 'n3'
-import css from './default.css'
+import css from './default.css?raw'
 
 export class DefaultTheme extends Theme {
     idCtr = 0

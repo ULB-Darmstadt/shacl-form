@@ -24,7 +24,7 @@ shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.per
 .shacl-or-constraint select { border: 1px solid #DDD; padding: 2px 4px; }
 select { overflow: hidden; text-overflow: ellipsis; }
 textarea.editor { resize: vertical; }
-.lang-chooser { position: absolute; top: 5px; right: 28px; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
+.lang-chooser { position: absolute; top: 5px; right: 24px; border: 0; background-color: #e9e9ed; padding: 2px 4px; max-width: 40px; width: 40px; box-sizing: content-box; }
 .lang-chooser+.editor { padding-right: 55px; }
 .validation-error { position: absolute; left: calc(var(--label-width) - 1em); top: 6px; color: red; cursor: help; }
 .validation-error::before { content: '\26a0' }

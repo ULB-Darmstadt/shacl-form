@@ -1,21 +1,15 @@
 import { ShaclPropertyTemplate } from '../property-template'
 import { Term } from '@rdfjs/types'
-import { TextField } from 'mdui/components/text-field.js'
-import { Button } from 'mdui/components/button.js'
-import { Select } from 'mdui/components/select.js'
-import { MenuItem } from 'mdui/components/menu-item.js'
-import { Checkbox } from 'mdui/components/checkbox.js'
+import { Button, TextField, Select, MenuItem, Checkbox } from 'mdui'
 import { Theme } from '../theme'
 import { InputListEntry, Editor } from '../theme'
 import { Literal } from 'n3'
-import css from './material.css'
-import material from 'mdui/mdui.css'
+import css from './material.css?raw'
 import { PREFIX_XSD } from '../constants'
 
 export class MaterialTheme extends Theme {
     constructor() {
-        // need to replace :root by :host, otherwise the rules won't apply in context of web components
-        super(material.replaceAll(':root', ':host') + '\n' + css)
+        super(css)
     }
 
     createDefaultTemplate(label: string, value: Term | null, required: boolean, editor: Editor, template?: ShaclPropertyTemplate): HTMLElement {

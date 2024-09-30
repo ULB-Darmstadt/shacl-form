@@ -1,12 +1,6 @@
 :root { 
     --brand-color: #008877;
 }
-    
-shacl-form { 
-    --mdui-color-primary-light: 0, 136, 119;
-    --mdui-color-primary-dark: 208, 188, 255;
-    --mdui-color-background-light: 255, 255, 255;
-}
 
 body {
     font-family: sans-serif;
