@@ -3,9 +3,10 @@
     --mdui-color-primary-dark: var(--mdui-color-primary-dark);
     --mdui-color-background-light: var(--mdui-color-background-light);
 }
-/* this prevents hiding the date picker icon */
+/* this prevents hiding the date picker icon and number controls */
 mdui-text-field::part(input) {
     clip-path: none;
+    appearance: inherit;
 }
 form.mode-edit { --label-width: 0em; }
 .property-instance { margin-bottom:14px; }
