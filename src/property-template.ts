@@ -2,12 +2,12 @@ import { Literal, NamedNode, Quad, DataFactory } from 'n3'
 import { Term } from '@rdfjs/types'
 import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_OA, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS } from './constants'
 import { Config } from './config'
-import { findLabel, removePrefixes } from './util'
+import { findLabel, prioritizeByLanguage, removePrefixes } from './util'
 import { ShaclNode } from './node'
 
 const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => void> = {
-    [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; if (!template.name || literal.language === template.config.attributes.language) { template.name = literal } },
-    [`${PREFIX_SHACL}description`]:  (template, term) => { const literal = term as Literal; if (!template.description || literal.language === template.config.attributes.language) { template.description = literal } },
+    [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; template.name = prioritizeByLanguage(template.config.languages, template.name, literal) },
+    [`${PREFIX_SHACL}description`]:  (template, term) => { const literal = term as Literal; template.description = prioritizeByLanguage(template.config.languages, template.description, literal) },
     [`${PREFIX_SHACL}path`]:         (template, term) => { template.path = term.value },
     [`${PREFIX_SHACL}node`]:         (template, term) => { template.node = term as NamedNode },
     [`${PREFIX_SHACL}datatype`]:     (template, term) => { template.datatype = term as NamedNode },

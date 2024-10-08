@@ -66,7 +66,7 @@ example:Dataset
   sh:property   [ sh:datatype     rdf:langString ;
                   sh:languageIn   ( "en" "de" ) ;
                   sh:uniqueLang   true ;
-                  sh:description  "Name of the dataset" , "Der Name des Datensatzes"@de ;
+                  sh:description  "Name of the dataset"@en , "Name des Datensatzes"@de ;
                   sh:minCount     1 ;
                   sh:maxCount     2 ;
                   sh:name         "Name" ;
@@ -76,16 +76,16 @@ example:Dataset
                   sh:datatype     rdf:langString ;
                   sh:languageIn   ( "en" "de" ) ;
                   sh:uniqueLang   true ;
-                  sh:description  "Description of the dataset" ;
+                  sh:description  "Description of the dataset"@en, "Beschreibung des Datensatzes"@de ;
                   sh:minCount     1 ;
                   sh:maxCount     2 ;
-                  sh:name         "Description" ;
+                  sh:name         "Description"@en, "Beschreibung"@de ;
                   sh:path         dcterms:description
                 ] ;
-  sh:property   [ sh:description  "License of the dataset" ;
+  sh:property   [ sh:description  "License of the dataset"@en, "Lizenz des Datensatzes"@de ;
                   sh:maxCount     1 ;
                   sh:minCount     1 ;
-                  sh:name         "License" ;
+                  sh:name         "License"@en, "Lizenz"@de ;
                   sh:nodeKind     sh:IRI ;
                   sh:path         dcterms:license ;
                   sh:in (
