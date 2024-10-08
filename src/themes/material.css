@@ -10,3 +10,5 @@ mdui-text-field::part(input) {
 }
 form.mode-edit { --label-width: 0em; }
 .property-instance { margin-bottom:14px; }
+.mode-edit .property-instance *[required]::part(icon) { align-self: flex-start; padding-top: 0.7em; }
+.mode-edit .property-instance *[required]::part(icon)::before { color: red; content: '\2736'; font-size: 0.6em; }
