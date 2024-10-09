@@ -49,10 +49,10 @@ export class Config {
         this.languages = [...new Set(navigator.languages.flatMap(lang => {
             if (lang.length > 2) {
                 // for each 5 letter lang code (e.g. de-DE) append its corresponding 2 letter code (e.g. de) directly afterwards
-                return [lang, lang.substring(0, 2)]
+                return [lang.toLocaleLowerCase(), lang.substring(0, 2)]
             } 
             return lang
-        }))]
+        })), ''] // <-- append empty string to accept RDF literals with no language
     }
  
     updateAttributes(elem: HTMLElement) {

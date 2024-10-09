@@ -1,4 +1,4 @@
-import { NamedNode, Prefixes, Quad, Store } from 'n3'
+import { Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
 import { OWL_OBJECT_NAMED_INDIVIDUAL, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
@@ -113,4 +113,22 @@ export function isURL(input: string): boolean {
         return false
     }
     return url.protocol === 'http:' || url.protocol === 'https:'
+}
+
+export function prioritizeByLanguage(languages: string[], text1?: Literal, text2?: Literal): Literal | undefined {
+    if (text1 === undefined) {
+        return text2
+    }
+    if (text2 === undefined) {
+        return text1
+    }
+    const index1 = languages.indexOf(text1.language)
+    if (index1 < 0) {
+        return text2
+    }
+    const index2 = languages.indexOf(text2.language)
+    if (index2 < 0) {
+        return text1
+    }
+    return index2 > index1 ? text1 : text2
 }

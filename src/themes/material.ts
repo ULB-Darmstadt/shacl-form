@@ -93,6 +93,7 @@ export class MaterialTheme extends Theme {
         editor.variant = 'outlined'
         editor.label = label
         editor.helper = template?.description?.value
+        editor.clearable = true
         // @ts-ignore
         const result = this.createDefaultTemplate('', null, required, editor, template)
         let addEmptyOption = true
