@@ -154,11 +154,11 @@ export class ShaclNode extends HTMLElement {
             (shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
         }
         if (this.targetClass) {
-            graph.addQuad(subject, RDF_PREDICATE_TYPE, this.targetClass)
+            graph.addQuad(subject, RDF_PREDICATE_TYPE, this.targetClass, this.config.valuesGraph)
         }
         // if this is the root shacl node, check if we should add one of the rdf:type or dcterms:conformsTo predicates
         if (this.config.attributes.generateNodeShapeReference && !this.parent) {
-            graph.addQuad(subject, DataFactory.namedNode(this.config.attributes.generateNodeShapeReference), this.shaclSubject)
+            graph.addQuad(subject, DataFactory.namedNode(this.config.attributes.generateNodeShapeReference), this.shaclSubject, this.config.valuesGraph)
         }
         return subject
     }

@@ -1,4 +1,4 @@
-import { Prefixes, Store } from 'n3'
+import { DataFactory, NamedNode, Prefixes, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
 import { ClassInstanceProvider } from './plugin'
@@ -17,6 +17,7 @@ export class ElementAttributes {
     valueSubject: string | null = null // for backward compatibility
     valuesSubject: string | null = null
     valuesNamespace = ''
+    valuesGraph: string | null = null
     view: string | null = null
     language: string | null = null
     loading: string = 'Loading\u2026'
@@ -41,6 +42,7 @@ export class Config {
     theme: Theme
     form: HTMLElement
     renderedNodes = new Set<string>()
+    valuesGraph: NamedNode | undefined
     private _shapesGraph = new Store()
 
     constructor(theme: Theme, form: HTMLElement) {
@@ -78,6 +80,7 @@ export class Config {
             // now prepend preferred language at start of the list of languages
             this.languages.unshift(atts.language)
         }
+        this.valuesGraph = atts.valuesGraph ? DataFactory.namedNode(atts.valuesGraph) : undefined
     }
 
     static dataAttributes(): Array<string> {

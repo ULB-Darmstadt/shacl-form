@@ -123,14 +123,13 @@ export class ShaclProperty extends HTMLElement {
         for (const instance of this.querySelectorAll(':scope > .property-instance')) {
             const pathNode = DataFactory.namedNode((instance as HTMLElement).dataset.path!)
             if (instance.firstChild instanceof ShaclNode) {
-                const quadCount = graph.size
                 const shapeSubject = instance.firstChild.toRDF(graph)
-                graph.addQuad(subject, pathNode, shapeSubject)
+                graph.addQuad(subject, pathNode, shapeSubject, this.template.config.valuesGraph)
             } else {
                 const editor = instance.querySelector('.editor') as Editor
                 const value = toRDF(editor)
                 if (value) {
-                    graph.addQuad(subject, pathNode, value)
+                    graph.addQuad(subject, pathNode, value, this.template.config.valuesGraph)
                 }
             }
         }
