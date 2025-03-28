@@ -23,6 +23,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}pattern`]:      (template, term) => { template.pattern = term.value },
     [`${PREFIX_SHACL}order`]:        (template, term) => { template.order = parseInt(term.value) },
     [`${PREFIX_DASH}singleLine`]:    (template, term) => { template.singleLine = term.value === 'true' },
+    [`${PREFIX_DASH}readonly`]:      (template, term) => { template.readonly = term.value === 'true' },
     [`${PREFIX_OA}styleClass`]:      (template, term) => { template.cssClass = term.value },
     [`${PREFIX_SHACL}and`]:          (template, term) => { template.shaclAnd = term.value },
     [`${PREFIX_SHACL}in`]:           (template, term) => { template.shaclIn = term.value },
@@ -66,6 +67,7 @@ export class ShaclPropertyTemplate  {
     minExclusive: number | undefined
     maxExclusive: number | undefined
     singleLine: boolean | undefined
+    readonly: boolean | undefined
     cssClass: string | undefined
     defaultValue: Term | undefined
     pattern: string | undefined

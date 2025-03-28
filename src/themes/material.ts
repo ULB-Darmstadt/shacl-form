@@ -27,7 +27,7 @@ export class MaterialTheme extends Theme {
         if (template?.nodeKind) {
             editor.dataset.nodeKind = template.nodeKind.value
         }
-        if (template?.hasValue) {
+        if (template?.hasValue || template?.readonly) {
             editor.disabled = true
         }
         editor.value = value?.value || template?.defaultValue?.value || ''
