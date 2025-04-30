@@ -126,7 +126,7 @@ export class ShaclProperty extends HTMLElement {
                 const shapeSubject = instance.firstChild.toRDF(graph)
                 graph.addQuad(subject, pathNode, shapeSubject, this.template.config.valuesGraph)
             } else {
-                for (const editor of instance.querySelectorAll<Editor>('.editor')) {
+                for (const editor of instance.querySelectorAll<Editor>(':scope > .editor')) {
                     const value = toRDF(editor)
                     if (value) {
                         graph.addQuad(subject, pathNode, value, this.template.config.valuesGraph)

@@ -25,8 +25,8 @@ export class ShaclForm extends HTMLElement {
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
             if (this.config.editMode) {
-                this.validate(true).then(valid => {
-                    this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': valid } }))
+                this.validate(true).then(report => {
+                    this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': report.conforms, 'report': report } }))
                 }).catch(e => { console.warn(e) })
             }
         })
@@ -82,8 +82,8 @@ export class ShaclForm extends HTMLElement {
                                 // let browser check form validity first
                                 if (this.form.reportValidity()) {
                                     // now validate data graph
-                                    this.validate().then(valid => {
-                                        if (valid) {
+                                    this.validate().then(report => {
+                                        if (report?.conforms) {
                                             // form and data graph are valid, so fire submit event
                                             this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
                                         } else {
@@ -140,7 +140,8 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
-    public async validate(ignoreEmptyValues = false): Promise<boolean> {
+    /* Returns the validation report */
+    public async validate(ignoreEmptyValues = false): Promise<any> {
         for (const elem of this.form.querySelectorAll(':scope .validation-error')) {
             elem.remove()
         }
@@ -201,7 +202,7 @@ export class ShaclForm extends HTMLElement {
                     }
                 }
             }
-            return report.conforms
+            return report
         } catch(e) {
             console.error(e)
             return false
