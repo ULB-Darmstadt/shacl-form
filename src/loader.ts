@@ -70,6 +70,7 @@ export class Loader {
             await new Promise((resolve, reject) => {
                 p.parse(text, (error: Error, quad: Quad, prefixes: Prefixes) => {
                     if (error) {
+                        console.warn('failed parsing graph', graph, error.message)
                         return reject(error)
                     }
                     if (quad) {
