@@ -31,6 +31,9 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}languageIn`]:   (template, term) => { template.languageIn = template.config.lists[term.value]; template.datatype = DataFactory.namedNode(PREFIX_RDF + 'langString') },
     [`${PREFIX_SHACL}defaultValue`]: (template, term) => { template.defaultValue = term },
     [`${PREFIX_SHACL}hasValue`]:     (template, term) => { template.hasValue = term },
+    [`${PREFIX_SHACL}qualifiedValueShape`]:     (template, term) => { template.qualifiedValueShape = term },
+    [`${PREFIX_SHACL}qualifiedMinCount`]: (template, term) => { template.minCount = parseInt(term.value) },
+    [`${PREFIX_SHACL}qualifiedMaxCount`]: (template, term) => { template.maxCount = parseInt(term.value) },
     [OWL_PREDICATE_IMPORTS.id]:   (template, term) => { template.owlImports.push(term as NamedNode) },
     [SHACL_PREDICATE_CLASS.id]:   (template, term) => {
         template.class = term as NamedNode
@@ -79,6 +82,7 @@ export class ShaclPropertyTemplate  {
     languageIn: Term[] | undefined
     datatype: NamedNode | undefined
     hasValue: Term | undefined
+    qualifiedValueShape: Term | undefined
     owlImports: NamedNode[] = []
 
     config: Config
@@ -88,6 +92,9 @@ export class ShaclPropertyTemplate  {
         this.parent = parent
         this.config = config
         this.merge(quads)
+        if (this.qualifiedValueShape) {
+            this.merge(config.shapesGraph.getQuads(this.qualifiedValueShape, null, null, null))
+        }
     }
 
     merge(quads: Quad[]): ShaclPropertyTemplate {

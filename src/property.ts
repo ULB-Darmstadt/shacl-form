@@ -8,6 +8,7 @@ import { ShaclPropertyTemplate } from './property-template'
 import { Editor, fieldFactory } from './theme'
 import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
+import { RDF_PREDICATE_TYPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
@@ -46,6 +47,22 @@ export class ShaclProperty extends HTMLElement {
             const values = valueSubject ? config.dataGraph.getQuads(valueSubject, this.template.path, null, null) : []
             let valuesContainHasValue = false
             for (const value of values) {
+                // ignore values that do not conform to this property.
+                // this might be the case when there are multiple properties with the same sh:path in a NodeShape.
+                if (this.template.node) {
+                    const targetClasses = config.shapesGraph.getObjects(this.template.node, SHACL_PREDICATE_TARGET_CLASS, null)
+                    if (targetClasses.length > 0) {
+                        let hasTargetClass = false
+                        for (let i = 0; i < targetClasses.length && !hasTargetClass; i++) {
+                            if (config.dataGraph.getQuads(value.object, RDF_PREDICATE_TYPE, targetClasses[i], null).length > 0) {
+                                hasTargetClass = true
+                            }        
+                        }
+                        if (!hasTargetClass) {
+                            continue
+                        }
+                    }
+                }
                 this.addPropertyInstance(value.object)
                 if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                     valuesContainHasValue = true
