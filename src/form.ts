@@ -1,8 +1,8 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
 import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
-import { Store, NamedNode, DataFactory } from 'n3'
-import { DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
+import { Store, NamedNode, DataFactory, Quad } from 'n3'
+import { DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
@@ -156,6 +156,10 @@ export class ShaclForm extends HTMLElement {
 
         this.config.shapesGraph.deleteGraph('')
         this.shape?.toRDF(this.config.shapesGraph)
+        if (this.shape) {
+            // add node target for validation. this is required in case of missing sh:targetClass in root shape
+            this.config.shapesGraph.add(new Quad(this.shape.shaclSubject, DataFactory.namedNode(PREFIX_SHACL + 'targetNode'), this.shape.nodeId, undefined))
+        }
         try {
             const dataset = this.config.shapesGraph
             const report = await new Validator(dataset, { details: true, factory: DataFactory }).validate({ dataset })
