@@ -1,10 +1,10 @@
 import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS, SHACL_PREDICATE_PROPERTY } from './constants'
 import { ShaclProperty } from './property'
 import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
-import { createShaclOrConstraint } from './constraints'
+import { createShaclOrConstraint, resolveShaclOrConstraintOnNode } from './constraints'
 import { Config } from './config'
 
 export class ShaclNode extends HTMLElement {
@@ -76,33 +76,8 @@ export class ShaclNode extends HTMLElement {
 
             for (const quad of quads) {
                 switch (quad.predicate.id) {
-                    case `${PREFIX_SHACL}property`:
-                        let parentElement: HTMLElement = this
-                        // check if property belongs to a group
-                        const groupRef = config.shapesGraph.getQuads(quad.object as Term, `${PREFIX_SHACL}group`, null, null)
-                        if (groupRef.length > 0) {
-                            const groupSubject = groupRef[0].object.value
-                            if (config.groups.indexOf(groupSubject) > -1) {
-                                // check if group element already exists, otherwise create it
-                                let group = this.querySelector(`:scope > .shacl-group[data-subject='${groupSubject}']`) as HTMLElement
-                                if (!group) {
-                                    group = createShaclGroup(groupSubject, config)
-                                    this.appendChild(group)
-                                }
-                                parentElement = group
-                            } else {
-                                console.warn('ignoring unknown group reference', groupRef[0], 'existing groups:', config.groups)
-                            }
-                        }
-                        // delay creating/appending the property until we finished parsing the node.
-                        // This is needed to have possible owlImports parsed before creating the property.
-                        setTimeout(() => {
-                            const property = new ShaclProperty(quad.object as NamedNode | BlankNode, this, config, valueSubject)
-                            // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
-                            if (property.childElementCount > 0) {
-                                parentElement.appendChild(property)
-                            }
-                        })
+                    case SHACL_PREDICATE_PROPERTY.id:
+                        this.addPropertyInstance(quad.object, config, valueSubject)
                         break;
                     case `${PREFIX_SHACL}and`:
                         // inheritance via sh:and
@@ -127,13 +102,10 @@ export class ShaclNode extends HTMLElement {
                         this.owlImports.push(quad.object as NamedNode)
                         break;
                     case `${PREFIX_SHACL}or`:
-                        list = config.lists[quad.object.value]
-                        if (list?.length) {
-                            this.appendChild(createShaclOrConstraint(list, this, config))
-                        }
-                        else {
-                            console.error('list not found:', quad.object.value, 'existing lists:', config.lists)
-                        }
+                        this.tryResolve(quad.object, valueSubject, config)
+                        break;
+                    case `${PREFIX_SHACL}xone`:
+                        this.tryResolve(quad.object, valueSubject, config)
                         break;
                 }
             }
@@ -161,6 +133,57 @@ export class ShaclNode extends HTMLElement {
             graph.addQuad(subject, DataFactory.namedNode(this.config.attributes.generateNodeShapeReference), this.shaclSubject, this.config.valuesGraph)
         }
         return subject
+    }
+
+    addPropertyInstance(shaclSubject: Term, config: Config, valueSubject: NamedNode | BlankNode | undefined) {
+        let parentElement: HTMLElement = this
+        // check if property belongs to a group
+        const groupRef = config.shapesGraph.getQuads(shaclSubject as Term, `${PREFIX_SHACL}group`, null, null)
+        if (groupRef.length > 0) {
+            const groupSubject = groupRef[0].object.value
+            if (config.groups.indexOf(groupSubject) > -1) {
+                // check if group element already exists, otherwise create it
+                let group = this.querySelector(`:scope > .shacl-group[data-subject='${groupSubject}']`) as HTMLElement
+                if (!group) {
+                    group = createShaclGroup(groupSubject, config)
+                    this.appendChild(group)
+                }
+                parentElement = group
+            } else {
+                console.warn('ignoring unknown group reference', groupRef[0], 'existing groups:', config.groups)
+            }
+        }
+        // delay creating/appending the property until we finished parsing the node.
+        // This is needed to have possible owlImports parsed before creating the property.
+        setTimeout(() => {
+            const property = new ShaclProperty(shaclSubject as NamedNode | BlankNode, this, config, valueSubject)
+            // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
+            if (property.childElementCount > 0) {
+                parentElement.appendChild(property)
+            }
+        })
+    }
+
+    tryResolve(subject: Term, valueSubject: NamedNode | BlankNode | undefined, config: Config) {
+        const list = config.lists[subject.value]
+        if (list?.length) {
+            let resolved = false
+            if (valueSubject) {
+                const resolvedPropertySubjects = resolveShaclOrConstraintOnNode(list, valueSubject, config)
+                if (resolvedPropertySubjects.length) {
+                    for (const propertySubject of resolvedPropertySubjects) {
+                        this.addPropertyInstance(propertySubject, config, valueSubject)
+                    }
+                    resolved = true
+                }
+            }
+            if (!resolved) {
+                this.appendChild(createShaclOrConstraint(list, this, config))
+            }
+        }
+        else {
+            console.error('list for sh:or/sh:xone not found:', subject, 'existing lists:', config.lists)
+        }
     }
 }
 

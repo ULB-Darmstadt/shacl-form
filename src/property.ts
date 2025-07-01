@@ -2,7 +2,7 @@ import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { focusFirstInputElement } from './util'
-import { createShaclOrConstraint, resolveShaclOrConstraint } from './constraints'
+import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
 import { Config } from './config'
 import { ShaclPropertyTemplate } from './property-template'
 import { Editor, fieldFactory } from './theme'
@@ -100,22 +100,29 @@ export class ShaclProperty extends HTMLElement {
 
     addPropertyInstance(value?: Term): HTMLElement {
         let instance: HTMLElement
-        if (this.template.shaclOr?.length) {
+        if (this.template.shaclOr?.length || this.template.shaclXone?.length) {
+            const options = this.template.shaclOr?.length ? this.template.shaclOr : this.template.shaclXone as Term[]
+            let resolved = false
             if (value) {
-                instance = createPropertyInstance(resolveShaclOrConstraint(this.template, value), value, true)
-            } else {
-                instance = createShaclOrConstraint(this.template.shaclOr, this, this.template.config)
+                const resolvedOptions = resolveShaclOrConstraintOnProperty(options, value, this.template.config)
+                if (resolvedOptions.length) {
+                    instance = createPropertyInstance(this.template.clone().merge(resolvedOptions), value, true)
+                    resolved = true
+                }
+            } 
+            if (!resolved) {
+                instance = createShaclOrConstraint(options, this, this.template.config)
                 appendRemoveButton(instance, '')
             }
         } else {
             instance = createPropertyInstance(this.template, value)
         }
         if (this.template.config.editMode) {
-            this.insertBefore(instance, this.addButton!)
+            this.insertBefore(instance!, this.addButton!)
         } else {
-            this.appendChild(instance)
+            this.appendChild(instance!)
         }
-        return instance
+        return instance!
     }
 
     updateControls() {

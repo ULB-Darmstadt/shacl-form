@@ -34,8 +34,8 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}qualifiedValueShape`]:     (template, term) => { template.qualifiedValueShape = term },
     [`${PREFIX_SHACL}qualifiedMinCount`]: (template, term) => { template.minCount = parseInt(term.value) },
     [`${PREFIX_SHACL}qualifiedMaxCount`]: (template, term) => { template.maxCount = parseInt(term.value) },
-    [OWL_PREDICATE_IMPORTS.id]:   (template, term) => { template.owlImports.push(term as NamedNode) },
-    [SHACL_PREDICATE_CLASS.id]:   (template, term) => {
+    [OWL_PREDICATE_IMPORTS.id]:      (template, term) => { template.owlImports.push(term as NamedNode) },
+    [SHACL_PREDICATE_CLASS.id]:      (template, term) => {
         template.class = term as NamedNode
         // try to find node shape that has requested target class
         const nodeShapes = template.config.shapesGraph.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, null)
@@ -48,7 +48,15 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
         if (list?.length) {
             template.shaclOr = list
         } else {
-            console.error('list not found:', term.value, 'existing lists:', template.config.lists)
+            console.error('list for sh:or not found:', term.value, 'existing lists:', template.config.lists)
+        }
+    },
+    [`${PREFIX_SHACL}xone`]:           (template, term) => {
+        const list = template.config.lists[term.value]
+        if (list?.length) {
+            template.shaclXone = list
+        } else {
+            console.error('list for sh:xone not found:', term.value, 'existing lists:', template.config.lists)
         }
     }
 }
@@ -79,6 +87,7 @@ export class ShaclPropertyTemplate  {
     shaclAnd: string | undefined
     shaclIn: string | undefined
     shaclOr: Term[] | undefined
+    shaclXone: Term[] | undefined
     languageIn: Term[] | undefined
     datatype: NamedNode | undefined
     hasValue: Term | undefined
@@ -133,6 +142,9 @@ export class ShaclPropertyTemplate  {
         }
         if (this.shaclOr) {
             copy.shaclOr = [ ...this.shaclOr ]
+        }
+        if (this.shaclXone) {
+            copy.shaclXone = [ ...this.shaclXone ]
         }
         copy.merge = this.merge.bind(copy)
         copy.clone = this.clone.bind(copy)
