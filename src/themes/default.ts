@@ -3,6 +3,7 @@ import { ShaclPropertyTemplate } from "../property-template"
 import { Editor, InputListEntry, Theme } from "../theme"
 import { PREFIX_XSD } from '../constants'
 import { Literal } from 'n3'
+import { Term as N3Term }  from 'n3'
 import css from './default.css?raw'
 
 export class DefaultTheme extends Theme {
@@ -17,7 +18,9 @@ export class DefaultTheme extends Theme {
         editor.classList.add('editor')
         if (template?.datatype) {
             // store datatype on editor, this is used for RDF serialization
-            editor['shaclDatatype'] = template.datatype
+            editor.shaclDatatype = template.datatype
+        } else if (value instanceof Literal) {
+            editor.shaclDatatype = value.datatype
         }
         if (template?.minCount !== undefined) {
             editor.dataset.minCount = String(template.minCount)
@@ -200,7 +203,13 @@ export class DefaultTheme extends Theme {
     
         for (const item of listEntries) {
             const option = document.createElement('option')
-            const itemValue = (typeof item.value === 'string') ? item.value : item.value.value
+            let itemValue = ''
+            if (typeof item.value === 'string') {
+                itemValue = item.value
+            } else {
+                // this is needed for typed rdf literals
+                itemValue = (item.value as N3Term).id
+            }
             option.innerHTML = item.label ? item.label : itemValue
             option.value = itemValue
             if (item.indent) {

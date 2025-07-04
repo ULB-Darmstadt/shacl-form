@@ -4,6 +4,7 @@ import { Button, TextField, Select, MenuItem, Checkbox } from 'mdui'
 import { Theme } from '../theme'
 import { InputListEntry, Editor } from '../theme'
 import { Literal } from 'n3'
+import { Term as N3Term }  from 'n3'
 import css from './material.css?raw'
 import { PREFIX_XSD } from '../constants'
 
@@ -16,7 +17,9 @@ export class MaterialTheme extends Theme {
         editor.classList.add('editor')
         if (template?.datatype) {
             // store datatype on editor, this is used for RDF serialization
-            editor['shaclDatatype'] = template.datatype
+            editor.shaclDatatype = template.datatype
+        } else if (value instanceof Literal) {
+            editor.shaclDatatype = value.datatype
         }
         if (template?.minCount !== undefined) {
             editor.dataset.minCount = String(template.minCount)
@@ -100,7 +103,13 @@ export class MaterialTheme extends Theme {
     
         for (const item of listEntries) {
             const option = new MenuItem()
-            const itemValue = (typeof item.value === 'string') ? item.value : item.value.value
+            let itemValue = ''
+            if (typeof item.value === 'string') {
+                itemValue = item.value
+            } else {
+                // this is needed for typed rdf literals
+                itemValue = (item.value as N3Term).id
+            }
             const itemLabel = item.label ? item.label : itemValue
             option.value = itemValue
             option.textContent = itemLabel || itemValue

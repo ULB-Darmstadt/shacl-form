@@ -46,7 +46,7 @@ function serializeJsonld(quads: Quad[]): string {
 }
 
 export function toRDF(editor: Editor): Literal | NamedNode | undefined {
-    let languageOrDatatype: NamedNode<string> | string | undefined = editor['shaclDatatype']
+    let languageOrDatatype: NamedNode<string> | string | undefined = editor.shaclDatatype
     let value: number | string = editor.value
     if (value) {
         if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
@@ -64,6 +64,17 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
             else if (editor['type'] === 'datetime-local') {
                 // if seconds in value are 0, the input field omits them which is then not a valid xsd:dateTime
                 value = new Date(value).toISOString().slice(0, 19)
+            }
+            // check if value is a typed rdf literal
+            if (!languageOrDatatype && typeof value === 'string') {
+                const tokens = value.split('^^')
+                if (tokens.length === 2 &&
+                    (tokens[0].startsWith('\'') && tokens[0].endsWith('\'')) || (tokens[0].startsWith('"') && tokens[0].endsWith('"')) &&
+                    tokens[1].split(':').length === 2
+                ) {
+                    value = tokens[0].substring(1, tokens[0].length - 1)
+                    languageOrDatatype = DataFactory.namedNode(tokens[1])
+                }
             }
             return DataFactory.literal(value, languageOrDatatype)
         }
