@@ -9,6 +9,7 @@ export const PREFIX_SKOS = 'http://www.w3.org/2004/02/skos/core#'
 export const PREFIX_OWL = 'http://www.w3.org/2002/07/owl#'
 export const PREFIX_OA = 'http://www.w3.org/ns/oa#'
 export const PREFIX_DCTERMS = 'http://purl.org/dc/terms/'
+export const PREFIX_FOAF = 'http://xmlns.com/foaf/0.1/'
 
 export const SHAPES_GRAPH = DataFactory.namedNode('shapes')
 

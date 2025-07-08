@@ -79,8 +79,8 @@ export abstract class Theme {
     abstract createButton(label: string, primary: boolean): HTMLElement
 }
 
-export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null): HTMLElement {
-    if (template.config.editMode) {
+export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null, editable: boolean): HTMLElement {
+    if (editable) {
         const required = template.minCount !== undefined && template.minCount > 0
         // if we have a class, find the instances and display them in a list
         if (template.class) {

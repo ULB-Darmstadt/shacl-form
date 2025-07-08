@@ -1,5 +1,5 @@
 import { Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
-import { OWL_OBJECT_NAMED_INDIVIDUAL, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER } from './constants'
+import { OWL_OBJECT_NAMED_INDIVIDUAL, PREFIX_FOAF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
 import { ShaclPropertyTemplate } from './property-template'
@@ -48,11 +48,9 @@ export function focusFirstInputElement(context: HTMLElement) {
 }
 
 export function findLabel(quads: Quad[], languages: string[]): string {
-    let label = findObjectValueByPredicate(quads, 'prefLabel', PREFIX_SKOS, languages)
-    if (label) {
-        return label
-    }
-    return findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, languages)
+    return findObjectValueByPredicate(quads, 'prefLabel', PREFIX_SKOS, languages) ||
+    findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, languages) ||
+    findObjectValueByPredicate(quads, 'name', PREFIX_FOAF, languages)
 }
 
 export function createInputListEntries(subjects: Term[], shapesGraph: Store, languages: string[], indent?: number): InputListEntry[] {

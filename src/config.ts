@@ -42,7 +42,7 @@ export class Config {
     theme: Theme
     form: HTMLElement
     renderedNodes = new Set<string>()
-    valuesGraph: NamedNode | undefined
+    valuesGraphId: NamedNode | undefined
     private _shapesGraph = new Store()
 
     constructor(theme: Theme, form: HTMLElement) {
@@ -80,7 +80,9 @@ export class Config {
             // now prepend preferred language at start of the list of languages
             this.languages.unshift(atts.language)
         }
-        this.valuesGraph = atts.valuesGraph ? DataFactory.namedNode(atts.valuesGraph) : undefined
+        if (atts.valuesGraph) {
+            this.valuesGraphId = DataFactory.namedNode(atts.valuesGraph)
+        }
     }
 
     static dataAttributes(): Array<string> {

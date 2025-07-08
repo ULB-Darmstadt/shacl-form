@@ -14,13 +14,15 @@ export class ShaclNode extends HTMLElement {
     targetClass: NamedNode | undefined
     owlImports: NamedNode[] = []
     config: Config
+    linked: boolean
 
-    constructor(shaclSubject: NamedNode, config: Config, valueSubject: NamedNode | BlankNode | undefined, parent?: ShaclNode, nodeKind?: NamedNode, label?: string) {
+    constructor(shaclSubject: NamedNode, config: Config, valueSubject: NamedNode | BlankNode | undefined, parent?: ShaclNode, nodeKind?: NamedNode, label?: string, linked?: boolean) {
         super()
 
         this.parent = parent
         this.config = config
         this.shaclSubject = shaclSubject
+        this.linked = linked || false
         let nodeId: NamedNode | BlankNode | undefined = valueSubject
         if (!nodeId) {
             // if no value subject given, create new node id with a type depending on own nodeKind or given parent property nodeKind
@@ -45,17 +47,19 @@ export class ShaclNode extends HTMLElement {
         const id = JSON.stringify([shaclSubject, valueSubject])
         if (valueSubject && config.renderedNodes.has(id)) {
             // node/value pair is already rendered in the form, so just display a reference
-            if (label && config.attributes.collapse === null) {
-                const labelElem = document.createElement('label')
-                labelElem.innerText = label
-                this.appendChild(labelElem)
-            }
+            label = label || "Link"
+            const labelElem = document.createElement('label')
+            labelElem.innerText = label
+            labelElem.classList.add('linked')
+            this.appendChild(labelElem)
+
             const anchor = document.createElement('a')
-            anchor.innerText = valueSubject.id
+            let refId = valueSubject.termType === 'BlankNode' ? '_:' + valueSubject.value : valueSubject.value
+            anchor.innerText = refId
             anchor.classList.add('ref-link')
             anchor.onclick = () => {
                 // if anchor is clicked, scroll referenced shacl node into view
-                this.config.form.querySelector(`shacl-node[data-node-id='${this.nodeId.id}']`)?.scrollIntoView()
+                this.config.form.querySelector(`shacl-node[data-node-id='${refId}']`)?.scrollIntoView()
             }
             this.appendChild(anchor)
             this.style.flexDirection = 'row'
@@ -122,15 +126,18 @@ export class ShaclNode extends HTMLElement {
         if (!subject) {
             subject = this.nodeId
         }
-        for (const shape of this.querySelectorAll(':scope > shacl-node, :scope > .shacl-group > shacl-node, :scope > shacl-property, :scope > .shacl-group > shacl-property')) {
-            (shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
-        }
-        if (this.targetClass) {
-            graph.addQuad(subject, RDF_PREDICATE_TYPE, this.targetClass, this.config.valuesGraph)
-        }
-        // if this is the root shacl node, check if we should add one of the rdf:type or dcterms:conformsTo predicates
-        if (this.config.attributes.generateNodeShapeReference && !this.parent) {
-            graph.addQuad(subject, DataFactory.namedNode(this.config.attributes.generateNodeShapeReference), this.shaclSubject, this.config.valuesGraph)
+        // output triples only if node is not a link
+        if (!this.linked) {
+            for (const shape of this.querySelectorAll(':scope > shacl-node, :scope > .shacl-group > shacl-node, :scope > shacl-property, :scope > .shacl-group > shacl-property')) {
+                (shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
+            }
+            if (this.targetClass) {
+                graph.addQuad(subject, RDF_PREDICATE_TYPE, this.targetClass, this.config.valuesGraphId)
+            }
+            // if this is the root shacl node, check if we should add one of the rdf:type or dcterms:conformsTo predicates
+            if (this.config.attributes.generateNodeShapeReference && !this.parent) {
+                graph.addQuad(subject, DataFactory.namedNode(this.config.attributes.generateNodeShapeReference), this.shaclSubject, this.config.valuesGraphId)
+            }
         }
         return subject
     }

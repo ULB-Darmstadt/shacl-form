@@ -51,6 +51,8 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
     if (value) {
         if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
             return DataFactory.namedNode(value)
+        } else if (editor.dataset.link) {
+            return JSON.parse(editor.dataset.link)
         } else {
             if (editor.dataset.lang) {
                 languageOrDatatype = editor.dataset.lang
@@ -69,7 +71,7 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
             if (!languageOrDatatype && typeof value === 'string') {
                 const tokens = value.split('^^')
                 if (tokens.length === 2 &&
-                    (tokens[0].startsWith('\'') && tokens[0].endsWith('\'')) || (tokens[0].startsWith('"') && tokens[0].endsWith('"')) &&
+                    ((tokens[0].startsWith('"') && tokens[0].endsWith('"') || tokens[0].startsWith('\'') && tokens[0].endsWith('\''))) &&
                     tokens[1].split(':').length === 2
                 ) {
                     value = tokens[0].substring(1, tokens[0].length - 1)

@@ -106,7 +106,7 @@ export class MapboxPlugin extends Plugin {
             document.body.style.position = 'fixed'
             dialog.showModal()
         }
-        const instance = fieldFactory(template, value || null)
+        const instance = fieldFactory(template, value || null, true)
         instance.appendChild(button)
         return instance
     }

@@ -1,6 +1,6 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "1.7.4",
+    "version": "1.7.5",
     "description": "SHACL form generator",
     "main": "dist/form-default.js",
     "module": "dist/form-default.js",
@@ -49,6 +49,7 @@
     },
     "dependencies": {
         "@mapbox/mapbox-gl-draw": "^1.5.0",
+        "@ro-kit/ui-widgets": "^0.0.27",
         "bootstrap": "^5.3.7",
         "jsonld": "^8.3.3",
         "leaflet": "^1.9.4",
