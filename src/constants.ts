@@ -11,7 +11,8 @@ export const PREFIX_OA = 'http://www.w3.org/ns/oa#'
 export const PREFIX_DCTERMS = 'http://purl.org/dc/terms/'
 export const PREFIX_FOAF = 'http://xmlns.com/foaf/0.1/'
 
-export const SHAPES_GRAPH = DataFactory.namedNode('shapes')
+export const SHAPES_GRAPH = DataFactory.namedNode('loaded-shapes')
+export const DATA_GRAPH = DataFactory.namedNode('loaded-data')
 
 export const RDF_PREDICATE_TYPE = DataFactory.namedNode(PREFIX_RDF + 'type')
 export const DCTERMS_PREDICATE_CONFORMS_TO = DataFactory.namedNode(PREFIX_DCTERMS + 'conformsTo')

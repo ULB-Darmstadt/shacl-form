@@ -1,4 +1,4 @@
-import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
+import { DataFactory, Store, BlankNode, NamedNode } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS, SHACL_PREDICATE_PROPERTY } from './constants'
 import { ShaclProperty } from './property'
@@ -27,13 +27,13 @@ export class ShaclNode extends HTMLElement {
         if (!nodeId) {
             // if no value subject given, create new node id with a type depending on own nodeKind or given parent property nodeKind
             if (!nodeKind) {
-                const spec = config.shapesGraph.getObjects(shaclSubject, `${PREFIX_SHACL}nodeKind`, null)
+                const spec = config.store.getObjects(shaclSubject, `${PREFIX_SHACL}nodeKind`, null)
                 if (spec.length) {
                     nodeKind = spec[0] as NamedNode
                 }
             }
             // if nodeKind is not set, but a value namespace is configured or if nodeKind is sh:IRI, then create a NamedNode
-            if ((nodeKind === undefined && config.attributes.valuesNamespace) || nodeKind?.id === `${PREFIX_SHACL}IRI`) {
+            if ((nodeKind === undefined && config.attributes.valuesNamespace) || nodeKind?.value === `${PREFIX_SHACL}IRI`) {
                 // no requirements on node type, so create a NamedNode and use configured value namespace
                 nodeId = DataFactory.namedNode(config.attributes.valuesNamespace + uuidv4())
             } else {
@@ -67,13 +67,13 @@ export class ShaclNode extends HTMLElement {
             if (valueSubject) {
                 config.renderedNodes.add(id)
             }
-            this.dataset.nodeId = this.nodeId.id
-            const quads = config.shapesGraph.getQuads(shaclSubject, null, null, null)
+            this.dataset.nodeId = this.nodeId.termType === 'BlankNode' ? '_:' + this.nodeId.value : this.nodeId.value
+            const quads = config.store.getQuads(shaclSubject, null, null, null)
             let list: Term[] | undefined
 
             if (this.config.attributes.showNodeIds !== null) {
                 const div = document.createElement('div')
-                div.innerText = `id: ${this.nodeId.id}`
+                div.innerText = `id: ${this.dataset.nodeId}`
                 div.classList.add('node-id-display')
                 this.appendChild(div)
             }
@@ -145,7 +145,7 @@ export class ShaclNode extends HTMLElement {
     addPropertyInstance(shaclSubject: Term, config: Config, valueSubject: NamedNode | BlankNode | undefined) {
         let parentElement: HTMLElement = this
         // check if property belongs to a group
-        const groupRef = config.shapesGraph.getQuads(shaclSubject as Term, `${PREFIX_SHACL}group`, null, null)
+        const groupRef = config.store.getQuads(shaclSubject as Term, `${PREFIX_SHACL}group`, null, null)
         if (groupRef.length > 0) {
             const groupSubject = groupRef[0].object.value
             if (config.groups.indexOf(groupSubject) > -1) {

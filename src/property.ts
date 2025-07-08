@@ -8,7 +8,7 @@ import { ShaclPropertyTemplate } from './property-template'
 import { Editor, fieldFactory, InputListEntry } from './theme'
 import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
-import { RDF_PREDICATE_TYPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
+import { DATA_GRAPH, RDF_PREDICATE_TYPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
 import { RokitButton, RokitSelect } from '@ro-kit/ui-widgets'
 
 export class ShaclProperty extends HTMLElement {
@@ -19,7 +19,7 @@ export class ShaclProperty extends HTMLElement {
     constructor(shaclSubject: BlankNode | NamedNode, parent: ShaclNode, config: Config, valueSubject?: NamedNode | BlankNode) {
         super()
         this.parent = parent
-        this.template = new ShaclPropertyTemplate(config.shapesGraph.getQuads(shaclSubject, null, null, null), parent, config)
+        this.template = new ShaclPropertyTemplate(config.store.getQuads(shaclSubject, null, null, null), parent, config)
 
         if (this.template.order !== undefined) {
             this.style.order = `${this.template.order}`
@@ -37,9 +37,12 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.path) {
             let values: Quad[] = []
             if (valueSubject) {
-                values = config.dataGraph.getQuads(valueSubject, this.template.path, null, null)
                 if (this.parent.linked) {
-                    values.push(...config.shapesGraph.getQuads(valueSubject, this.template.path, null, null))
+                    // for linked resource, get values in all graphs
+                    values = config.store.getQuads(valueSubject, this.template.path, null, null)
+                } else {
+                    // get values only from data graph
+                    values = config.store.getQuads(valueSubject, this.template.path, null, DATA_GRAPH)
                 }
             }
             let valuesContainHasValue = false
@@ -66,7 +69,7 @@ export class ShaclProperty extends HTMLElement {
 
         if (this.template.extendedShapes?.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
             // in view mode, show collapsible only when we have something to show
-            if (config.editMode || this.childElementCount > 0) {
+            if ((config.editMode && !parent.linked) || this.childElementCount > 0) {
                 const collapsible = this
                 collapsible.classList.add('collapsible')
                 if (this.template.config.attributes.collapse === 'open') {
@@ -104,7 +107,7 @@ export class ShaclProperty extends HTMLElement {
             let linked = false
             if (value) {
                 const clazz = this.getRdfClassToLinkOrCreate()
-                if (clazz && this.template.config.dataGraph.countQuads(value, RDF_PREDICATE_TYPE, clazz, null) === 0) {
+                if (clazz && this.template.config.store.countQuads(value, RDF_PREDICATE_TYPE, clazz, DATA_GRAPH) === 0) {
                     // value is not in data graph, so must be a link in the shapes graph
                     linked = true
                 }
@@ -161,7 +164,7 @@ export class ShaclProperty extends HTMLElement {
         else if (this.template.extendedShapes?.length) {
             for (const node of this.template.extendedShapes) {
                 // if this property has no sh:class but sh:node, then use the node shape's sh:targetClass to find protiential instances
-                const targetClasses = this.template.config.shapesGraph.getObjects(node, SHACL_PREDICATE_TARGET_CLASS, null)
+                const targetClasses = this.template.config.store.getObjects(node, SHACL_PREDICATE_TARGET_CLASS, null)
                 if (targetClasses.length > 0) {
                     return targetClasses[0] as NamedNode
                 }
@@ -177,11 +180,9 @@ export class ShaclProperty extends HTMLElement {
         }
         // property has node shape(s), so check if value conforms to any targetClass
         for (const node of this.template.extendedShapes) {
-            const targetClasses = this.template.config.shapesGraph.getObjects(node, SHACL_PREDICATE_TARGET_CLASS, null)
+            const targetClasses = this.template.config.store.getObjects(node, SHACL_PREDICATE_TARGET_CLASS, null)
             for (const targetClass of targetClasses) {
-                if (this.template.config.dataGraph.countQuads(value, RDF_PREDICATE_TYPE, targetClass, null) > 0 ||
-                    this.template.config.shapesGraph.countQuads(value, RDF_PREDICATE_TYPE, targetClass, null) > 0)
-                {
+                if (this.template.config.store.countQuads(value, RDF_PREDICATE_TYPE, targetClass, null) > 0) {
                     return true
                 }
             }

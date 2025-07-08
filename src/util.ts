@@ -1,5 +1,5 @@
 import { Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
-import { OWL_OBJECT_NAMED_INDIVIDUAL, PREFIX_FOAF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER } from './constants'
+import { DATA_GRAPH, OWL_OBJECT_NAMED_INDIVIDUAL, PREFIX_FOAF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
 import { ShaclPropertyTemplate } from './property-template'
@@ -90,22 +90,22 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
         instances = list?.length ? list : []
     } else {
         // find instances in the shapes graph
-        instances = template.config.shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, SHAPES_GRAPH)
+        instances = template.config.store.getSubjects(RDF_PREDICATE_TYPE, clazz, SHAPES_GRAPH)
         // find instances in the data graph
-        instances.push(...template.config.dataGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, null))
+        instances.push(...template.config.store.getSubjects(RDF_PREDICATE_TYPE, clazz, DATA_GRAPH))
         // find instances in imported taxonomies
-        findClassInstancesFromOwlImports(clazz, template, template.config.shapesGraph, instances)
+        findClassInstancesFromOwlImports(clazz, template, template.config.store, instances)
     }
 
-    const entries = createInputListEntries(instances, template.config.shapesGraph, template.config.languages, indent)
+    const entries = createInputListEntries(instances, template.config.store, template.config.languages, indent)
     // build inheritance tree only if sh:in is not defined
     if (template.shaclIn === undefined) {
-        for (const subClass of template.config.shapesGraph.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, clazz, null)) {
+        for (const subClass of template.config.store.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, clazz, null)) {
             entries.push(...findInstancesOf(subClass as NamedNode, template, indent + 1))
         }
-        if (template.config.shapesGraph.getQuads(clazz, RDF_PREDICATE_TYPE, OWL_OBJECT_NAMED_INDIVIDUAL, null).length > 0) {
-            entries.push(...createInputListEntries([ clazz ], template.config.shapesGraph, template.config.languages, indent))
-            for (const subClass of template.config.shapesGraph.getSubjects(SKOS_PREDICATE_BROADER, clazz, null)) {
+        if (template.config.store.getQuads(clazz, RDF_PREDICATE_TYPE, OWL_OBJECT_NAMED_INDIVIDUAL, null).length > 0) {
+            entries.push(...createInputListEntries([ clazz ], template.config.store, template.config.languages, indent))
+            for (const subClass of template.config.store.getSubjects(SKOS_PREDICATE_BROADER, clazz, null)) {
                 entries.push(...findInstancesOf(subClass as NamedNode, template, indent + 1))
             }
         }

@@ -38,7 +38,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [SHACL_PREDICATE_CLASS.id]:      (template, term) => {
         template.class = term as NamedNode
         // try to find node shape that has requested target class
-        const nodeShapes = template.config.shapesGraph.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, null)
+        const nodeShapes = template.config.store.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, null)
         if (nodeShapes.length > 0) {
             template.node = nodeShapes[0] as NamedNode
         }
@@ -102,7 +102,7 @@ export class ShaclPropertyTemplate  {
         this.config = config
         this.merge(quads)
         if (this.qualifiedValueShape) {
-            this.merge(config.shapesGraph.getQuads(this.qualifiedValueShape, null, null, null))
+            this.merge(config.store.getQuads(this.qualifiedValueShape, null, null, null))
         }
     }
 

@@ -36,14 +36,13 @@ export class Config {
     editMode = true
     languages: string[]
 
-    dataGraph = new Store()
     lists: Record<string, Term[]> = {}
     groups: Array<string> = []
     theme: Theme
     form: HTMLElement
     renderedNodes = new Set<string>()
     valuesGraphId: NamedNode | undefined
-    private _shapesGraph = new Store()
+    private _store = new Store()
 
     constructor(theme: Theme, form: HTMLElement) {
         this.theme = theme
@@ -94,15 +93,15 @@ export class Config {
         })
     }
 
-    get shapesGraph() {
-        return this._shapesGraph
+    get store() {
+        return this._store
     }
 
-    set shapesGraph(graph: Store) {
-        this._shapesGraph = graph
-        this.lists = graph.extractLists()
+    set store(store: Store) {
+        this._store = store
+        this.lists = store.extractLists()
         this.groups = []
-        graph.forSubjects(subject => {
+        store.forSubjects(subject => {
             this.groups.push(subject.id)
         }, RDF_PREDICATE_TYPE, `${PREFIX_SHACL}PropertyGroup`, null)
     }

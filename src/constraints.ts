@@ -21,11 +21,11 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         // options can be shacl properties or blank nodes referring to (list of) properties
         let optionsAreReferencedProperties = false
         if (options.length) {
-            optionsAreReferencedProperties = config.shapesGraph.getObjects(options[0], SHACL_PREDICATE_PROPERTY, null).length > 0
+            optionsAreReferencedProperties = config.store.countQuads(options[0], SHACL_PREDICATE_PROPERTY, null, null) > 0
         }
         for (let i = 0; i < options.length; i++) {
             if (optionsAreReferencedProperties) {
-                const quads = config.shapesGraph.getObjects(options[i] , SHACL_PREDICATE_PROPERTY, null)
+                const quads = config.store.getObjects(options[i] , SHACL_PREDICATE_PROPERTY, null)
                 // option can be single property or list of properties
                 const list: ShaclProperty[] = []
                 let combinedText = ''
@@ -62,7 +62,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
     } else {
         const values: Quad[][] = []
         for (let i = 0; i < options.length; i++) {
-            const quads = config.shapesGraph.getQuads(options[i], null, null, null)
+            const quads = config.store.getQuads(options[i], null, null, null)
             if (quads.length) {
                 values.push(quads)
                 optionElements.push({ label: findLabel(quads, config.languages) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes)), value: i.toString() })
@@ -86,7 +86,7 @@ export function resolveShaclOrConstraintOnProperty(subjects: Term[], value: Term
         // value is a literal, try to resolve sh:or/sh:xone by matching on given value datatype
         const valueType = value.datatype
         for (const subject of subjects) {
-            const options = config.shapesGraph.getQuads(subject, null, null, null)
+            const options = config.store.getQuads(subject, null, null, null)
             for (const quad of options) {
                 if (quad.predicate.value === `${PREFIX_SHACL}datatype` && quad.object.equals(valueType)) {
                     return options
@@ -95,16 +95,15 @@ export function resolveShaclOrConstraintOnProperty(subjects: Term[], value: Term
         }
     } else {
         // value is a NamedNode or BlankNode, try to resolve sh:or/sh:xone by matching rdf:type of given value with sh:node or sh:class in data graph or shapes graph
-        const types = config.dataGraph.getObjects(value, RDF_PREDICATE_TYPE, null)
-        types.push(...config.shapesGraph.getObjects(value, RDF_PREDICATE_TYPE, null))
+        const types = config.store.getObjects(value, RDF_PREDICATE_TYPE, null)
         for (const subject of subjects) {
-            const options = config.shapesGraph.getQuads(subject, null, null, null)
+            const options = config.store.getQuads(subject, null, null, null)
             for (const quad of options) {
                 if (types.length > 0) {
                     // try to find matching sh:node in sh:or/sh:xone values
                     if (quad.predicate.value === `${PREFIX_SHACL}node`) {
                         for (const type of types) {
-                            if (config.shapesGraph.getQuads(quad.object, SHACL_PREDICATE_TARGET_CLASS, type, null).length > 0) {
+                            if (config.store.getQuads(quad.object, SHACL_PREDICATE_TARGET_CLASS, type, null).length > 0) {
                                 return options
                             }
                         }
@@ -131,14 +130,15 @@ export function resolveShaclOrConstraintOnProperty(subjects: Term[], value: Term
 export function resolveShaclOrConstraintOnNode(subjects: Term[], value: Term, config: Config): Term[] {
     for (const subject of subjects) {
         let subjectMatches = false
-        const propertySubjects = config.shapesGraph.getObjects(subject, SHACL_PREDICATE_PROPERTY, null)
+        const propertySubjects = config.store.getObjects(subject, SHACL_PREDICATE_PROPERTY, null)
         for (const propertySubject of propertySubjects) {
-            const paths = config.shapesGraph.getObjects(propertySubject, `${PREFIX_SHACL}path`, null)
+            const paths = config.store.getObjects(propertySubject, `${PREFIX_SHACL}path`, null)
             for (const path of paths) {
-                const values = config.dataGraph.getObjects(value, path, null)
-                values.push(...config.shapesGraph.getObjects(value, path, null))
                 // this allows partial matches in data or shapes graph on properties
-                subjectMatches = subjectMatches || config.dataGraph.countQuads(value, path, null, null) > 0 || config.shapesGraph.countQuads(value, path, null, null) > 0
+                subjectMatches = config.store.countQuads(value, path, null, null) > 0
+                if (subjectMatches) {
+                    break
+                }
             }
         }
         if (subjectMatches) {
