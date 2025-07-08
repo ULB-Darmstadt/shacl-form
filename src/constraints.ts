@@ -21,7 +21,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         // options can be shacl properties or blank nodes referring to (list of) properties
         let optionsAreReferencedProperties = false
         if (options.length) {
-            optionsAreReferencedProperties = config.shapesGraph.getObjects(options[0] , SHACL_PREDICATE_PROPERTY, null).length > 0
+            optionsAreReferencedProperties = config.shapesGraph.getObjects(options[0], SHACL_PREDICATE_PROPERTY, null).length > 0
         }
         for (let i = 0; i < options.length; i++) {
             if (optionsAreReferencedProperties) {
@@ -53,8 +53,8 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                     constraintElement.replaceWith(selectedOptions[0])
                 }
                 for (let i = 1; i < selectedOptions.length; i++) {
-                    lastAddedProperty!.after(selectedOptions[1])
-                    lastAddedProperty = selectedOptions[1]
+                    lastAddedProperty!.after(selectedOptions[i])
+                    lastAddedProperty = selectedOptions[i]
                 }
             }
         }
@@ -130,17 +130,15 @@ export function resolveShaclOrConstraintOnProperty(subjects: Term[], value: Term
 
 export function resolveShaclOrConstraintOnNode(subjects: Term[], value: Term, config: Config): Term[] {
     for (const subject of subjects) {
-        let subjectMatches = true
+        let subjectMatches = false
         const propertySubjects = config.shapesGraph.getObjects(subject, SHACL_PREDICATE_PROPERTY, null)
         for (const propertySubject of propertySubjects) {
             const paths = config.shapesGraph.getObjects(propertySubject, `${PREFIX_SHACL}path`, null)
             for (const path of paths) {
                 const values = config.dataGraph.getObjects(value, path, null)
                 values.push(...config.shapesGraph.getObjects(value, path, null))
-                if (!values.length) {
-                    subjectMatches = false
-                    break
-                }
+                // this allows partial matches in data or shapes graph on properties
+                subjectMatches = subjectMatches || config.dataGraph.countQuads(value, path, null, null) > 0 || config.shapesGraph.countQuads(value, path, null, null) > 0
             }
         }
         if (subjectMatches) {
