@@ -4,6 +4,7 @@ import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
 import { ShaclPropertyTemplate } from './property-template'
 import { ShaclNode } from './node'
+import { ShaclNodeTemplate } from './node-template'
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, languages?: string[]): string {
     let result = ''
@@ -71,7 +72,8 @@ export function removePrefixes(id: string, prefixes: Prefixes): string {
 }
 
 function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNode | ShaclPropertyTemplate, shapesGraph: Store, instances: Term[], alreadyCheckedImports = new Set<string>()) {
-    for (const owlImport of context.owlImports) {
+    const owlImports = context instanceof ShaclNode ? context.template.owlImports : context.owlImports
+    for (const owlImport of owlImports) {
         if (!alreadyCheckedImports.has(owlImport.id)) {
             alreadyCheckedImports.add(owlImport.id)
             instances.push(...shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, owlImport))

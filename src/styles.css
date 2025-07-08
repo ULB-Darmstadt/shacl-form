@@ -11,7 +11,6 @@ shacl-property { display: flex; flex-direction: column; align-items: end; positi
 shacl-property:not(.may-add) > .add-button { display: none; }
 shacl-property:not(.may-remove) > .property-instance > .remove-button:not(.persistent) { visibility: hidden; }
 shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.persistent) { visibility: hidden; }
-.shacl-group { margin-bottom: 1em; padding-bottom: 1em; }
 .mode-view .shacl-group:not(:has(shacl-property)) { display: none; }
 .property-instance, .shacl-or-constraint { display: flex; align-items: flex-start; padding: 4px 0; width: 100%; position: relative; }
 .shacl-or-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }

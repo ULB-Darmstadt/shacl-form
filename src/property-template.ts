@@ -61,7 +61,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     }
 }
 
-export class ShaclPropertyTemplate  {
+export class ShaclPropertyTemplate {
     parent: ShaclNode
     label = ''
     name: Literal | undefined
@@ -95,7 +95,7 @@ export class ShaclPropertyTemplate  {
     owlImports: NamedNode[] = []
 
     config: Config
-    extendedShapes: NamedNode[] | undefined
+    extendedShapes: NamedNode[]  = []
 
     constructor(quads: Quad[], parent: ShaclNode, config: Config) {
         this.parent = parent
@@ -117,7 +117,6 @@ export class ShaclPropertyTemplate  {
         }
         // resolve extended shapes
         if (this.node || this.shaclAnd) {
-            this.extendedShapes = []
             if (this.node) {
                 this.extendedShapes.push(this.node)
             }

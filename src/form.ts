@@ -1,7 +1,7 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
 import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
-import { Store, NamedNode, DataFactory, Quad } from 'n3'
+import { Store, NamedNode, DataFactory, Quad, BlankNode } from 'n3'
 import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
@@ -95,6 +95,10 @@ export class ShaclForm extends HTMLElement {
                             })
                             this.form.appendChild(button)
                         }
+                        // delete bound values from data graph, otherwise validation would be confused
+                        if (this.config.attributes.valuesSubject) {
+                            this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
+                        }
                         await this.validate(true)
                     }
                 } else if (this.config.store.countQuads(null, null, null, SHAPES_GRAPH) > 0) {
@@ -172,10 +176,10 @@ export class ShaclForm extends HTMLElement {
                         if (result.path?.length) {
                             const path = result.path[0].predicates[0]
                             // try to find most specific editor elements first
-                            let invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}'] > .editor`)
+                            let invalidElements = this.form.querySelectorAll(`:scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .property-instance[data-path='${path.id}'] > .editor, :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .property-instance[data-path='${path.id}'] > .editor`)
                             if (invalidElements.length === 0) {
                                 // if no editors found, select respective node. this will be the case for node shape violations.
-                                invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}']`)
+                                invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}']  > * > [data-path='${path.id}']`)
                             }
 
                             for (const invalidElement of invalidElements) {
@@ -291,5 +295,16 @@ export class ShaclForm extends HTMLElement {
             }
         }
         return rootShapeShaclSubject
+    }
+
+    private removeFromDataGraph(subject: NamedNode | BlankNode) {
+        this.config.attributes.valuesSubject
+        for (const quad of this.config.store.getQuads(subject, null, null, DATA_GRAPH)) {
+            this.config.store.delete(quad)
+            if (quad.object.termType === 'NamedNode' || quad.object.termType === 'BlankNode') {
+                // recurse
+                this.removeFromDataGraph(quad.object)
+            }
+        }
     }
 }

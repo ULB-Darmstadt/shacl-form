@@ -14,11 +14,9 @@ import { RokitButton, RokitSelect } from '@ro-kit/ui-widgets'
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
     addButton: RokitSelect | undefined
-    parent: ShaclNode
 
     constructor(shaclSubject: BlankNode | NamedNode, parent: ShaclNode, config: Config, valueSubject?: NamedNode | BlankNode) {
         super()
-        this.parent = parent
         this.template = new ShaclPropertyTemplate(config.store.getQuads(shaclSubject, null, null, null), parent, config)
 
         if (this.template.order !== undefined) {
@@ -28,7 +26,7 @@ export class ShaclProperty extends HTMLElement {
             this.classList.add(this.template.cssClass)
         }
 
-        if (config.editMode && !this.parent.linked) {
+        if (config.editMode && !parent.linked) {
             this.addButton = this.createAddButton()
             this.appendChild(this.addButton)
         }
@@ -37,7 +35,7 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.path) {
             let values: Quad[] = []
             if (valueSubject) {
-                if (this.parent.linked) {
+                if (parent.linked) {
                     // for linked resource, get values in all graphs
                     values = config.store.getQuads(valueSubject, this.template.path, null, null)
                 } else {
@@ -56,18 +54,18 @@ export class ShaclProperty extends HTMLElement {
                     }
                 }
             }
-            if (config.editMode && this.template.hasValue && !valuesContainHasValue && !this.parent.linked) {
+            if (config.editMode && this.template.hasValue && !valuesContainHasValue && !parent.linked) {
                 // sh:hasValue is defined in shapes graph, but does not exist in data graph, so force it
                 this.addPropertyInstance(this.template.hasValue)
             }
         }
 
-        if (config.editMode && !this.parent.linked) {
+        if (config.editMode && !parent.linked) {
             this.addEventListener('change', () => { this.updateControls() })
             this.updateControls()
         }
 
-        if (this.template.extendedShapes?.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
+        if (this.template.extendedShapes.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
             // in view mode, show collapsible only when we have something to show
             if ((config.editMode && !parent.linked) || this.childElementCount > 0) {
                 const collapsible = this
@@ -112,7 +110,7 @@ export class ShaclProperty extends HTMLElement {
                     linked = true
                 }
             }
-            instance = createPropertyInstance(this.template, value, undefined, linked || this.parent.linked)
+            instance = createPropertyInstance(this.template, value, undefined, linked || this.template.parent.linked)
         }
         if (this.addButton) {
             this.insertBefore(instance!, this.addButton)
@@ -124,7 +122,7 @@ export class ShaclProperty extends HTMLElement {
 
     updateControls() {
         let instanceCount = this.querySelectorAll(":scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node").length
-        if (instanceCount === 0 && (!this.template.extendedShapes?.length || (this.template.minCount !== undefined && this.template.minCount > 0))) {
+        if (instanceCount === 0 && (!this.template.extendedShapes.length || (this.template.minCount !== undefined && this.template.minCount > 0))) {
             this.addPropertyInstance()
             instanceCount = this.querySelectorAll(":scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node").length
         }
@@ -132,7 +130,7 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.minCount !== undefined) {
             mayRemove = instanceCount > this.template.minCount
         } else {
-            mayRemove = (this.template.extendedShapes && this.template.extendedShapes.length > 0) || instanceCount > 1
+            mayRemove = this.template.extendedShapes.length > 0 || instanceCount > 1
         }
 
         const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
@@ -161,7 +159,7 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.class && this.template.node) {
             return this.template.class
         }
-        else if (this.template.extendedShapes?.length) {
+        else {
             for (const node of this.template.extendedShapes) {
                 // if this property has no sh:class but sh:node, then use the node shape's sh:targetClass to find protiential instances
                 const targetClasses = this.template.config.store.getObjects(node, SHACL_PREDICATE_TARGET_CLASS, null)
@@ -174,7 +172,7 @@ export class ShaclProperty extends HTMLElement {
     }
 
     isValueValid(value: Term) {
-        if (!this.template.extendedShapes?.length) {
+        if (!this.template.extendedShapes.length) {
             // property has no node shape, so value is valid
             return true
         }
@@ -260,7 +258,7 @@ export class ShaclProperty extends HTMLElement {
 
 export function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false): HTMLElement {
     let instance: HTMLElement
-    if (template.extendedShapes?.length) {
+    if (template.extendedShapes.length) {
         instance = document.createElement('div')
         instance.classList.add('property-instance')
         for (const node of template.extendedShapes) {
