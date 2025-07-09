@@ -71,8 +71,7 @@ export function removePrefixes(id: string, prefixes: Prefixes): string {
 }
 
 function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNode | ShaclPropertyTemplate, shapesGraph: Store, instances: Term[], alreadyCheckedImports = new Set<string>()) {
-    const owlImports = context instanceof ShaclNode ? context.template.owlImports : context.owlImports
-    for (const owlImport of owlImports) {
+    for (const owlImport of context.owlImports) {
         if (!alreadyCheckedImports.has(owlImport.id)) {
             alreadyCheckedImports.add(owlImport.id)
             instances.push(...shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, owlImport))

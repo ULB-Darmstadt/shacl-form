@@ -238,7 +238,7 @@ export class ShaclProperty extends HTMLElement {
                 ul.appendChild(li)
             }
             addButton.appendChild(ul)
-            addButton.collapsibleWidth = '200px'
+            addButton.collapsibleWidth = '250px'
             addButton.collapsibleOrientationLeft = ''
             addButton.addEventListener('change', () => {
                 if (addButton.value === 'new') {

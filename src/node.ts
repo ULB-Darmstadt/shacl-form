@@ -1,25 +1,26 @@
-import { DataFactory, Store, BlankNode, NamedNode } from 'n3'
+import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS, SHACL_PREDICATE_PROPERTY } from './constants'
 import { ShaclProperty } from './property'
 import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnNode } from './constraints'
 import { Config } from './config'
-import { ShaclNodeTemplate } from './node-template'
 
 export class ShaclNode extends HTMLElement {
-    template: ShaclNodeTemplate
+    parent: ShaclNode | undefined
     shaclSubject: NamedNode
     nodeId: NamedNode | BlankNode
-    parent: ShaclNode | undefined
+    targetClass: NamedNode | undefined
+    owlImports: NamedNode[] = []
+    config: Config
     linked: boolean
 
     constructor(shaclSubject: NamedNode, config: Config, valueSubject: NamedNode | BlankNode | undefined, parent?: ShaclNode, nodeKind?: NamedNode, label?: string, linked?: boolean) {
         super()
 
         this.parent = parent
-        this.template = new ShaclNodeTemplate(config.store.getQuads(shaclSubject, null, null, null), config)
+        this.config = config
         this.shaclSubject = shaclSubject
         this.linked = linked || false
         let nodeId: NamedNode | BlankNode | undefined = valueSubject
@@ -53,12 +54,12 @@ export class ShaclNode extends HTMLElement {
             this.appendChild(labelElem)
 
             const anchor = document.createElement('a')
-            let refId = valueSubject.termType === 'BlankNode' ? '_:' + valueSubject.value : valueSubject.value
+            let refId = (valueSubject.termType === 'BlankNode') ? '_:' + valueSubject.value : valueSubject.value
             anchor.innerText = refId
             anchor.classList.add('ref-link')
             anchor.onclick = () => {
                 // if anchor is clicked, scroll referenced shacl node into view
-                this.template.config.form.querySelector(`shacl-node[data-node-id='${refId}']`)?.scrollIntoView()
+                this.config.form.querySelector(`shacl-node[data-node-id='${refId}']`)?.scrollIntoView()
             }
             this.appendChild(anchor)
             this.style.flexDirection = 'row'
@@ -66,29 +67,50 @@ export class ShaclNode extends HTMLElement {
             if (valueSubject) {
                 config.renderedNodes.add(id)
             }
-            this.dataset.nodeId = this.nodeId.termType === 'BlankNode' ? '_:' + this.nodeId.value : this.nodeId.value
-
-            if (this.template.config.attributes.showNodeIds !== null) {
+            this.dataset.nodeId = this.nodeId.id
+            if (this.config.attributes.showNodeIds !== null) {
                 const div = document.createElement('div')
-                div.innerText = `id: ${this.dataset.nodeId}`
+                div.innerText = `id: ${this.nodeId.id}`
                 div.classList.add('node-id-display')
                 this.appendChild(div)
             }
 
-            for (const shape of this.template.extendedShapes) {
-                this.prepend(new ShaclNode(shape, config, valueSubject, this))
+            // first initialize owl:imports, this is needed before adding properties to properly resolve class instances etc.
+            for (const owlImport of config.store.getQuads(shaclSubject, OWL_PREDICATE_IMPORTS, null, null)) {
+                this.owlImports.push(owlImport.object as NamedNode)
             }
-            
-            for (const property of this.template.properties) {
-                this.addPropertyInstance(property, config, valueSubject)
-            }
-
-            if (this.template.shaclOr) {
-                this.tryResolve(this.template.shaclOr, valueSubject, config)
-            }
-
-            if (this.template.shaclXone) {
-                this.tryResolve(this.template.shaclXone, valueSubject, config)
+            // now parse other node quads
+            for (const quad of config.store.getQuads(shaclSubject, null, null, null)) {
+                switch (quad.predicate.id) {
+                    case SHACL_PREDICATE_PROPERTY.id:
+                        this.addPropertyInstance(quad.object, config, valueSubject)
+                        break;
+                    case `${PREFIX_SHACL}and`:
+                        // inheritance via sh:and
+                        const list = config.lists[quad.object.value]
+                        if (list?.length) {
+                            for (const shape of list) {
+                                this.prepend(new ShaclNode(shape as NamedNode, config, valueSubject, this))
+                            }
+                        }
+                        else {
+                            console.error('list not found:', quad.object.value, 'existing lists:', config.lists)
+                        }
+                        break;
+                    case `${PREFIX_SHACL}node`:
+                        // inheritance via sh:node
+                        this.prepend(new ShaclNode(quad.object as NamedNode, config, valueSubject, this))
+                        break;
+                    case `${PREFIX_SHACL}targetClass`:
+                        this.targetClass = quad.object as NamedNode
+                        break;
+                    case `${PREFIX_SHACL}or`:
+                        this.tryResolve(quad.object, valueSubject, config)
+                        break;
+                    case `${PREFIX_SHACL}xone`:
+                        this.tryResolve(quad.object, valueSubject, config)
+                        break;
+                }
             }
 
             if (label) {
@@ -108,12 +130,12 @@ export class ShaclNode extends HTMLElement {
             for (const shape of this.querySelectorAll(':scope > shacl-node, :scope > .shacl-group > shacl-node, :scope > shacl-property, :scope > .shacl-group > shacl-property')) {
                 (shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
             }
-            if (this.template.targetClass) {
-                graph.addQuad(subject, RDF_PREDICATE_TYPE, this.template.targetClass, this.template.config.valuesGraphId)
+            if (this.targetClass) {
+                graph.addQuad(subject, RDF_PREDICATE_TYPE, this.targetClass, this.config.valuesGraphId)
             }
             // if this is the root shacl node, check if we should add one of the rdf:type or dcterms:conformsTo predicates
-            if (this.template.config.attributes.generateNodeShapeReference && !this.parent) {
-                graph.addQuad(subject, DataFactory.namedNode(this.template.config.attributes.generateNodeShapeReference), this.shaclSubject, this.template.config.valuesGraphId)
+            if (this.config.attributes.generateNodeShapeReference && !this.parent) {
+                graph.addQuad(subject, DataFactory.namedNode(this.config.attributes.generateNodeShapeReference), this.shaclSubject, this.config.valuesGraphId)
             }
         }
         return subject
@@ -144,19 +166,25 @@ export class ShaclNode extends HTMLElement {
         }
     }
 
-    tryResolve(options: Term[], valueSubject: NamedNode | BlankNode | undefined, config: Config) {
-        let resolved = false
-        if (valueSubject) {
-            const resolvedPropertySubjects = resolveShaclOrConstraintOnNode(options, valueSubject, config)
-            if (resolvedPropertySubjects.length) {
-                for (const propertySubject of resolvedPropertySubjects) {
-                    this.addPropertyInstance(propertySubject, config, valueSubject)
+    tryResolve(subject: Term, valueSubject: NamedNode | BlankNode | undefined, config: Config) {
+        const list = config.lists[subject.value]
+        if (list?.length) {
+            let resolved = false
+            if (valueSubject) {
+                const resolvedPropertySubjects = resolveShaclOrConstraintOnNode(list, valueSubject, config)
+                if (resolvedPropertySubjects.length) {
+                    for (const propertySubject of resolvedPropertySubjects) {
+                        this.addPropertyInstance(propertySubject, config, valueSubject)
+                    }
+                    resolved = true
                 }
-                resolved = true
+            }
+            if (!resolved) {
+                this.appendChild(createShaclOrConstraint(list, this, config))
             }
         }
-        if (!resolved) {
-            this.appendChild(createShaclOrConstraint(options, this, config))
+        else {
+            console.error('list for sh:or/sh:xone not found:', subject, 'existing lists:', config.lists)
         }
     }
 }
