@@ -165,9 +165,9 @@ an `sh:class` predicate. The expected return value is a (promise of a) string (e
 
     A more realistic use case of this feature is calling some API endpoint to fetch class instance definitions from existing ontologies.
 
-### SHACL "or" constraint
+### SHACL "or" and "xone" constraint
 
-`<shacl-form>` supports using [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) to let users select between different options on nodes or properties.
+`<shacl-form>` supports using [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) and [sh:xone](https://www.w3.org/TR/shacl/#XoneConstraintComponent) to let users select between different options on nodes or properties.
 The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) has the following triples:
 ```
 example:Attribution
@@ -184,9 +184,19 @@ example:Attribution
 ```
 When adding a new attribution, `<shacl-form>` renders a dropdown to let the user select between the two options Person/Organisation. After selecting one of the options, the dropdown is replaced by the input fields of the selected node shape.
 
-When binding an existing data graph to the form, the `sh:or` constraint is tried to be resolved depending on the respective data value:
+When binding an existing data graph to the form, the constraint is tried to be resolved depending on the respective data value:
 - For RDF literals, an `sh:or` option with a matching `sh:datatype` is chosen
 - For blank nodes or named nodes, the `rdf:type` of the value is tried to be matched with a node shape having a corresponding `sh:targetClass` or with a property shape having a corresponding `sh:class`. If there is no `rdf:type` but a `sh:nodeKind` of `sh:IRI`, the id of the the node is used as the value.
+
+### Linking existing data
+
+In case a node shape has a `sh:targetClass` and any graph, i.e.
+- the shapes graph
+- the data graph
+- any graph loaded by `owl:imports`
+- triples provided by [classInstanceProvider](#classInstanceProvider)
+
+contains instances of that class, those can be linked in the respective SHACL property. In effect, the generated data graph will just contain a reference to the instance, but not the triples that the instance consists of.
 
 ### SHACL shape inheritance
 
