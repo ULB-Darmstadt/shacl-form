@@ -20,7 +20,7 @@ export abstract class Theme {
         this.stylesheet.replaceSync(aggregatedStyles)
     }
 
-    apply(root: HTMLFormElement) {
+    apply(_: HTMLFormElement) {
         // NOP
     }
 

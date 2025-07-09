@@ -240,7 +240,7 @@ export class DefaultTheme extends Theme {
         return result
     }
 
-    createButton(label: string, primary: boolean): HTMLElement {
+    createButton(label: string, _: boolean): HTMLElement {
         const button = document.createElement('button')
         button.type = 'button'
         button.innerHTML = label

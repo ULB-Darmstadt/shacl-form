@@ -151,7 +151,7 @@ export class MaterialTheme extends Theme {
         return result
     }
 
-    createDateEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
+    createDateEditor(_: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = new TextField()
         editor.variant = 'outlined'
         editor.helper = template?.description?.value || template?.label || ''

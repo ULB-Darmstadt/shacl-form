@@ -4,7 +4,6 @@ import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
 import { ShaclPropertyTemplate } from './property-template'
 import { ShaclNode } from './node'
-import { ShaclNodeTemplate } from './node-template'
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, languages?: string[]): string {
     let result = ''

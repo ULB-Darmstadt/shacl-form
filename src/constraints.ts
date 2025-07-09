@@ -5,7 +5,6 @@ import { ShaclProperty, createPropertyInstance } from "./property"
 import { Config } from './config'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY } from './constants'
 import { findLabel, removePrefixes } from './util'
-import { ShaclPropertyTemplate } from './property-template'
 import { Editor, InputListEntry } from './theme'
 
 

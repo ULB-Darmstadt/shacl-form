@@ -141,7 +141,7 @@ export class LeafletPlugin extends Plugin {
         return instance
     }
 
-    createViewer(template: ShaclPropertyTemplate, value: Term): HTMLElement {
+    createViewer(_: ShaclPropertyTemplate, value: Term): HTMLElement {
         const container = document.createElement('div')
         const geometry = wktToGeometry(value.value)
         if (geometry?.coordinates?.length) {

@@ -1,5 +1,4 @@
-import { BlankNode, Literal, NamedNode, Quad } from "n3"
-import { ShaclNode } from "./node"
+import { BlankNode, NamedNode, Quad } from "n3"
 import { Config } from "./config"
 import { OWL_PREDICATE_IMPORTS, PREFIX_SHACL } from "./constants";
 import { Term } from "@rdfjs/types";
@@ -11,7 +10,6 @@ const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void>
     [`${PREFIX_SHACL}targetClass`]:  (template, term) => { template.targetClass = term as NamedNode },
     [`${PREFIX_SHACL}or`]:           (template, term) => {
         const list = template.config.lists[term.value]
-        console.log('--- sh:or node', term.value, list)
         if (list?.length) {
             template.shaclOr = list
         } else {

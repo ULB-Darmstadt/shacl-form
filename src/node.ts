@@ -1,6 +1,6 @@
 import { DataFactory, Store, BlankNode, NamedNode } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS, SHACL_PREDICATE_PROPERTY } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
 import { ShaclProperty } from './property'
 import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
@@ -67,8 +67,6 @@ export class ShaclNode extends HTMLElement {
                 config.renderedNodes.add(id)
             }
             this.dataset.nodeId = this.nodeId.termType === 'BlankNode' ? '_:' + this.nodeId.value : this.nodeId.value
-            const quads = config.store.getQuads(shaclSubject, null, null, null)
-            let list: Term[] | undefined
 
             if (this.template.config.attributes.showNodeIds !== null) {
                 const div = document.createElement('div')
