@@ -7,6 +7,7 @@
 @prefix example: <http://example.org/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 
 example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
   a dcat:Dataset, example:ArchitectureModelDataset ;
@@ -35,3 +36,10 @@ example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
     ] ;
     dcat:hadRole <http://w3id.org/nfdi4ing/metadata4ing#DataCollector> ;
   ] .
+
+
+example:darmstadt
+  a dcterms:Location ;
+  rdfs:label "Darmstadt" ;
+  geo:asWKT "POINT(8.657631022574474 49.87622847744955)"^^geo:wktLiteral ;
+  dcterms:description "Darmstadt is a city in germany" .

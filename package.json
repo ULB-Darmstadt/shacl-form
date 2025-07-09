@@ -1,6 +1,6 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "1.8.0",
+    "version": "1.8.1",
     "description": "SHACL form generator",
     "main": "dist/form-default.js",
     "module": "dist/form-default.js",
@@ -10,7 +10,9 @@
         ".": {
             "import": "./dist/form-default.js",
             "types": "./dist/form-default.d.ts"
-        }
+        },
+        "./*.ts": "./src/*.ts",
+        "./plugins/*.ts": "./src/plugins/*.ts"
     },
     "files": [
         "dist",
