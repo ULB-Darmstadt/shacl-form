@@ -1,10 +1,11 @@
 import { Term } from '@rdfjs/types'
 import { ShaclPropertyTemplate } from "../property-template"
 import { Editor, InputListEntry, Theme } from "../theme"
-import { PREFIX_XSD } from '../constants'
-import { Literal } from 'n3'
+import { PREFIX_SHACL, PREFIX_XSD } from '../constants'
+import { Literal, NamedNode } from 'n3'
 import { Term as N3Term }  from 'n3'
 import css from './default.css?raw'
+import { RokitSelect } from '@ro-kit/ui-widgets'
 
 export class DefaultTheme extends Theme {
     idCtr = 0
@@ -30,6 +31,8 @@ export class DefaultTheme extends Theme {
         }
         if (template?.nodeKind) {
             editor.dataset.nodeKind = template.nodeKind.value
+        } else if (value instanceof NamedNode) {
+            editor.dataset.nodeKind = PREFIX_SHACL + 'IRI'
         }
         if (template?.hasValue || template?.readonly) {
             editor.disabled = true
@@ -197,43 +200,40 @@ export class DefaultTheme extends Theme {
     }
 
     createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement {
-        const editor = document.createElement('select')
+        const editor = new RokitSelect()
+        editor.dense = true
+        editor.clearable = true
+        editor.collapse = true
         const result = this.createDefaultTemplate(label, null, required, editor, template)
-        let addEmptyOption = true
+        const ul = document.createElement('ul')
     
-        for (const item of listEntries) {
-            const option = document.createElement('option')
-            let itemValue = ''
-            if (typeof item.value === 'string') {
-                itemValue = item.value
+        const appendListEntry = (entry: InputListEntry, parent: HTMLUListElement) => {
+            const li = document.createElement('li')
+            let entryValue = ''
+            if (typeof entry.value === 'string') {
+                entryValue = entry.value
             } else {
                 // this is needed for typed rdf literals
-                itemValue = (item.value as N3Term).id
+                entryValue = (entry.value as N3Term).id
             }
-            option.innerHTML = item.label ? item.label : itemValue
-            option.value = itemValue
-            if (item.indent) {
-                for (let i = 0; i < item.indent; i++) {
-                    option.innerHTML = '&#160;&#160;' + option.innerHTML
+            li.innerText = entry.label ? entry.label : entryValue
+            li.dataset.value = entryValue
+            parent.appendChild(li)
+            if (entry.children?.length) {
+                const ul = document.createElement('ul')
+                li.appendChild(ul)
+                for (const child of entry.children) {
+                    appendListEntry(child, ul)
                 }
             }
-            if (value && value.value === itemValue) {
-                option.selected = true
-            }
-            if (itemValue === '') {
-                addEmptyOption = false
-            }
-            editor.appendChild(option)
         }
-        if (addEmptyOption) {
-            // add an empty element
-            const emptyOption = document.createElement('option')
-            emptyOption.value = ''
-            if (!value) {
-                emptyOption.selected = true
-            }
-            editor.prepend(emptyOption)
+
+        for (const item of listEntries) {
+            appendListEntry(item, ul)
         }
+        console.log(listEntries)
+
+        editor.appendChild(ul)
         if (value) {
             editor.value = value.value
         }
