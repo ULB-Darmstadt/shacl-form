@@ -231,7 +231,6 @@ export class DefaultTheme extends Theme {
         for (const item of listEntries) {
             appendListEntry(item, ul)
         }
-        console.log(listEntries)
 
         editor.appendChild(ul)
         if (value) {

@@ -141,11 +141,14 @@ Apart from setting the element attributes `data-shapes` or `data-shapes-url`, th
     In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form.
 
 2. <a id="classInstanceProvider"></a>The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is invoked when a SHACL property has
-an `sh:class` predicate. The expected return value is a (promise of a) string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class. Instances can be defined e.g. like:
-    - `example:Instance a example:Class`
-    - `example:Instance a owl:NamedIndividual; skos:broader example:Class`
+an `sh:class` predicate. The expected return value is a (promise of a) string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class.
   
-    Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
+    Class hierarchies can be built using `rdfs:subClassOf`. Instance hierarchies can be modeled e.g. like:
+    ```
+    ex:parent a ex:Class .
+    ex:child rdfs:subClassOf ex:parent; a ex:parent .
+    ex:grandchild rdfs:subClassOf ex:child; a ex:child .
+    ```
     
     In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), the code:
   

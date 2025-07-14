@@ -12,6 +12,7 @@
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix prov:    <http://www.w3.org/ns/prov#> .
 @prefix example: <http://example.org/> .
+@prefix dfgfo: <https://github.com/tibonto/dfgfo/> .
 
 example:ArchitectureModelDataset
   a               sh:NodeShape, rdfs:Class ;
@@ -81,6 +82,14 @@ example:Dataset
                   sh:maxCount     2 ;
                   sh:name         "Description"@en, "Beschreibung"@de ;
                   sh:path         dcterms:description
+                ] ;
+  sh:property   [ sh:description  "Subject classification of the dataset"@en, "Fachzuordnung des Datensatzes"@de ;
+                  sh:maxCount     1 ;
+                  sh:minCount     1 ;
+                  sh:name         "Subject classification"@en, "Fachzuordnung"@de ;
+                  sh:class        dfgfo:Classification ;
+                  sh:path         dcterms:subject ;
+                  owl:imports    <https://ulb-darmstadt.github.io/shacl-form/dfgfo.ttl> ;
                 ] ;
   sh:property   [ sh:description  "License of the dataset"@en, "Lizenz des Datensatzes"@de ;
                   sh:maxCount     1 ;

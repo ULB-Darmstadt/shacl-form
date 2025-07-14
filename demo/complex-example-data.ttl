@@ -14,6 +14,7 @@ example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
   dcterms:title "Einsteinturm"@de, "Einstein Tower"@en ;
   dcterms:description "Modell des Einsteinturms"@de, "Model of the Einstein Tower"@en ;
   dcterms:issued "2023-07-27"^^xsd:date ;
+  dcterms:subject <https://github.com/tibonto/dfgfo/4.51-01>;
   dcterms:license <http://creativecommons.org/licenses/by/4.0/> ;
   schema:artworkSurface example:plaster ;
   schema:width 200 ;
@@ -34,7 +35,7 @@ example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
       foaf:name "Jane Doe";
       dcterms:identifier "https://orcid.org/0000-0002-1584-4316" ;
     ] ;
-    dcat:hadRole <http://w3id.org/nfdi4ing/metadata4ing#DataCollector> ;
+    dcat:hadRole <http://w3id.org/nfdi4ing/metadata4ing#Researcher> ;
   ] .
 
 

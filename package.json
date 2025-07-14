@@ -47,7 +47,7 @@
     },
     "devDependencies": {
         "@types/jsonld": "^1.5.15",
-        "@types/leaflet": "^1.9.19",
+        "@types/leaflet": "^1.9.20",
         "@types/leaflet-editable": "^1.2.6",
         "@types/leaflet.fullscreen": "^3.0.2",
         "@types/mapbox__mapbox-gl-draw": "^1.4.9",
@@ -55,8 +55,8 @@
         "@types/uuid": "^10.0.0",
         "rollup-plugin-peer-deps-external": "^2.2.4",
         "typescript": "^5.8.3",
-        "vite": "^6.2.5",
-        "vite-plugin-dts": "^4.5.3"
+        "vite": "^7.0.4",
+        "vite-plugin-dts": "^4.5.4"
     },
     "dependencies": {
         "@mapbox/mapbox-gl-draw": "^1.5.0",
@@ -71,7 +71,7 @@
         "uuid": "^11.1.0"
     },
     "peerDependencies": {
-        "@ro-kit/ui-widgets": "^0.0.27",
+        "@ro-kit/ui-widgets": "^0.0.28",
         "mdui": "^2.1.4"
     }
 }

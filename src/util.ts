@@ -1,5 +1,5 @@
 import { Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
-import { DATA_GRAPH, OWL_OBJECT_NAMED_INDIVIDUAL, PREFIX_FOAF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER } from './constants'
+import { DATA_GRAPH, PREFIX_FOAF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
 import { ShaclPropertyTemplate } from './property-template'
@@ -53,10 +53,10 @@ export function findLabel(quads: Quad[], languages: string[]): string {
     findObjectValueByPredicate(quads, 'name', PREFIX_FOAF, languages)
 }
 
-export function createInputListEntries(subjects: Term[], shapesGraph: Store, languages: string[], indent?: number): InputListEntry[] {
+export function createInputListEntries(subjects: Term[], shapesGraph: Store, languages: string[]): InputListEntry[] {
     const entries: InputListEntry[] = []
     for (const subject of subjects) {
-        entries.push({ value: subject, label: findLabel(shapesGraph.getQuads(subject, null, null, null), languages), indent: indent })
+        entries.push({ value: subject, label: findLabel(shapesGraph.getQuads(subject, null, null, null), languages), children: [] })
     }
     return entries
 }
@@ -82,7 +82,7 @@ function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNode |
     }
 }
 
-export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplate, indent = 0): InputListEntry[] {
+export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplate): InputListEntry[] {
     let instances: Term[]
     // if template has sh:in, then just use that as class instances
     if (template.shaclIn) {
@@ -97,16 +97,24 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
         findClassInstancesFromOwlImports(clazz, template, template.config.store, instances)
     }
 
-    const entries = createInputListEntries(instances, template.config.store, template.config.languages, indent)
+    const entries = createInputListEntries(instances, template.config.store, template.config.languages)
     // build inheritance tree only if sh:in is not defined
     if (template.shaclIn === undefined) {
+        // find sub classes via rdfs:subClassOf
         for (const subClass of template.config.store.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, clazz, null)) {
-            entries.push(...findInstancesOf(subClass as NamedNode, template, indent + 1))
-        }
-        if (template.config.store.getQuads(clazz, RDF_PREDICATE_TYPE, OWL_OBJECT_NAMED_INDIVIDUAL, null).length > 0) {
-            entries.push(...createInputListEntries([ clazz ], template.config.store, template.config.languages, indent))
-            for (const subClass of template.config.store.getSubjects(SKOS_PREDICATE_BROADER, clazz, null)) {
-                entries.push(...findInstancesOf(subClass as NamedNode, template, indent + 1))
+            const subClassIntances = findInstancesOf(subClass as NamedNode, template)
+            for (const subClassIntance of subClassIntances) {
+                let isChild = false
+                // check if found sub class also is an instance of its super class. if yes, add it to the children of the InputListEntry.
+                for (const entry of entries) {
+                    if (template.config.store.countQuads(subClassIntance.value, RDF_PREDICATE_TYPE, entry.value, null) > 0) {
+                        entry.children!.push(subClassIntance)
+                        isChild = true
+                    }
+                }
+                if (!isChild) {
+                    entries.push(subClassIntance)                
+                }
             }
         }
     }

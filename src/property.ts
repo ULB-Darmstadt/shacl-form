@@ -1,4 +1,4 @@
-import { BlankNode, DataFactory, NamedNode, Quad, Store } from 'n3'
+import { BlankNode, DataFactory, Literal, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
@@ -103,7 +103,7 @@ export class ShaclProperty extends HTMLElement {
         } else {
             // check if value is part of the data graph. if not, create a linked resource
             let linked = false
-            if (value) {
+            if (value && !(value instanceof Literal)) {
                 const clazz = this.getRdfClassToLinkOrCreate()
                 if (clazz && this.template.config.store.countQuads(value, RDF_PREDICATE_TYPE, clazz, DATA_GRAPH) === 0) {
                     // value is not in data graph, so must be a link in the shapes graph

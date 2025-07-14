@@ -6,7 +6,7 @@ import { ShaclPropertyTemplate } from './property-template'
 import css from './styles.css?raw'
 
 export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, binaryData?: string, checked?: boolean, disabled?: boolean }
-export type InputListEntry = { value: Term | string, label?: string, indent?: number }
+export type InputListEntry = { value: Term | string, label?: string, children?: InputListEntry[] }
 
 export abstract class Theme {
     stylesheet: CSSStyleSheet

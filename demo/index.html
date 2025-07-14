@@ -9,7 +9,7 @@
   <script type="importmap">
     {
       "imports": {
-        "@ulb-darmstadt/shacl-form/": "https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form@1.8.0/dist/"
+        "@ulb-darmstadt/shacl-form/": "https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form@1.8.1/dist/"
       }
     }
   </script>
@@ -299,9 +299,9 @@
 
   <template id="template-mps">
     <div class="wrapper">
-      <fieldset>
+      <fieldset style="display: flex; flex-direction: column; min-height: 400px;">
         <legend>Select shape</legend>
-        <select id="shacl-shape-selector"><option></option></select>
+        <rokit-select id="shacl-shape-selector" clearable dense label="Select profile..."></rokit-select>
         <textarea id="shacl-shape-input" class="w-100 h-100"></textarea>
       </fieldset>
       <fieldset><legend>Generated form</legend><shacl-form id="shacl-form" data-submit-button="Export"></shacl-form></fieldset>
@@ -314,8 +314,11 @@
         const shapeSelector = document.getElementById("shacl-shape-selector")
         const output = document.getElementById("shacl-output")
         shapeSelector.addEventListener('change', () => {
-          form.dataset['shapes'] = shapeSelector.value
-          shapes.innerText = shapeSelector.value
+          shapes.value = shapeSelector.value
+          shapes.dispatchEvent(new Event('change'))
+        })
+        shapes.addEventListener('change', (ev) => {
+          form.dataset['shapes'] = shapes.value
           output.querySelector("pre").innerText = ''
           output.classList.remove('valid', 'invalid')
         })
@@ -332,12 +335,14 @@
         })
 
         fetch('https://pg4aims.ulb.tu-darmstadt.de/AIMS/application-profiles/?query=&language=EN&includeDefinition=true&state=public').then(resp => resp.json()).then(shapes => {
+          const ul = document.createElement('ul')
           for (const shape of shapes) {
-            const option = document.createElement('option')
-            option.innerText = shape.name
-            option.value = shape.definition
-            shapeSelector.appendChild(option)
+            const li = document.createElement('li')
+            li.innerText = shape.name
+            li.dataset.value = shape.definition
+            ul.appendChild(li)
           }
+          shapeSelector.appendChild(ul)
         }).catch(e => console.error(e))
       })
     </script>
