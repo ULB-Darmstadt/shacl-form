@@ -135,6 +135,7 @@ export class ShaclPropertyTemplate {
     clone(): ShaclPropertyTemplate {
         const copy = Object.assign({}, this)
         // arrays are not cloned but referenced, so create them manually
+        copy.extendedShapes = [ ...this.extendedShapes ]
         copy.owlImports = [ ...this.owlImports ]
         if (this.languageIn) {
             copy.languageIn = [ ...this.languageIn ]
