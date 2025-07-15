@@ -24,3 +24,4 @@ export const SHACL_PREDICATE_PROPERTY = DataFactory.namedNode(PREFIX_SHACL + 'pr
 export const SHACL_PREDICATE_CLASS = DataFactory.namedNode(PREFIX_SHACL + 'class')
 export const SHACL_PREDICATE_TARGET_CLASS = DataFactory.namedNode(PREFIX_SHACL + 'targetClass')
 export const SHACL_PREDICATE_NODE_KIND = DataFactory.namedNode(PREFIX_SHACL + 'nodeKind')
+export const XSD_DATATYPE_STRING =  DataFactory.namedNode(PREFIX_XSD + 'string')

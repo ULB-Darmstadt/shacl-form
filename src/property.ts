@@ -9,15 +9,25 @@ import { Editor, fieldFactory, InputListEntry } from './theme'
 import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
 import { DATA_GRAPH, RDF_PREDICATE_TYPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
-import { RokitButton, RokitSelect } from '@ro-kit/ui-widgets'
+import { RokitButton, RokitCollapsible, RokitSelect } from '@ro-kit/ui-widgets'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
     addButton: RokitSelect | undefined
+    container: HTMLElement
 
     constructor(shaclSubject: BlankNode | NamedNode, parent: ShaclNode, config: Config, valueSubject?: NamedNode | BlankNode) {
         super()
         this.template = new ShaclPropertyTemplate(config.store.getQuads(shaclSubject, null, null, null), parent, config)
+        if (this.template.extendedShapes.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
+            const collapsible = new RokitCollapsible()
+            collapsible.classList.add('collapsible', 'shacl-group');
+            collapsible.open = config.attributes.collapse === 'open';
+            collapsible.label = this.template.label;
+            this.container = collapsible
+        } else {
+            this.container = this
+        }
 
         if (this.template.order !== undefined) {
             this.style.order = `${this.template.order}`
@@ -28,7 +38,7 @@ export class ShaclProperty extends HTMLElement {
 
         if (config.editMode && !parent.linked) {
             this.addButton = this.createAddButton()
-            this.appendChild(this.addButton)
+            this.container.appendChild(this.addButton)
         }
 
         // bind existing values
@@ -65,21 +75,10 @@ export class ShaclProperty extends HTMLElement {
             this.updateControls()
         }
 
-        if (this.template.extendedShapes.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
+        if (this.container instanceof RokitCollapsible) {
             // in view mode, show collapsible only when we have something to show
-            if ((config.editMode && !parent.linked) || this.childElementCount > 0) {
-                const collapsible = this
-                collapsible.classList.add('collapsible')
-                if (this.template.config.attributes.collapse === 'open') {
-                    collapsible.classList.add('open')
-                }
-                const activator = document.createElement('h1')
-                activator.classList.add('activator')
-                activator.innerText = this.template.label
-                activator.addEventListener('click', () => {
-                    collapsible.classList.toggle('open')
-                })
-                this.prepend(activator)
+            if ((config.editMode && !parent.linked) || this.container.childElementCount > 0) {
+                this.appendChild(this.container)
             }
         }
     }
@@ -113,9 +112,9 @@ export class ShaclProperty extends HTMLElement {
             instance = createPropertyInstance(this.template, value, undefined, linked || this.template.parent.linked)
         }
         if (this.addButton) {
-            this.insertBefore(instance!, this.addButton)
+            this.container.insertBefore(instance!, this.addButton)
         } else {
-            this.appendChild(instance!)
+            this.container.appendChild(instance!)
         }
         return instance!
     }
@@ -136,10 +135,13 @@ export class ShaclProperty extends HTMLElement {
         const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
         this.classList.toggle('may-remove', mayRemove)
         this.classList.toggle('may-add', mayAdd)
+        if (mayAdd && this.addButton?.input) {
+            this.addButton.input.updateMinWidth()
+        }
     }
 
     toRDF(graph: Store, subject: NamedNode | BlankNode) {
-        for (const instance of this.querySelectorAll(':scope > .property-instance')) {
+        for (const instance of this.querySelectorAll(':scope > .property-instance, :scope > .collapsible > .property-instance')) {
             const pathNode = DataFactory.namedNode((instance as HTMLElement).dataset.path!)
             if (instance.firstChild instanceof ShaclNode) {
                 const shapeSubject = instance.firstChild.toRDF(graph)
@@ -247,7 +249,7 @@ export class ShaclProperty extends HTMLElement {
                 } else {
                     // user wants to link existing instance
                     const value = JSON.parse(addButton.value) as Term
-                    this.insertBefore(createPropertyInstance(this.template, value, true, true), addButton)
+                    this.container.insertBefore(createPropertyInstance(this.template, value, true, true), addButton)
                 }
                 addButton.value = ''
             })

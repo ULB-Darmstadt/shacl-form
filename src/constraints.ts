@@ -13,7 +13,6 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
     constraintElement.classList.add('shacl-or-constraint')
 
     const optionElements: InputListEntry[] =  []
-    optionElements.push({ label: '--- please choose ---', value: '' })
 
     if (context instanceof ShaclNode) {
         const properties: ShaclProperty[][] = []

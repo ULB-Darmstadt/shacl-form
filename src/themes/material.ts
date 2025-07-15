@@ -6,7 +6,7 @@ import { InputListEntry, Editor } from '../theme'
 import { Literal, NamedNode } from 'n3'
 import { Term as N3Term }  from 'n3'
 import css from './material.css?raw'
-import { PREFIX_SHACL, PREFIX_XSD } from '../constants'
+import { PREFIX_SHACL, PREFIX_XSD, XSD_DATATYPE_STRING } from '../constants'
 import { RokitSelect } from '@ro-kit/ui-widgets'
 
 export class MaterialTheme extends Theme {
@@ -96,24 +96,28 @@ export class MaterialTheme extends Theme {
 
     createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement {
         const editor = new RokitSelect()
-        editor.dense = true
         editor.clearable = true
         const result = this.createDefaultTemplate(label, null, required, editor, template)
         const ul = document.createElement('ul')
-    
+        let isFlatList = true
+
         const appendListEntry = (entry: InputListEntry, parent: HTMLUListElement) => {
             const li = document.createElement('li')
-            let entryValue = ''
             if (typeof entry.value === 'string') {
-                entryValue = entry.value
+                li.dataset.value = entry.value
+                li.innerText = entry.label ? entry.label : entry.value
             } else {
-                // this is needed for typed rdf literals
-                entryValue = (entry.value as N3Term).id
+                if (entry.value instanceof Literal && entry.value.datatype.equals(XSD_DATATYPE_STRING)) {
+                    li.dataset.value = entry.value.value
+                } else {
+                    // this is needed for typed rdf literals
+                    li.dataset.value = (entry.value as N3Term).id
+                }
+                li.innerText = entry.label ? entry.label : entry.value.value
             }
-            li.innerText = entry.label ? entry.label : entryValue
-            li.dataset.value = entryValue
             parent.appendChild(li)
             if (entry.children?.length) {
+                isFlatList = false
                 const ul = document.createElement('ul')
                 li.appendChild(ul)
                 for (const child of entry.children) {
@@ -124,6 +128,9 @@ export class MaterialTheme extends Theme {
 
         for (const item of listEntries) {
             appendListEntry(item, ul)
+        }
+        if (!isFlatList) {
+            editor.collapse = true
         }
 
         editor.appendChild(ul)

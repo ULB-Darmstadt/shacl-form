@@ -7,6 +7,7 @@ import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
 import { setSharedShapesGraph } from './loader'
+import { RokitCollapsible } from '@ro-kit/ui-widgets'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.dataAttributes() }
@@ -88,7 +89,12 @@ export class ShaclForm extends HTMLElement {
                                             this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
                                         } else {
                                             // focus first invalid element
-                                            (this.form.querySelector(':scope .invalid > .editor') as HTMLElement)?.focus()
+                                            let invalidEditor = this.form.querySelector(':scope .invalid > .editor')
+                                            if (invalidEditor) {
+                                                (invalidEditor as HTMLElement).focus()
+                                            } else {
+                                                this.form.querySelector(':scope .invalid')?.scrollIntoView()
+                                            }
                                         }
                                     })
                                 }
@@ -176,10 +182,16 @@ export class ShaclForm extends HTMLElement {
                         if (result.path?.length) {
                             const path = result.path[0].predicates[0]
                             // try to find most specific editor elements first
-                            let invalidElements = this.form.querySelectorAll(`:scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .property-instance[data-path='${path.id}'] > .editor, :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .property-instance[data-path='${path.id}'] > .editor`)
+                            let invalidElements = this.form.querySelectorAll(`
+                                :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
+                                :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor,
+                                :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
+                                :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor`)
                             if (invalidElements.length === 0) {
                                 // if no editors found, select respective node. this will be the case for node shape violations.
-                                invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}']  > * > [data-path='${path.id}']`)
+                                invalidElements = this.form.querySelectorAll(`
+                                    :scope [data-node-id='${focusNode.id}']  > shacl-property > .property-instance[data-path='${path.id}'],
+                                    :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .property-instance[data-path='${path.id}']`)
                             }
 
                             for (const invalidElement of invalidElements) {
@@ -191,8 +203,8 @@ export class ShaclForm extends HTMLElement {
                                         parent.classList.remove('valid')
                                         parent.appendChild(this.createValidationErrorDisplay(result))
                                         do {
-                                            if (parent.classList.contains('collapsible')) {
-                                                parent.classList.add('open')
+                                            if (parent instanceof RokitCollapsible) {
+                                                parent.open = true
                                             }
                                             parent = parent.parentElement
                                         } while (parent)
