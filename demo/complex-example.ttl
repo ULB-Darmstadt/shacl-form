@@ -12,7 +12,7 @@
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix prov:    <http://www.w3.org/ns/prov#> .
 @prefix example: <http://example.org/> .
-@prefix dfgfo: <https://github.com/tibonto/dfgfo/> .
+@prefix dfgfo:   <https://w3id.org/dfgfo/2024/> .
 
 example:ArchitectureModelDataset
   a               sh:NodeShape, rdfs:Class ;

@@ -14,7 +14,7 @@ example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
   dcterms:title "Einsteinturm"@de, "Einstein Tower"@en ;
   dcterms:description "Modell des Einsteinturms"@de, "Model of the Einstein Tower"@en ;
   dcterms:issued "2023-07-27"^^xsd:date ;
-  dcterms:subject <https://github.com/tibonto/dfgfo/4.51-01>;
+  dcterms:subject <https://w3id.org/dfgfo/2024/451-01>;
   dcterms:license <http://creativecommons.org/licenses/by/4.0/> ;
   schema:artworkSurface example:plaster ;
   schema:width 200 ;
