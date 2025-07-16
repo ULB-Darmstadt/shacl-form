@@ -106,7 +106,8 @@ a:visited { color: inherit; }
 #shacl-output.valid pre, #shacl-output.valid legend::after { color: #272; }
 #shacl-output.invalid pre, #shacl-output.invalid legend::after { color: #922; }
 #shacl-shape-input, #shacl-output { min-height:250px; }
-textarea#shacl-shape-input { resize: vertical; }
+textarea#shacl-shape-input, rokit-textarea#shacl-shape-input { resize: vertical; flex-grow: 1; }
+shacl-form { flex-grow: 1; }
 @media screen and (max-width: 1024px) {
     .wrapper { grid-template-columns: 1fr; }
 }
@@ -115,7 +116,7 @@ textarea#shacl-shape-input { resize: vertical; }
     overflow: auto;  min-width: 0px;
 }
 
-fieldset { border-color: var(--brand-color); }
+fieldset { border-color: var(--brand-color); display: flex; }
 fieldset pre { font-size: 0.7em; }
 iframe { width: 100%; height: 80vh; border: 0; }
 .wrapper fieldset pre { max-height: 400px; }
