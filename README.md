@@ -128,28 +128,24 @@ In edit mode, `<shacl-form>` validates the constructed data graph using the libr
 ### Providing additional data to the shapes graph
 
 Apart from setting the element attributes `data-shapes` or `data-shapes-url`, there are two ways of adding RDF data to the shapes graph:
-1. While parsing the triples of the shapes graph, any encountered `owl:imports` predicate that has a valid HTTP URL value will be tried to fetch with the HTTP Accept header set to all of the [supported](#formats) MIME types. A successful response will be parsed and added to the shapes graph. The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
+1. While parsing the triples of the shapes graph, any encountered `owl:imports` predicate that has a valid HTTP URL is fetched with the HTTP Accept header set to all of the [supported](#formats) MIME types. A successful response is parsed and added to a named graph. This graph is scoped (i.e. available) only to the node where the `owl:import` statement is defined on and all its sub nodes.
+
+    The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
+
     ```
     example:Attribution
-      owl:imports <https://w3id.org/nfdi4ing/metadata4ing/> ;
       sh:property [
+        owl:imports <https://w3id.org/nfdi4ing/metadata4ing/> ;
         sh:name      "Role" ;
         sh:path      dcat:hadRole ;
         sh:class     prov:Role ;
       ] .
     ```
-    In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form.
+    In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form. The imported ontology is available only for rendering and validating this specific property.
 
 2. <a id="classInstanceProvider"></a>The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is invoked when a SHACL property has
 an `sh:class` predicate. The expected return value is a (promise of a) string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class.
   
-    Class hierarchies can be built using `rdfs:subClassOf`. Instance hierarchies can be modeled e.g. like:
-    ```
-    ex:parent a ex:Class .
-    ex:child rdfs:subClassOf ex:parent; a ex:parent .
-    ex:grandchild rdfs:subClassOf ex:child; a ex:child .
-    ```
-    
     In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), the code:
   
     ```typescript
@@ -168,7 +164,13 @@ an `sh:class` predicate. The expected return value is a (promise of a) string (e
 
     A more realistic use case of this feature is calling some API endpoint to fetch class instance definitions from existing ontologies.
 
-### SHACL "or" and "xone" constraint
+### Use of SHACL sh:class
+
+In case a property shape has a `sh:class`, all available graphs are scanned for instances of the given class to let the user choose from. `rdfs:subClassOf` is also considered when building the list of class instances.
+
+`shacl-form` also supports class instance hierarchies modelled with `skos:broader` and/or `skos:narrower`. This is illustrated by the "Subject classification" property in the [example](https://ulb-darmstadt.github.io/shacl-form/#example).
+
+### SHACL constraints sh:or and sh:xone
 
 `<shacl-form>` supports using [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) and [sh:xone](https://www.w3.org/TR/shacl/#XoneConstraintComponent) to let users select between different options on nodes or properties.
 The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) has the following triples:
@@ -199,7 +201,7 @@ In case a node shape has a `sh:targetClass` and any graph, i.e.
 - any graph loaded by `owl:imports`
 - triples provided by [classInstanceProvider](#classInstanceProvider)
 
-contains instances of that class, those can be linked in the respective SHACL property. In effect, the generated data graph will just contain a reference to the instance, but not the triples that the instance consists of.
+contains instances of that class, those can be linked in the respective SHACL property. The generated data graph will then just contain a reference to the instance, but not the triples that the instance consists of.
 
 ### SHACL shape inheritance
 

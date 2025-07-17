@@ -13,7 +13,7 @@ shacl-property:not(.may-remove) > .property-instance > .remove-button:not(.persi
 shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.persistent) { visibility: hidden; }
 .mode-view .shacl-group:not(:has(shacl-property)) { display: none; }
 .property-instance, .shacl-or-constraint { display: flex; align-items: flex-start; padding: 4px 0; width: 100%; position: relative; }
-.shacl-or-constraint > div { display: flex; flex-grow: 1; }
+.shacl-or-constraint > div { display: flex; flex-grow: 1; align-items: flex-start; }
 .shacl-or-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
 .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
 .property-instance.linked label:after, label.linked:after { content: '\1F517'; font-size: 0.6em; padding-left: 6px; }
@@ -22,7 +22,7 @@ shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.per
 .editor:not([type='checkbox']) { flex-grow: 1; }
 textarea.editor { resize: vertical; }
 .lang-chooser { border: 0; background-color: #e9e9ed; padding: 2px 4px; align-self: flex-start; }
-.validation-error { position: absolute; left: calc(var(--label-width) - 1em); top: 0.5em; color: red; cursor: help; }
+.validation-error { position: absolute; left: calc(var(--label-width) - 1em); color: red; cursor: help; }
 .validation-error::before { content: '\26a0' }
 .validation-error.node { left: -1em; }
 .invalid > .editor { border-color: red !important; }

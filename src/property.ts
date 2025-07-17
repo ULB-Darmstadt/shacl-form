@@ -294,6 +294,7 @@ function appendRemoveButton(instance: HTMLElement, label: string, forceRemovable
     removeButton.classList.add('remove-button', 'clear')
     removeButton.title = 'Remove ' + label
     removeButton.dense = true
+    removeButton.icon = true
     removeButton.addEventListener('click', _ => {
         instance.classList.remove('fadeIn')
         instance.classList.add('fadeOut')
