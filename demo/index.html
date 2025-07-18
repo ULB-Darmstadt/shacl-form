@@ -317,7 +317,9 @@
               button.style.marginTop = '20px'
               button.addEventListener('click', () => {
                 navigator.clipboard.writeText(link.href)
-                const message = document.createTextNode('Copied!')
+                const message = document.createElement('span')
+                message.innerText = 'Copied!'
+                message.classList.add('green')
                 button.after(message)
                 setTimeout(() => message.remove(), 1000)
               })
