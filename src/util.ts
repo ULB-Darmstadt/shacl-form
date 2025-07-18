@@ -1,4 +1,4 @@
-import { Literal, NamedNode, Prefixes, Quad, Term as N3Term, Store } from 'n3'
+import { Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
 import { DATA_GRAPH, PREFIX_FOAF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER, SKOS_PREDICATE_NARROWER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
@@ -88,32 +88,44 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
         const list = template.config.lists[template.shaclIn]
         return createInputListEntries(list?.length ? list : [], template.config.store, template.config.languages)
     } else {
+        // find instances in the shapes graph
         const instances = template.config.store.getSubjects(RDF_PREDICATE_TYPE, clazz, SHAPES_GRAPH)
         // find instances in the data graph
         instances.push(...template.config.store.getSubjects(RDF_PREDICATE_TYPE, clazz, DATA_GRAPH))
         // find instances in imported taxonomies
         findClassInstancesFromOwlImports(clazz, template, template.config.store, instances)
 
-        // structures needed for build a class instance hierarchy
+        // initialize structures needed for building a class instance hierarchy
         const nodes = new Map<string, InputListEntry>()   // URI -> InputListEntry
         const childToParent = new Map<string, string>() // URI -> parentURI
 
-        // Step 1: Initialize all instances as InputListEntry's with no children
+        // initialize all instances as InputListEntry's with no children
         for (const instance of instances) {
             nodes.set(instance.id, { value: instance, label: findLabel(template.config.store.getQuads(instance, null, null, null), template.config.languages), children: [] })
         }
 
-        // Step 2: Record broader/narrower relationships (child -> parent)
+        // record broader/narrower relationships (child -> parent)
         for (const instance of instances) {
-            appendSkosBroaderNarrower(instance, nodes, childToParent, template)
+            for (const parent of template.config.store.getObjects(instance, SKOS_PREDICATE_BROADER, null)) {
+                childToParent.set(instance.id, parent.id)
+                if (!nodes.has(parent.id)) {
+                    nodes.set(parent.id, { value: parent, label: findLabel(template.config.store.getQuads(parent, null, null, null), template.config.languages), children: [] })
+                }
+            }
+            for (const child of template.config.store.getObjects(instance, SKOS_PREDICATE_NARROWER, null)) {
+                childToParent.set(child.id, instance.id)
+                if (!nodes.has(child.id)) {
+                    nodes.set(child.id, { value: child, label: findLabel(template.config.store.getQuads(child, null, null, null), template.config.languages), children: [] })
+                }
+            }
         }
 
-        // Step 3: Build hierarchy by nesting children under parents
+        // build hierarchy by nesting children under parents
         for (const [child, parent] of childToParent.entries()) {
-            nodes.get(parent)!.children!.push(nodes.get(child)!)
+            nodes.get(parent)?.children?.push(nodes.get(child)!)
         }
 
-        // Step 4: Find root nodes (no broader relationship)
+        // find root nodes (no parent relationship)
         const roots: InputListEntry[] = []
         for (const [uri, node] of nodes.entries()) {
             if (!childToParent.has(uri)) {
@@ -121,28 +133,11 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
             }
         }
 
-        // Step 5: Add sub class instances
+        // add sub class instances
         for (const subClass of template.config.store.getSubjects(RDFS_PREDICATE_SUBCLASS_OF, clazz, null)) {
             roots.push(...findInstancesOf(subClass as NamedNode, template))
         }
         return roots
-    }
-}
-
-function appendSkosBroaderNarrower(subject: N3Term, nodes: Map<string, InputListEntry>, childToParent: Map<string, string>, template: ShaclPropertyTemplate) {
-    for (const parent of template.config.store.getObjects(subject, SKOS_PREDICATE_BROADER, null)) {
-        childToParent.set(subject.id, parent.id)
-        if (!nodes.has(parent.id)) {
-            nodes.set(parent.id, { value: parent, label: findLabel(template.config.store.getQuads(parent, null, null, null), template.config.languages), children: [] })
-        }
-        appendSkosBroaderNarrower(parent, nodes, childToParent, template)
-    }
-    for (const child of template.config.store.getObjects(subject, SKOS_PREDICATE_NARROWER, null)) {
-        childToParent.set(child.id, subject.id)
-        if (!nodes.has(child.id)) {
-            nodes.set(child.id, { value: child, label: findLabel(template.config.store.getQuads(child, null, null, null), template.config.languages), children: [] })
-        }
-        appendSkosBroaderNarrower(child, nodes, childToParent, template)
     }
 }
 

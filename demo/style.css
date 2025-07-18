@@ -103,7 +103,7 @@ a:visited { color: inherit; }
 .code { font-family: monospace; background-color: #ededed; padding: 3px 5px; border-radius: 4px; color: #080822; font-size: 14px; font-weight: bold; }
 #shacl-output.valid legend::after { content: "[valid]"; padding-left: 5px; }
 #shacl-output.invalid legend::after { content: "[not valid]"; padding-left: 5px; }
-#shacl-output.valid pre, #shacl-output.valid legend::after { color: #272; }
+#shacl-output.valid pre, #shacl-output.valid legend::after, .green { color: #272; }
 #shacl-output.invalid pre, #shacl-output.invalid legend::after { color: #922; }
 #shacl-shape-input, #shacl-output { min-height:250px; }
 textarea#shacl-shape-input, rokit-textarea#shacl-shape-input { resize: vertical; flex-grow: 1; }
