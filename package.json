@@ -55,7 +55,7 @@
         "@types/uuid": "^10.0.0",
         "rollup-plugin-peer-deps-external": "^2.2.4",
         "typescript": "^5.8.3",
-        "vite": "^7.0.4",
+        "vite": "^7.0.5",
         "vite-plugin-dts": "^4.5.4"
     },
     "dependencies": {
@@ -71,7 +71,7 @@
         "uuid": "^11.1.0"
     },
     "peerDependencies": {
-        "@ro-kit/ui-widgets": "^0.0.31",
+        "@ro-kit/ui-widgets": "^0.0.32",
         "mdui": "^2.1.4"
     }
 }
