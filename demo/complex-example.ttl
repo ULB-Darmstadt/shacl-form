@@ -186,7 +186,7 @@ example:Attribution
                   sh:minCount  1 ;
                   sh:path      dcat:hadRole ;
                   sh:class     prov:Role ;
-                  owl:imports2  <https://w3id.org/nfdi4ing/metadata4ing/> ;
+                  owl:imports  <https://w3id.org/nfdi4ing/metadata4ing/> ;
                 ] ;
   sh:targetClass  prov:Attribution .
 

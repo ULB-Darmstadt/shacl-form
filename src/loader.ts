@@ -11,7 +11,6 @@ import { toRDF } from 'jsonld'
 // that import the same resources
 const loadedURLCache: Record<string, Promise<string>> = {}
 const loadedClassesCache: Record<string, Promise<string>> = {}
-const ttlParser = new Parser()
 let sharedShapesGraph: Store | undefined
 
 export class Loader {
@@ -121,20 +120,25 @@ export class Loader {
                     parser.write(input)
                     parser.end()
                 } else {
-                    ttlParser.parse(input, (error: Error, quad: Quad, prefixes: Prefixes) => {
-                        if (error) {
-                            console.warn('failed parsing graph', graph, error.message)
-                            return reject(error)
-                        }
-                        if (quad) {
-                            addQuad(quad)
-                            return
-                        }
-                        if (prefixes) {
-                            this.config.registerPrefixes(prefixes)
-                        }
-                        resolve(null)
-                    })                
+                    try {
+                        console.log('--- parsing', input, graph)
+                        new Parser().parse(input, (error: Error, quad: Quad, prefixes: Prefixes) => {
+                            if (error) {
+                                console.warn('failed parsing graph', graph, error.message)
+                                return reject(error)
+                            }
+                            if (quad) {
+                                addQuad(quad)
+                                return
+                            }
+                            if (prefixes) {
+                                this.config.registerPrefixes(prefixes)
+                            }
+                            resolve(null)
+                        })
+                    } catch(e) {
+                        reject(e)
+                    }
                 }
             })
             try {
