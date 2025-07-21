@@ -89,7 +89,7 @@ example:Dataset
                   sh:name         "Subject classification"@en, "Fachzuordnung"@de ;
                   sh:class        owl:Class ;
                   sh:path         dcterms:subject ;
-                  owl:imports    <https://raw.githubusercontent.com/s-tittel/DFG-Fachsystematik-Ontology/refs/heads/main/dfgfo.ttl> ;
+                  owl:imports     <https://raw.githubusercontent.com/tibonto/DFG-Fachsystematik-Ontology/refs/heads/main/dfgfo.ttl> ;
                 ] ;
   sh:property   [ sh:description  "License of the dataset"@en, "Lizenz des Datensatzes"@de ;
                   sh:maxCount     1 ;
@@ -186,7 +186,7 @@ example:Attribution
                   sh:minCount  1 ;
                   sh:path      dcat:hadRole ;
                   sh:class     prov:Role ;
-                  owl:imports  <https://w3id.org/nfdi4ing/metadata4ing/> ;
+                  owl:imports2  <https://w3id.org/nfdi4ing/metadata4ing/> ;
                 ] ;
   sh:targetClass  prov:Attribution .
 

@@ -84,7 +84,7 @@ Adds the form values as RDF triples to the given graph. If no graph object is pr
 ```typescript
 serialize(format?: string, graph?: Store): string
 ```
-Serializes the given RDF graph to the given format. If no graph object is provided, this function calls toRDF() (see above) to construct the form data graph. <a name="formats"></a>Supported formats:  `text/turtle` (default), `application/ld+json`, `application/n-triples`, `application/n-quads`, `application/trig`.
+Serializes the given RDF graph to the given format. If no graph object is provided, this function calls toRDF() (see above) to construct the form data graph in one of the supported [output formats](#output-formats) (default is `text/turtle`).
 
 ```typescript
 validate(ignoreEmptyValues: boolean): Promise<boolean>
@@ -232,6 +232,19 @@ Properties can be grouped using [sh:group](https://www.w3.org/TR/shacl/#group) i
 When the element attribute `data-collapse` is set, `<shacl-form>` creates an accordion-like widget that toggles the visibility of grouped properties in order to reduce the visual complexity of the form. If the grouped properties should initially be shown, set `data-collapse="open"`.
 
 Apart from grouped properties, all properties having an `sh:node` predicate and `sh:maxCount` != 1 are collapsed.
+
+### Supported RDF formats
+
+#### Input formats
+* text/turtle, application/n-triples, application/n-quads, application/trig using [N3 parser](https://github.com/rdfjs/N3.js?tab=readme-ov-file#parsing)
+* application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
+* application/rdf+xml using [rdfxml-streaming-parser](https://github.com/rdfjs/rdfxml-streaming-parser.js)
+
+#### Output formats
+<a id="output-formats"></a>
+
+* text/turtle, application/n-triples, application/n-quads, application/trig using [N3 writer](https://github.com/rdfjs/N3.js?tab=readme-ov-file#writing)
+* application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
 
 ### Use with Solid Pods
 
