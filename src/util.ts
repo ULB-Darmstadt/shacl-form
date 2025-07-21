@@ -104,18 +104,16 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
             nodes.set(instance.id, { value: instance, label: findLabel(template.config.store.getQuads(instance, null, null, null), template.config.languages), children: [] })
         }
 
-        // record broader/narrower/subClassOf relationships (child -> parent)
+        // record broader/narrower/subClassOf hierarchical relationships
         for (const instance of instances) {
             for (const parent of template.config.store.getObjects(instance, SKOS_PREDICATE_BROADER, null)) {
-                childToParent.set(instance.id, parent.id)
-                if (!nodes.has(parent.id)) {
-                    nodes.set(parent.id, { value: parent, label: findLabel(template.config.store.getQuads(parent, null, null, null), template.config.languages), children: [] })
+                if (nodes.has(parent.id)) {
+                    childToParent.set(instance.id, parent.id)
                 }
             }
             for (const child of template.config.store.getObjects(instance, SKOS_PREDICATE_NARROWER, null)) {
-                childToParent.set(child.id, instance.id)
-                if (!nodes.has(child.id)) {
-                    nodes.set(child.id, { value: child, label: findLabel(template.config.store.getQuads(child, null, null, null), template.config.languages), children: [] })
+                if (nodes.has(child.id)) {
+                    childToParent.set(child.id, instance.id)
                 }
             }
             for (const parent of template.config.store.getObjects(instance, RDFS_PREDICATE_SUBCLASS_OF, null)) {
