@@ -1,4 +1,4 @@
-import { Store, Quad, NamedNode, DataFactory, Parser, Prefixes } from 'n3'
+import { Store, Quad, NamedNode, DataFactory, StreamParser } from 'n3'
 import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHAPES_GRAPH } from './constants'
 import { Config } from './config'
 import { isURL } from './util'
@@ -68,7 +68,8 @@ export class Loader {
         const parse = async (input: string) => {
             const dependencies: Promise<void>[] = []
             await new Promise((resolve, reject) => {
-                const addQuad = (quad: Quad) => {
+                const parser = guessContentType(input) === 'xml' ? new RdfXmlParser() : new StreamParser()
+                parser.on('data', (quad: Quad) => {
                     store.add(new Quad(quad.subject, quad.predicate, quad.object, graph))
                     // check if this is an owl:imports predicate and try to load the url
                     if (this.config.attributes.ignoreOwlImports === null && OWL_PREDICATE_IMPORTS.equals(quad.predicate)) {
@@ -97,49 +98,22 @@ export class Loader {
                             dependencies.push(this.importRDF(promise, store, graph))
                         }
                     }
-                }
-                const type = guessContentType(input)
-                if (type === 'xml') {
-                    const parser = new RdfXmlParser()
-                    parser.on('data', (quad: Quad) => {
-                        addQuad(quad)
-                    })
-                    .on('error', (error) => {
-                        console.warn('failed parsing graph', graph, error.message)
-                        reject(error)
-                    })
-                    .on('prefix', (prefix, iri) => {
-                        // ignore empty (default) namespace
-                        if (prefix) {
-                            this.config.prefixes[prefix] = iri
-                        }
-                    })
-                    .on('end', () => {
-                        resolve(null)
-                    })
-                    parser.write(input)
-                    parser.end()
-                } else {
-                    try {
-                        console.log('--- parsing', input, graph)
-                        new Parser().parse(input, (error: Error, quad: Quad, prefixes: Prefixes) => {
-                            if (error) {
-                                console.warn('failed parsing graph', graph, error.message)
-                                return reject(error)
-                            }
-                            if (quad) {
-                                addQuad(quad)
-                                return
-                            }
-                            if (prefixes) {
-                                this.config.registerPrefixes(prefixes)
-                            }
-                            resolve(null)
-                        })
-                    } catch(e) {
-                        reject(e)
+                })
+                .on('error', (error) => {
+                    console.warn('failed parsing graph', graph, error.message)
+                    reject(error)
+                })
+                .on('prefix', (prefix, iri) => {
+                    // ignore empty (default) namespace
+                    if (prefix) {
+                        this.config.prefixes[prefix] = iri
                     }
-                }
+                })
+                .on('end', () => {
+                    resolve(null)
+                })
+                parser.write(input)
+                parser.end()
             })
             try {
                 await Promise.allSettled(dependencies)

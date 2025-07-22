@@ -105,13 +105,4 @@ export class Config {
             this.groups.push(subject.id)
         }, RDF_PREDICATE_TYPE, `${PREFIX_SHACL}PropertyGroup`, null)
     }
-
-    registerPrefixes(prefixes: Prefixes) {
-        for (const key in prefixes) {
-            // ignore empty (default) namespace
-            if (key) {
-                this.prefixes[key] = prefixes[key]
-            } 
-        }
-    }
 }
