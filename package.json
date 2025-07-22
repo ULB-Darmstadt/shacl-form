@@ -1,6 +1,6 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "1.9.1",
+    "version": "1.9.2",
     "description": "SHACL form generator",
     "main": "dist/form-default.js",
     "module": "dist/form-default.js",
@@ -72,7 +72,7 @@
         "uuid": "^11.1.0"
     },
     "peerDependencies": {
-        "@ro-kit/ui-widgets": "^0.0.33",
+        "@ro-kit/ui-widgets": "^0.0.34",
         "mdui": "^2.1.4"
     }
 }
