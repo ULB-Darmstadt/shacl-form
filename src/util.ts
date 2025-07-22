@@ -44,7 +44,7 @@ export function findObjectByPredicate(quads: Quad[], predicate: string, prefix: 
 }
 
 export function focusFirstInputElement(context: HTMLElement) {
-    (context.querySelector('input,select,textarea') as HTMLElement)?.focus()
+    (context.querySelector('.editor') as HTMLElement)?.focus()
 }
 
 export function findLabel(quads: Quad[], languages: string[]): string {
