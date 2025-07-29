@@ -4,6 +4,7 @@ import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
 import { ClassInstanceProvider } from './plugin'
 import { Loader } from './loader'
 import { Theme } from './theme'
+import { extractLists } from './util'
 
 export class ElementAttributes {
     shapes: string | null = null
@@ -99,7 +100,7 @@ export class Config {
 
     set store(store: Store) {
         this._store = store
-        this.lists = store.extractLists()
+        this.lists = extractLists(store)
         this.groups = []
         store.forSubjects(subject => {
             this.groups.push(subject.id)
