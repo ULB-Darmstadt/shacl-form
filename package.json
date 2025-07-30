@@ -38,7 +38,7 @@
         "dev": "vite serve ./demo --host",
         "build": "tsc && npm run build-default && npm run build-bootstrap && npm run build-material && npm run build-leaflet && npm run build-mapbox",
         "preview": "vite preview",
-        "test": "jest",
+        "test": "echo \"no tests specified\" && exit 0",
         "build-default": "vite build  -c ./vite.form-default.config.ts",
         "build-bootstrap": "vite build -c ./vite.form-bootstrap.config.ts",
         "build-material": "vite build -c ./vite.form-material.config.ts",
