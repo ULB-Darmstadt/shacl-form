@@ -41,7 +41,7 @@ export class Loader {
         // if shapes graph is empty, but we have the following triples:
         // <valueSubject> a <uri> or <valueSubject> dcterms:conformsTo <uri>
         // then try to load the referenced object into the shapes graph
-        if (!sharedShapesGraph && store?.size == 0 && this.config.attributes.valuesSubject) {
+        if (!sharedShapesGraph && store.countQuads(null, null, null, SHAPES_GRAPH) === 0 && this.config.attributes.valuesSubject) {
             const shapeCandidates = [
                 ...store.getObjects(this.config.attributes.valuesSubject, RDF_PREDICATE_TYPE, DATA_GRAPH),
                 ...store.getObjects(this.config.attributes.valuesSubject, DCTERMS_PREDICATE_CONFORMS_TO, DATA_GRAPH)
