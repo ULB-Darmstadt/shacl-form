@@ -135,9 +135,6 @@ export class ShaclProperty extends HTMLElement {
         const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
         this.classList.toggle('may-remove', mayRemove)
         this.classList.toggle('may-add', mayAdd)
-        if (mayAdd && this.addButton?.input) {
-            this.addButton.input.updateMinWidth()
-        }
     }
 
     toRDF(graph: Store, subject: NamedNode | BlankNode) {
