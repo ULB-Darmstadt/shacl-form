@@ -22,6 +22,7 @@ export class ElementAttributes {
     view: string | null = null
     language: string | null = null
     loading: string = 'Loading\u2026'
+    proxy: string | null = null
     ignoreOwlImports: string | null = null
     collapse: string | null = null
     submitButton: string | null = null

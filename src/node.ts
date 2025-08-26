@@ -1,6 +1,6 @@
 import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS, SHACL_PREDICATE_PROPERTY } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, OWL_PREDICATE_IMPORTS, SHACL_PREDICATE_PROPERTY, SHACL_PREDICATE_NODE } from './constants'
 import { ShaclProperty } from './property'
 import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
@@ -97,7 +97,7 @@ export class ShaclNode extends HTMLElement {
                             console.error('list not found:', quad.object.value, 'existing lists:', config.lists)
                         }
                         break;
-                    case `${PREFIX_SHACL}node`:
+                    case SHACL_PREDICATE_NODE.id:
                         // inheritance via sh:node
                         this.prepend(new ShaclNode(quad.object as NamedNode, config, valueSubject, this))
                         break;

@@ -1,6 +1,6 @@
 export type { InputListEntry, Editor } from './theme'
 export { Theme } from './theme'
-export { Loader, setSharedShapesGraph } from './loader'
+export { Loader } from './loader'
 export { Config } from './config'
 export { Plugin, registerPlugin } from './plugin'
 export { ShaclPropertyTemplate } from './property-template'

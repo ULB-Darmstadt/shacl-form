@@ -192,6 +192,7 @@ export class ShaclProperty extends HTMLElement {
         addButton.dense = true
         addButton.label = "+ " + this.template.label
         addButton.title = 'Add ' + this.template.label
+        addButton.autoGrowLabelWidth = true
         addButton.classList.add('add-button')
 
         // load potential value candidates for linking

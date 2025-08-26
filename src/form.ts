@@ -6,7 +6,6 @@ import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
-import { setSharedShapesGraph } from './loader'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 
 export class ShaclForm extends HTMLElement {
@@ -137,11 +136,6 @@ export class ShaclForm extends HTMLElement {
 
     public setTheme(theme: Theme) {
         this.config.theme = theme
-        this.initialize()
-    }
-
-    public setSharedShapesGraph(graph: Store) {
-        setSharedShapesGraph(graph)
         this.initialize()
     }
 
