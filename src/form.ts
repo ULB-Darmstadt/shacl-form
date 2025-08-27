@@ -159,8 +159,8 @@ export class ShaclForm extends HTMLElement {
         }
 
         this.config.store.deleteGraph(this.config.valuesGraphId || '')
-        this.shape?.toRDF(this.config.store)
         if (this.shape) {
+            this.shape.toRDF(this.config.store)
             // add node target for validation. this is required in case of missing sh:targetClass in root shape
             this.config.store.add(new Quad(this.shape.shaclSubject, DataFactory.namedNode(PREFIX_SHACL + 'targetNode'), this.shape.nodeId, this.config.valuesGraphId))
         }

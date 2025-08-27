@@ -49,7 +49,9 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
     let languageOrDatatype: NamedNode<string> | string | undefined = editor.shaclDatatype
     let value: number | string = editor.value
     if (value) {
-        if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
+        if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
+            return DataFactory.namedNode(value.substring(1, value.length - 1))
+        } else if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
             return DataFactory.namedNode(value)
         } else if (editor.dataset.link) {
             return JSON.parse(editor.dataset.link)

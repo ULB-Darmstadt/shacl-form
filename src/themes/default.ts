@@ -220,8 +220,10 @@ export class DefaultTheme extends Theme {
             } else {
                 if (entry.value instanceof Literal && entry.value.datatype.equals(XSD_DATATYPE_STRING)) {
                     li.dataset.value = entry.value.value
+                } else if (entry.value instanceof NamedNode) {
+                    li.dataset.value = '<' + entry.value.value + ">"
                 } else {
-                    // this is needed for typed rdf literals
+                    // this is needed for typed rdf literals e.g. "ex"^^xsd:anyUri
                     li.dataset.value = (entry.value as N3Term).id
                 }
                 li.innerText = entry.label ? entry.label : entry.value.value

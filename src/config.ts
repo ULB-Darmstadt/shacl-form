@@ -101,7 +101,7 @@ export class Config {
 
     set store(store: Store) {
         this._store = store
-        this.lists = extractLists(store)
+        this.lists = extractLists(store, { ignoreErrors: true })
         this.groups = []
         store.forSubjects(subject => {
             this.groups.push(subject.id)
