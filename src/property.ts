@@ -19,14 +19,13 @@ export class ShaclProperty extends HTMLElement {
     constructor(shaclSubject: BlankNode | NamedNode, parent: ShaclNode, config: Config, valueSubject?: NamedNode | BlankNode) {
         super()
         this.template = new ShaclPropertyTemplate(config.store.getQuads(shaclSubject, null, null, null), parent, config)
+        this.container = this
         if (this.template.extendedShapes.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
             const collapsible = new RokitCollapsible()
             collapsible.classList.add('collapsible', 'shacl-group');
             collapsible.open = config.attributes.collapse === 'open';
             collapsible.label = this.template.label;
             this.container = collapsible
-        } else {
-            this.container = this
         }
 
         if (this.template.order !== undefined) {
@@ -35,7 +34,6 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.cssClass) {
             this.classList.add(this.template.cssClass)
         }
-
         if (config.editMode && !parent.linked) {
             this.addButton = this.createAddButton()
             this.container.appendChild(this.addButton)

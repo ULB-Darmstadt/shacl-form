@@ -115,17 +115,15 @@ export class ShaclPropertyTemplate {
         if (!this.label && !this.shaclAnd) {
             this.label = this.path ? removePrefixes(this.path, this.config.prefixes) : 'unknown'
         }
-        // resolve extended shapes
-        if (this.node || this.shaclAnd) {
-            if (this.node) {
-                this.extendedShapes.push(this.node)
-            }
-            if (this.shaclAnd) {
-                const list = this.config.lists[this.shaclAnd]
-                if (list?.length) {
-                    for (const node of list) {
-                        this.extendedShapes.push(node as NamedNode)
-                    }
+        // register extended shapes
+        if (this.node) {
+            this.extendedShapes.push(this.node)
+        }
+        if (this.shaclAnd) {
+            const list = this.config.lists[this.shaclAnd]
+            if (list?.length) {
+                for (const node of list) {
+                    this.extendedShapes.push(node as NamedNode)
                 }
             }
         }
