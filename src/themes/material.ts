@@ -71,6 +71,7 @@ export class MaterialTheme extends Theme {
         if (template.pattern) {
             editor.pattern = template.pattern
         }
+        // @ts-ignore
         return this.createDefaultTemplate('', value, required, editor, template)
     }
 
@@ -91,6 +92,7 @@ export class MaterialTheme extends Theme {
         if (template.datatype?.value !== PREFIX_XSD + 'integer') {
             editor.setAttribute('step', '0.1')
         }
+        // @ts-ignore
         return this.createDefaultTemplate('', value, required, editor, template)
     }
 
@@ -165,6 +167,7 @@ export class MaterialTheme extends Theme {
             editor.type = 'date'
         }
         editor.classList.add('pr-0')
+        // @ts-ignore
         const result = this.createDefaultTemplate('', null, required, editor, template)
         if (value) {
             try {

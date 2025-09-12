@@ -219,6 +219,9 @@ export class DefaultTheme extends Theme {
                 li.innerText = entry.label ? entry.label : entry.value
             } else {
                 li.dataset.value = (entry.value as N3Term).id
+                if (entry.value instanceof NamedNode) {
+                    li.dataset.value = '<' + li.dataset.value + ">"
+                }
                 li.innerText = entry.label ? entry.label : entry.value.value
             }
             parent.appendChild(li)
