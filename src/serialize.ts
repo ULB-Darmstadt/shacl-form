@@ -45,7 +45,7 @@ function serializeJsonld(quads: Quad[]): string {
     return JSON.stringify(triples)
 }
 
-export function toRDF(editor: Editor): Literal | NamedNode | undefined {
+export function toRDF(editor: Editor): NamedNode | Literal | undefined {
     let languageOrDatatype: NamedNode<string> | string | undefined = editor.shaclDatatype
     let value: number | string = editor.value
     if (value) {
@@ -69,15 +69,20 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
                 // if seconds in value are 0, the input field omits them which is then not a valid xsd:dateTime
                 value = new Date(value).toISOString().slice(0, 19)
             }
-            // check if value is a typed rdf literal
+            // check if value is a typed rdf literal or langString
             if (!languageOrDatatype && typeof value === 'string') {
-                const tokens = value.split('^^')
-                if (tokens.length === 2 &&
-                    ((tokens[0].startsWith('"') && tokens[0].endsWith('"') || tokens[0].startsWith('\'') && tokens[0].endsWith('\''))) &&
-                    tokens[1].split(':').length === 2
-                ) {
+                // check for typed rdf literal
+                let tokens = value.split('^^')
+                if (tokens.length === 2 && tokens[0].startsWith('"') && tokens[0].endsWith('"') && tokens[1].split(':').length === 2) {
                     value = tokens[0].substring(1, tokens[0].length - 1)
                     languageOrDatatype = DataFactory.namedNode(tokens[1])
+                } else {
+                    // check for langString
+                    tokens = value.split('@')
+                    if (tokens.length === 2 && tokens[0].startsWith('"') && tokens[0].endsWith('"')) {
+                        value = tokens[0].substring(1, tokens[0].length - 1)
+                        languageOrDatatype = tokens[1]
+                    }
                 }
             }
             return DataFactory.literal(value, languageOrDatatype)

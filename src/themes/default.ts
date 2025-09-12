@@ -1,7 +1,7 @@
 import { Term } from '@rdfjs/types'
 import { ShaclPropertyTemplate } from "../property-template"
 import { Editor, InputListEntry, Theme } from "../theme"
-import { PREFIX_SHACL, PREFIX_XSD, XSD_DATATYPE_STRING } from '../constants'
+import { PREFIX_SHACL, PREFIX_XSD } from '../constants'
 import { Literal, NamedNode } from 'n3'
 import { Term as N3Term }  from 'n3'
 import css from './default.css?raw'
@@ -218,14 +218,7 @@ export class DefaultTheme extends Theme {
                 li.dataset.value = entry.value
                 li.innerText = entry.label ? entry.label : entry.value
             } else {
-                if (entry.value instanceof Literal && entry.value.datatype.equals(XSD_DATATYPE_STRING)) {
-                    li.dataset.value = entry.value.value
-                } else if (entry.value instanceof NamedNode) {
-                    li.dataset.value = '<' + entry.value.value + ">"
-                } else {
-                    // this is needed for typed rdf literals e.g. "ex"^^xsd:anyUri
-                    li.dataset.value = (entry.value as N3Term).id
-                }
+                li.dataset.value = (entry.value as N3Term).id
                 li.innerText = entry.label ? entry.label : entry.value.value
             }
             parent.appendChild(li)
@@ -248,7 +241,7 @@ export class DefaultTheme extends Theme {
 
         editor.appendChild(ul)
         if (value) {
-            editor.value = value.value
+            editor.value = (value as N3Term).id
         }
         return result
     }

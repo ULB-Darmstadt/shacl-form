@@ -43,11 +43,11 @@ export class ShaclForm extends HTMLElement {
 
     private initialize() {
         clearTimeout(this.initDebounceTimeout)
+        // set loading attribute on element so that hosting app can apply special css rules
+        this.setAttribute('loading', '')
+        // remove all child elements from form and show loading indicator
+        this.form.replaceChildren(document.createTextNode(this.config.attributes.loading))
         this.initDebounceTimeout = setTimeout(async () => {
-            // set loading attribute on element so that hosting app can apply special css rules
-            this.setAttribute('loading', '')
-            // remove all child elements from form and show loading indicator
-            this.form.replaceChildren(document.createTextNode(this.config.attributes.loading))
             try {
                 await this.config.loader.loadGraphs()
                 // remove loading indicator
