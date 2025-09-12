@@ -244,7 +244,7 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
 
 ### Use with Solid Pods
 
-`<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDF/JS N3 Store, as explained [above](#toRDF), it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod example](https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/getting-started/) shows how to merge data from a `<shacl-form>` with a Solid data resource at `readingListDataResourceURI`:
+`<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDF/JS N3 Store, as explained [above](#toRDF), it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod example](https://docs.inrupt.com/sdk/javascript-sdk/tutorial) shows how to merge data from a `<shacl-form>` with a Solid data resource at `readingListDataResourceURI`:
  
 ```js
   // Authentication is assumed, resulting in a fetch able to read and write into the Pod
