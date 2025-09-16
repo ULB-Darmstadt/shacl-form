@@ -39,6 +39,7 @@
         "build": "tsc && npm run build-default && npm run build-bootstrap && npm run build-material && npm run build-leaflet && npm run build-mapbox",
         "preview": "vite preview",
         "test": "echo \"no tests specified\" && exit 0",
+        "future-test": "web-test-runner --config test/web-test-runner.config.mjs",
         "build-default": "vite build  -c ./vite.form-default.config.ts",
         "build-bootstrap": "vite build -c ./vite.form-bootstrap.config.ts",
         "build-material": "vite build -c ./vite.form-material.config.ts",
