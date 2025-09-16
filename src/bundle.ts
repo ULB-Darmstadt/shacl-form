@@ -3,3 +3,7 @@
 import './form'
 import './plugins/file-upload'
 import './plugins/leaflet'
+
+export * from './form'
+export * from  './plugins/file-upload'
+export * from  './plugins/leaflet'
