@@ -1,4 +1,0 @@
-.editor:not([type='checkbox']) { border: 1px solid #DDD; }
-.property-instance label { display: inline-flex; word-break: break-word; line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
-.property-instance:not(:first-child) > label:not(.persistent) { visibility: hidden; max-height: 0; }
-.mode-edit .property-instance label { width: var(--label-width); }

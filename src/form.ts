@@ -7,6 +7,9 @@ import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
+import { DefaultTheme } from './theme.default'
+
+export * from './exports'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.dataAttributes() }
@@ -16,12 +19,12 @@ export class ShaclForm extends HTMLElement {
     form: HTMLFormElement
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 
-    constructor(theme: Theme) {
+    constructor() {
         super()
 
         this.attachShadow({ mode: 'open' })
         this.form = document.createElement('form')
-        this.config = new Config(theme, this.form)
+        this.config = new Config(new DefaultTheme(), this.form)
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
             if (this.config.editMode) {
@@ -317,3 +320,5 @@ export class ShaclForm extends HTMLElement {
         }
     }
 }
+
+window.customElements.define('shacl-form', ShaclForm)

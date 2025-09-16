@@ -1,11 +1,17 @@
 import { Term } from '@rdfjs/types'
-import { ShaclPropertyTemplate } from "../property-template"
-import { Editor, InputListEntry, Theme } from "../theme"
-import { PREFIX_SHACL, PREFIX_XSD } from '../constants'
+import { ShaclPropertyTemplate } from "./property-template"
+import { Editor, InputListEntry, Theme } from "./theme"
+import { PREFIX_SHACL, PREFIX_XSD } from './constants'
 import { Literal, NamedNode } from 'n3'
 import { Term as N3Term }  from 'n3'
-import css from './default.css?raw'
 import { RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
+
+const css = `
+.editor:not([type='checkbox']) { border: 1px solid #DDD; }
+.property-instance label { display: inline-flex; word-break: break-word; line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
+.property-instance:not(:first-child) > label:not(.persistent) { visibility: hidden; max-height: 0; }
+.mode-edit .property-instance label { width: var(--label-width); }
+`
 
 export class DefaultTheme extends Theme {
     idCtr = 0
@@ -245,13 +251,15 @@ export class DefaultTheme extends Theme {
         editor.appendChild(ul)
         if (value) {
             editor.value = (value as N3Term).id
+            if (value instanceof NamedNode) {
+                editor.value = '<' + editor.value + ">"
+            }
         }
         return result
     }
 
     createButton(label: string, _: boolean): HTMLElement {
-        const button = document.createElement('button')
-        button.type = 'button'
+        const button = document.createElement('rokit-button')
         button.innerHTML = label
         return button
     }
