@@ -13,8 +13,8 @@ HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that
 ```html
 <html>
   <head>
-    <!-- load web component -->
-    <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/form-default.js" type="module"></script>
+    <!-- load bundled web component (or when delevloping your own app, just do "npm i @ulb-darmstadt/shacl-form")  -->
+    <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/bundle.js" type="module"></script>
   </head>
   <body>
     <!--
@@ -281,12 +281,4 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
 
 ### Theming
 
-`<shacl-form>` comes in 3 different bundles, each providing a specific theme. See the [demo page](https://ulb-darmstadt.github.io/shacl-form/#theming) for an example.
-
-Theme | Import statement
---- | ---
-[Default](./src/themes/default.ts) (slightly customized default browser styles) | `import '@ulb-darmstadt/shacl-form/form-default.js'`
-[Bootstrap](./src/themes/bootstrap.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-bootstrap.js'`
-[Material Design](./src/themes/material.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-material.js'`
-
-Custom themes can be employed by extending class [Theme](./src/theme.ts), then calling function `setTheme()` on the `<shacl-form>` element.
+`<shacl-form>` has a built-in abstraction layer for theming, i.e. the look and feel of the form elements. If you would like to employ a different theme like e.g. `bootstrap` or `material design`, then extend class [Theme](./src/theme.ts) and call function `setTheme()` on the `<shacl-form>` element.
