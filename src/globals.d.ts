@@ -1,2 +1,2 @@
-declare module "*.css";
-declare module "*.css?raw";
+declare module '*.css?raw'
+declare module 'shacl-engine'

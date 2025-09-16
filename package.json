@@ -1,22 +1,20 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "1.10.4",
+    "version": "2.0.0-rc1",
     "description": "SHACL form generator",
-    "main": "dist/form-default.js",
-    "module": "dist/form-default.js",
-    "types": "dist/form-default.d.ts",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/form.d.ts",
     "type": "module",
     "exports": {
         ".": {
-            "import": "./dist/form-default.js",
-            "types": "./dist/form-default.d.ts"
+            "import": "./dist/index.js",
+            "types": "./dist/form.d.ts"
         },
-        "./*.ts": "./src/*.ts",
-        "./plugins/*.ts": "./src/plugins/*.ts"
+        "./plugins/*": "./dist/plugins/*"
     },
     "files": [
-        "dist",
-        "src"
+        "dist"
     ],
     "repository": {
         "type": "git",
@@ -36,15 +34,14 @@
     ],
     "scripts": {
         "dev": "vite serve ./demo --host",
-        "build": "tsc && npm run build-default && npm run build-bootstrap && npm run build-material && npm run build-leaflet && npm run build-mapbox",
+        "build": "npm run clean && tsc && npm run build-lib && npm run build-bundle && npm run build-plugins",
         "preview": "vite preview",
         "test": "echo \"no tests specified\" && exit 0",
         "future-test": "web-test-runner --config test/web-test-runner.config.mjs",
-        "build-default": "vite build  -c ./vite.form-default.config.ts",
-        "build-bootstrap": "vite build -c ./vite.form-bootstrap.config.ts",
-        "build-material": "vite build -c ./vite.form-material.config.ts",
-        "build-leaflet": "vite build -c ./vite.plugin-leaflet.config.ts",
-        "build-mapbox": "vite build -c ./vite.plugin-mapbox.config.ts"
+        "clean": "rimraf dist",
+        "build-lib": "vite build  -c ./vite.config.ts",
+        "build-bundle": "vite build  -c ./vite.config.bundle.ts",
+        "build-plugins": "vite build -c ./vite.config.plugins.ts"
     },
     "devDependencies": {
         "@open-wc/testing": "^4.0.0",
@@ -53,33 +50,29 @@
         "@types/leaflet-editable": "^1.2.7",
         "@types/leaflet.fullscreen": "^3.0.3",
         "@types/mapbox__mapbox-gl-draw": "^1.4.9",
+        "@types/mocha": "^10.0.10",
         "@types/n3": "^1.26.0",
         "@types/uuid": "^10.0.0",
         "@web/dev-server-esbuild": "^1.0.4",
         "@web/test-runner": "^0.20.2",
+        "glob": "^11.0.3",
         "rdf-isomorphic": "^2.0.1",
+        "rimraf": "^6.0.1",
         "rollup-plugin-peer-deps-external": "^2.2.4",
         "typescript": "^5.9.2",
         "vite": "^7.1.5",
-        "vite-plugin-dts": "^4.5.4",
         "vitest": "^3.2.4"
     },
-    "dependencies": {
-        "@mapbox/mapbox-gl-draw": "^1.5.0",
-        "bootstrap": "^5.3.8",
+    "peerDependencies": {
+        "@ro-kit/ui-widgets": "^0.0.45",
         "jsonld": "^8.3.3",
         "leaflet": "^1.9.4",
         "leaflet-editable": "^1.3.2",
         "leaflet.fullscreen": "^4.0.0",
-        "mapbox-gl": "^3.15.0",
+        "lit": "^3.3.1",
         "n3": "^1.26.0",
         "rdfxml-streaming-parser": "^3.1.0",
         "shacl-engine": "^1.0.2",
         "uuid": "^13.0.0"
-    },
-    "peerDependencies": {
-        "@ro-kit/ui-widgets": "^0.0.44",
-        "lit": "^3.3.1",
-        "mdui": "^2.1.4"
     }
 }
