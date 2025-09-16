@@ -9,13 +9,12 @@
   <script type="importmap">
     {
       "imports": {
-        "@ulb-darmstadt/shacl-form/": "https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form@1.10.3/dist/"
+        "@ulb-darmstadt/shacl-form/": "https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form@2.0.0-rc2/dist/",
       }
     }
   </script>
   <script type="module">
-    import { registerPlugin } from '@ulb-darmstadt/shacl-form/form-default.js'
-    import { LeafletPlugin } from '@ulb-darmstadt/shacl-form/plugins/leaflet.js'
+    import { registerPlugin, LeafletPlugin } from '@ulb-darmstadt/shacl-form/bundle.js'
     /* dev settings:
     import { registerPlugin } from '../src/form-default.ts'
     import { LeafletPlugin } from '../src/plugins/leaflet.js'
@@ -35,7 +34,6 @@
     <a id="datatypes" href="#datatypes">Data types</a>
     <a id="example" href="#example">Example</a>
     <a id="viewer-mode" href="#viewer-mode">Viewer mode</a>
-    <a id="theming" href="#theming">Theming</a>
     <a id="try-your-own" href="#try-your-own"><b>Try your own</b></a>
   </div>
   <div class="main">
@@ -84,7 +82,7 @@
         <code>
 &lt;html&gt;
   &lt;head&gt;
-      &lt;script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/form-default.js" type="module"&gt;&lt;/script&gt;
+      &lt;script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/bundle.js" type="module"&gt;&lt;/script&gt;
   &lt;/head&gt;
   &lt;body&gt;
     &lt;!-- SHACL shapes can be defined on the attribute 'data-shapes'
@@ -255,14 +253,6 @@
         form.dataset['values'] = dataTTL
       })
     </script>
-  </template>
-
-  <template id="template-theming">
-    <div class="wrapper">
-      <fieldset><legend>Default</legend><iframe src="theme-default.html"></iframe></fieldset>
-      <fieldset><legend>Material design [alpha status]</legend><iframe src="theme-material.html"></iframe></fieldset>
-      <fieldset><legend>Bootstrap [alpha status]</legend><iframe src="theme-bootstrap.html"></iframe></fieldset>
-    </div>
   </template>
 
   <template id="template-try-your-own">
