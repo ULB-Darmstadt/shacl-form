@@ -82,6 +82,9 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
                     if (tokens.length === 2 && tokens[0].startsWith('"') && tokens[0].endsWith('"')) {
                         value = tokens[0].substring(1, tokens[0].length - 1)
                         languageOrDatatype = tokens[1]
+                    } else if (value.startsWith('"') && value.endsWith('"')) {
+                        // check for simple literal
+                        value = value.substring(1, value.length - 1)
                     }
                 }
             }
