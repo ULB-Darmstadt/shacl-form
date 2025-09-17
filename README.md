@@ -13,7 +13,7 @@ HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that
 ```html
 <html>
   <head>
-    <!-- load bundled web component (or when delevloping your own app, just do "npm i @ulb-darmstadt/shacl-form")  -->
+    <!-- load bundled web component (or when developing your own app, just do "npm i @ulb-darmstadt/shacl-form")  -->
     <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/bundle.js" type="module"></script>
   </head>
   <body>
@@ -95,7 +95,7 @@ Validates the form data against the SHACL shapes graph and displays validation r
 ```typescript
 registerPlugin(plugin: Plugin)
 ```
-Register a [plugin](./src/plugin.ts) to customize editing/viewing certain property values. Plugins handle specific RDF predicates or `xsd:datatype`s or both. Examples: [Leaflet](./src/plugins/leaflet.ts), [Mapbox](./src/plugins/mapbox.ts), [FixedList](./src/plugins/fixed-list.ts)
+Register a [plugin](./src/plugin.ts) to customize editing/viewing certain property values. Plugins handle specific RDF predicates or `xsd:datatype`s or both. Example: [Leaflet](./src/plugins/leaflet.ts)
 
 ```typescript
 setTheme(theme: Theme)
