@@ -64,7 +64,7 @@
         "vitest": "^3.2.4"
     },
     "peerDependencies": {
-        "@ro-kit/ui-widgets": "^1.0.4",
+        "@ro-kit/ui-widgets": "^1.0.9",
         "jsonld": "^8.3.3",
         "leaflet": "^1.9.4",
         "leaflet-editable": "^1.3.2",
