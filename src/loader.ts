@@ -25,8 +25,6 @@ export class Loader {
         // clear local caches
         this.loadedExternalUrls = []
         this.loadedClasses = []
-        this.config.prefixes = {}
-
 
         const promises: Promise<void>[] = []
         const store =  new Store()

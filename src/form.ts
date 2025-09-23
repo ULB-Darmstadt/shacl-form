@@ -8,6 +8,7 @@ import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 import { DefaultTheme } from './theme.default'
+import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
 
 export * from './exports'
 
@@ -52,11 +53,12 @@ export class ShaclForm extends HTMLElement {
         this.form.replaceChildren(document.createTextNode(this.config.attributes.loading))
         this.initDebounceTimeout = setTimeout(async () => {
             try {
+                // reset cached values in config
+                this.config.reset()
+                // load all data
                 await this.config.loader.loadGraphs()
                 // remove loading indicator
                 this.form.replaceChildren()
-                // reset rendered node references
-                this.config.renderedNodes.clear()
                 // find root shacl shape
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
                 if (rootShapeShaclSubject) {
@@ -75,7 +77,9 @@ export class ShaclForm extends HTMLElement {
                     }
                     this.shadowRoot!.adoptedStyleSheets = styles
 
-                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
+                    const rootTemplate = new ShaclNodeTemplate(rootShapeShaclSubject, this.config)
+                    mergeOverriddenProperties(rootTemplate)
+                    this.shape = new ShaclNode(rootTemplate, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
                     this.form.appendChild(this.shape)
 
                     if (this.config.editMode) {
@@ -168,7 +172,7 @@ export class ShaclForm extends HTMLElement {
         if (this.shape) {
             this.shape.toRDF(this.config.store)
             // add node target for validation. this is required in case of missing sh:targetClass in root shape
-            this.config.store.add(new Quad(this.shape.shaclSubject, DataFactory.namedNode(PREFIX_SHACL + 'targetNode'), this.shape.nodeId, this.config.valuesGraphId))
+            this.config.store.add(new Quad(this.shape.template.id as NamedNode, DataFactory.namedNode(PREFIX_SHACL + 'targetNode'), this.shape.nodeId, this.config.valuesGraphId))
         }
         try {
             const dataset = this.config.store

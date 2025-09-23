@@ -16,8 +16,8 @@ const css = `
 export class DefaultTheme extends Theme {
     idCtr = 0
 
-    constructor(overiddenCss?: string) {
-        super(overiddenCss ? overiddenCss : css)
+    constructor(overriddenCss?: string) {
+        super(overriddenCss ? overriddenCss : css)
     }
 
     createDefaultTemplate(label: string, value: Term | null, required: boolean, editor: Editor, template?: ShaclPropertyTemplate): HTMLElement {

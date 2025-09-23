@@ -83,19 +83,19 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
     if (editable) {
         const required = template.minCount !== undefined && template.minCount > 0
         // if we have a class, find the instances and display them in a list
-        if (template.class) {
+        if (template.class && !template.hasValue) {
             return template.config.theme.createListEditor(template.label, value, required, findInstancesOf(template.class, template), template)
         }
 
         // check if it is a list
-        if (template.shaclIn) {
-            const list = template.config.lists[template.shaclIn]
+        if (template.in) {
+            const list = template.config.lists[template.in]
             if (list?.length) {
                 const listEntries = createInputListEntries(list, template.config.store, template.config.languages)
                 return template.config.theme.createListEditor(template.label, value, required, listEntries, template)
             }
             else {
-                console.error('list not found:', template.shaclIn, 'existing lists:', template.config.lists)
+                console.error('list not found:', template.in, 'existing lists:', template.config.lists)
             }
         }
 

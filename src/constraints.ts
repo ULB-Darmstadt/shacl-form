@@ -6,6 +6,7 @@ import { Config } from './config'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY } from './constants'
 import { findLabel, removePrefixes } from './util'
 import { Editor, InputListEntry } from './theme'
+import { cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
 
 
 export function createShaclOrConstraint(options: Term[], context: ShaclNode | ShaclProperty, config: Config): HTMLElement {
@@ -28,14 +29,17 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                 const list: ShaclProperty[] = []
                 let combinedText = ''
                 for (const subject of quads) {
-                    const property = new ShaclProperty(subject as NamedNode | BlankNode, context, config)
+                    const template = config.propertyShapes[subject.value] || new ShaclPropertyTemplate(subject, context.template)
+                    const property = new ShaclProperty(template, context)
                     list.push(property)
                     combinedText += (combinedText.length > 1 ? ' / ' : '') + property.template.label
                 }
                 properties.push(list)
                 optionElements.push({ label: combinedText, value: i.toString() })
             } else {
-                const property = new ShaclProperty(options[i] as NamedNode | BlankNode, context, config)
+                const subject = options[i] as NamedNode | BlankNode
+                const template = config.propertyShapes[subject.value] || new ShaclPropertyTemplate(subject, context.template)
+                const property = new ShaclProperty(template, context)
                 properties.push([property])
                 optionElements.push({ label: property.template.label, value: i.toString() })
             }
@@ -70,7 +74,8 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         const select = editor.querySelector('.editor') as Editor
         select.onchange = () => {
             if (select.value) {
-                constraintElement.replaceWith(createPropertyInstance(context.template.clone().merge(values[parseInt(select.value)]), undefined, true))
+                const merged = mergeQuads(cloneProperty(context.template), values[parseInt(select.value)])
+                constraintElement.replaceWith(createPropertyInstance(merged, undefined, true))
             }
         }
         constraintElement.appendChild(editor)

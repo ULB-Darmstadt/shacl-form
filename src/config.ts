@@ -5,6 +5,8 @@ import { ClassInstanceProvider } from './plugin'
 import { Loader } from './loader'
 import { Theme } from './theme'
 import { extractLists } from './util'
+import { ShaclNodeTemplate } from './node-template'
+import { ShaclPropertyTemplate } from './property-template'
 
 export class ElementAttributes {
     shapes: string | null = null
@@ -39,11 +41,13 @@ export class Config {
     languages: string[]
 
     lists: Record<string, Term[]> = {}
-    groups: Array<string> = []
+    groups: string[] = []
     theme: Theme
     form: HTMLElement
     renderedNodes = new Set<string>()
     valuesGraphId: NamedNode | undefined
+    nodeShapes: Record<string, ShaclNodeTemplate> = {}
+    propertyShapes: Record<string, ShaclPropertyTemplate> = {}
     private _store = new Store()
 
     constructor(theme: Theme, form: HTMLElement) {
@@ -56,6 +60,14 @@ export class Config {
             } 
             return lang
         })), ''] // <-- append empty string to accept RDF literals with no language
+    }
+
+    reset() {
+        this.lists = {}
+        this.groups = []
+        this.renderedNodes.clear()
+        this.nodeShapes = {}
+        this.propertyShapes = {}
     }
  
     updateAttributes(elem: HTMLElement) {

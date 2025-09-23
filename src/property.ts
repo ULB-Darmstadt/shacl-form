@@ -3,27 +3,28 @@ import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
 import { findInstancesOf, focusFirstInputElement } from './util'
-import { Config } from './config'
-import { ShaclPropertyTemplate } from './property-template'
+import { cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
 import { Editor, fieldFactory, InputListEntry } from './theme'
 import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
-import { DATA_GRAPH, RDF_PREDICATE_TYPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
+import { DATA_GRAPH, RDF_PREDICATE_TYPE } from './constants'
 import { RokitButton, RokitCollapsible, RokitSelect } from '@ro-kit/ui-widgets'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
     addButton: RokitSelect | undefined
     container: HTMLElement
+    parent: ShaclNode
 
-    constructor(shaclSubject: BlankNode | NamedNode, parent: ShaclNode, config: Config, valueSubject?: NamedNode | BlankNode) {
+    constructor(template: ShaclPropertyTemplate, parent: ShaclNode, valueSubject?: NamedNode | BlankNode) {
         super()
-        this.template = new ShaclPropertyTemplate(config.store.getQuads(shaclSubject, null, null, null), parent, config)
+        this.template = template
+        this.parent = parent
         this.container = this
         if (this.template.extendedShapes.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
             const collapsible = new RokitCollapsible()
             collapsible.classList.add('collapsible', 'shacl-group');
-            collapsible.open = config.attributes.collapse === 'open';
+            collapsible.open = template.config.attributes.collapse === 'open';
             collapsible.label = this.template.label;
             this.container = collapsible
         }
@@ -34,7 +35,7 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.cssClass) {
             this.classList.add(this.template.cssClass)
         }
-        if (config.editMode && !parent.linked) {
+        if (template.config.editMode && !parent.linked) {
             this.addButton = this.createAddButton()
             this.container.appendChild(this.addButton)
         }
@@ -45,10 +46,10 @@ export class ShaclProperty extends HTMLElement {
             if (valueSubject) {
                 if (parent.linked) {
                     // for linked resource, get values in all graphs
-                    values = config.store.getQuads(valueSubject, this.template.path, null, null)
+                    values = template.config.store.getQuads(valueSubject, this.template.path, null, null)
                 } else {
                     // get values only from data graph
-                    values = config.store.getQuads(valueSubject, this.template.path, null, DATA_GRAPH)
+                    values = template.config.store.getQuads(valueSubject, this.template.path, null, DATA_GRAPH)
                 }
             }
             let valuesContainHasValue = false
@@ -62,20 +63,20 @@ export class ShaclProperty extends HTMLElement {
                     }
                 }
             }
-            if (config.editMode && this.template.hasValue && !valuesContainHasValue && !parent.linked) {
+            if (template.config.editMode && this.template.hasValue && !valuesContainHasValue && !parent.linked) {
                 // sh:hasValue is defined in shapes graph, but does not exist in data graph, so force it
                 this.addPropertyInstance(this.template.hasValue)
             }
         }
 
-        if (config.editMode && !parent.linked) {
+        if (template.config.editMode && !parent.linked) {
             this.addEventListener('change', () => { this.updateControls() })
             this.updateControls()
         }
 
         if (this.container instanceof RokitCollapsible) {
             // in view mode, show collapsible only when we have something to show
-            if ((config.editMode && !parent.linked) || this.container.childElementCount > 0) {
+            if ((template.config.editMode && !parent.linked) || this.container.childElementCount > 0) {
                 this.appendChild(this.container)
             }
         }
@@ -83,13 +84,14 @@ export class ShaclProperty extends HTMLElement {
 
     addPropertyInstance(value?: Term): HTMLElement {
         let instance: HTMLElement
-        if (this.template.shaclOr?.length || this.template.shaclXone?.length) {
-            const options = this.template.shaclOr?.length ? this.template.shaclOr : this.template.shaclXone as Term[]
+        if (this.template.or?.length || this.template.xone?.length) {
+            const options = this.template.or?.length ? this.template.or : this.template.xone as Term[]
             let resolved = false
             if (value) {
                 const resolvedOptions = resolveShaclOrConstraintOnProperty(options, value, this.template.config)
                 if (resolvedOptions.length) {
-                    instance = createPropertyInstance(this.template.clone().merge(resolvedOptions), value, true)
+                    const merged = mergeQuads(cloneProperty(this.template), resolvedOptions)
+                    instance = createPropertyInstance(merged, value, true)
                     resolved = true
                 }
             } 
@@ -107,7 +109,7 @@ export class ShaclProperty extends HTMLElement {
                     linked = true
                 }
             }
-            instance = createPropertyInstance(this.template, value, undefined, linked || this.template.parent.linked)
+            instance = createPropertyInstance(this.template, value, undefined, linked || this.parent.linked)
         }
         if (this.addButton) {
             this.container.insertBefore(instance!, this.addButton)
@@ -153,15 +155,14 @@ export class ShaclProperty extends HTMLElement {
     }
 
     getRdfClassToLinkOrCreate() {
-        if (this.template.class && this.template.node) {
+        if (this.template.class && this.template.extendedShapes.length) {
             return this.template.class
         }
         else {
             for (const node of this.template.extendedShapes) {
                 // if this property has no sh:class but sh:node, then use the node shape's sh:targetClass to find protiential instances
-                const targetClasses = this.template.config.store.getObjects(node, SHACL_PREDICATE_TARGET_CLASS, null)
-                if (targetClasses.length > 0) {
-                    return targetClasses[0] as NamedNode
+                if (node.targetClass) {
+                    return node.targetClass
                 }
             }
         }
@@ -175,11 +176,8 @@ export class ShaclProperty extends HTMLElement {
         }
         // property has node shape(s), so check if value conforms to any targetClass
         for (const node of this.template.extendedShapes) {
-            const targetClasses = this.template.config.store.getObjects(node, SHACL_PREDICATE_TARGET_CLASS, null)
-            for (const targetClass of targetClasses) {
-                if (this.template.config.store.countQuads(value, RDF_PREDICATE_TYPE, targetClass, null) > 0) {
-                    return true
-                }
+            if (node.targetClass && this.template.config.store.countQuads(value, RDF_PREDICATE_TYPE, node.targetClass, null) > 0) {
+                return true
             }
         }
         return false
@@ -260,7 +258,7 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         instance = document.createElement('div')
         instance.classList.add('property-instance')
         for (const node of template.extendedShapes) {
-            instance.appendChild(new ShaclNode(node, template.config, value as NamedNode | BlankNode | undefined, template.parent, template.nodeKind, template.label, linked))
+            instance.appendChild(new ShaclNode(node, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked))
         }
     } else {
         const plugin = findPlugin(template.path, template.datatype?.value)
