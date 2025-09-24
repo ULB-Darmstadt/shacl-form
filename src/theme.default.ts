@@ -40,7 +40,7 @@ export class DefaultTheme extends Theme {
         } else if (value instanceof NamedNode) {
             editor.dataset.nodeKind = PREFIX_SHACL + 'IRI'
         }
-        if (template?.hasValue || template?.readonly) {
+        if ((template?.hasValue && value) || template?.readonly) {
             editor.disabled = true
         }
         editor.value = value?.value || template?.defaultValue?.value || ''
