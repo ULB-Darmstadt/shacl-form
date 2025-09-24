@@ -32,10 +32,13 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}languageIn`]:   (template, term) => { template.languageIn = template.config.lists[term.value]; template.datatype = DataFactory.namedNode(PREFIX_RDF + 'langString') },
     [`${PREFIX_SHACL}defaultValue`]: (template, term) => { template.defaultValue = term },
     [`${PREFIX_SHACL}hasValue`]:     (template, term) => { template.hasValue = term },
-    [`${PREFIX_SHACL}qualifiedValueShape`]:     (template, term) => { template.qualifiedValueShape = term },
-    [`${PREFIX_SHACL}qualifiedMinCount`]: (template, term) => { template.minCount = parseInt(term.value) },
-    [`${PREFIX_SHACL}qualifiedMaxCount`]: (template, term) => { template.maxCount = parseInt(term.value) },
-    [OWL_PREDICATE_IMPORTS.id]:      (template, term) => { template.owlImports.push(term as NamedNode) },
+    [`${PREFIX_SHACL}qualifiedValueShape`]: (template, term) => { 
+        template.qualifiedValueShape = term
+        template.extendedShapes.add(template.config.nodeShapes[term.value] || new ShaclNodeTemplate(term, template.config))
+    },
+    [`${PREFIX_SHACL}qualifiedMinCount`]:   (template, term) => { template.minCount = parseInt(term.value) },
+    [`${PREFIX_SHACL}qualifiedMaxCount`]:   (template, term) => { template.maxCount = parseInt(term.value) },
+    [OWL_PREDICATE_IMPORTS.id]:      (template, term) => { template.owlImports.add(term as NamedNode) },
     [SHACL_PREDICATE_CLASS.id]:      (template, term) => {
         template.class = term as NamedNode
         // try to find node shape that has requested target class
@@ -93,9 +96,9 @@ export class ShaclPropertyTemplate {
     datatype: NamedNode | undefined
     hasValue: Term | undefined
     qualifiedValueShape: Term | undefined
-    owlImports: NamedNode[] = []
-    extendedShapes: ShaclNodeTemplate[]  = []
-
+    extendedShapes: Set<ShaclNodeTemplate> = new Set()
+    owlImports: Set<NamedNode> = new Set()
+ 
     parent: ShaclNodeTemplate
     config: Config
 
@@ -104,17 +107,14 @@ export class ShaclPropertyTemplate {
         this.config = parent.config
         this.config.propertyShapes[id.value] = this
         mergeQuads(this, this.config.store.getQuads(id, null, null, null))
-        if (this.qualifiedValueShape) {
-            mergeQuads(this, this.config.store.getQuads(this.qualifiedValueShape, null, null, null))
-        }
     }
 }
 
 export function cloneProperty(template: ShaclPropertyTemplate) {
     const copy = Object.assign({}, template)
     // arrays are not cloned but referenced, so create them manually
-    copy.extendedShapes = [ ...template.extendedShapes ]
-    copy.owlImports = [ ...template.owlImports ]
+    copy.extendedShapes = new Set(template.extendedShapes )
+    copy.owlImports = new Set(template.owlImports)
     if (template.languageIn) {
         copy.languageIn = [ ...template.languageIn ]
     }
@@ -138,13 +138,13 @@ export function mergeQuads(template: ShaclPropertyTemplate, quads: Quad[]) {
     }
     // register extended shapes
     if (template.node) {
-        template.extendedShapes.push(template.config.nodeShapes[template.node.value] || new ShaclNodeTemplate(template.node, template.config))
+        template.extendedShapes.add(template.config.nodeShapes[template.node.value] || new ShaclNodeTemplate(template.node, template.config))
     }
     if (template.and) {
         const list = template.config.lists[template.and]
         if (list?.length) {
             for (const node of list) {
-                template.extendedShapes.push(template.config.nodeShapes[node.value] || new ShaclNodeTemplate(node, template.config))
+                template.extendedShapes.add(template.config.nodeShapes[node.value] || new ShaclNodeTemplate(node, template.config))
             }
         }
     }
@@ -156,10 +156,14 @@ export function mergeProperty(target: ShaclPropertyTemplate, source: ShaclProper
     const t = target as Record<string, any>
     for (const key in source) {
         if (key !== 'parent' && key !== 'config') {
-            if (Array.isArray(s[key])) {
-                t[key].push(...s[key])
-            } else {
-                t[key] = s[key]
+            if (s[key] !== undefined && s[key] !== '') {
+                if (Array.isArray(s[key])) {
+                    t[key].push(...s[key])
+                } else if (s[key] instanceof Set && s[key].size) {
+                    t[key] = new Set([...t[key], ...s[key]])
+                } else {
+                    t[key] = s[key]
+                }
             }
         }
     }
