@@ -21,7 +21,7 @@ export class ShaclProperty extends HTMLElement {
         this.template = template
         this.parent = parent
         this.container = this
-        if (this.template.extendedShapes.length && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
+        if (this.template.extendedShapes.size && this.template.config.attributes.collapse !== null && (!this.template.maxCount || this.template.maxCount > 1)) {
             const collapsible = new RokitCollapsible()
             collapsible.classList.add('collapsible', 'shacl-group');
             collapsible.open = template.config.attributes.collapse === 'open';
@@ -120,16 +120,16 @@ export class ShaclProperty extends HTMLElement {
     }
 
     updateControls() {
-        let instanceCount = this.querySelectorAll(":scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node").length
-        if (instanceCount === 0 && (!this.template.extendedShapes.length || (this.template.minCount !== undefined && this.template.minCount > 0))) {
+        let instanceCount = this.querySelectorAll(":scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance").length
+        if (instanceCount === 0 && (this.template.extendedShapes.size === 0 || (this.template.minCount !== undefined && this.template.minCount > 0))) {
             this.addPropertyInstance()
-            instanceCount = this.querySelectorAll(":scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node").length
+            instanceCount = this.querySelectorAll(":scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance").length
         }
         let mayRemove: boolean
         if (this.template.minCount !== undefined) {
             mayRemove = instanceCount > this.template.minCount
         } else {
-            mayRemove = this.template.extendedShapes.length > 0 || instanceCount > 1
+            mayRemove = this.template.extendedShapes.size > 0 || instanceCount > 1
         }
 
         const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
@@ -155,7 +155,7 @@ export class ShaclProperty extends HTMLElement {
     }
 
     getRdfClassToLinkOrCreate() {
-        if (this.template.class && this.template.extendedShapes.length) {
+        if (this.template.class && this.template.extendedShapes.size) {
             return this.template.class
         }
         else {
@@ -170,7 +170,7 @@ export class ShaclProperty extends HTMLElement {
     }
 
     isValueValid(value: Term) {
-        if (!this.template.extendedShapes.length) {
+        if (!this.template.extendedShapes.size) {
             // property has no node shape, so value is valid
             return true
         }
@@ -254,7 +254,7 @@ export class ShaclProperty extends HTMLElement {
 
 export function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false): HTMLElement {
     let instance: HTMLElement
-    if (template.extendedShapes.length) {
+    if (template.extendedShapes.size) {
         instance = document.createElement('div')
         instance.classList.add('property-instance')
         for (const node of template.extendedShapes) {
