@@ -5,8 +5,8 @@ import { Config } from './config'
 import { mergeProperty, ShaclPropertyTemplate } from './property-template'
 
 const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void> = {
-    [`${PREFIX_SHACL}node`]:                (template, term) => { template.extendedShapes.push(template.config.nodeShapes[term.value] || new ShaclNodeTemplate(term, template.config, template))},
-    [`${PREFIX_SHACL}and`]:                 (template, term) => { for (const shape of template.config.lists[term.value]) { template.extendedShapes.push(template.config.nodeShapes[shape.value] || new ShaclNodeTemplate(shape, template.config, template)) } },
+    [`${PREFIX_SHACL}node`]:                (template, term) => { template.extendedShapes.add(template.config.nodeShapes[term.value] || new ShaclNodeTemplate(term, template.config, template))},
+    [`${PREFIX_SHACL}and`]:                 (template, term) => { for (const shape of template.config.lists[term.value]) { template.extendedShapes.add(template.config.nodeShapes[shape.value] || new ShaclNodeTemplate(shape, template.config, template)) } },
     [`${PREFIX_SHACL}property`]:            (template, term) => {
         const property = template.config.propertyShapes[term.value] || new ShaclPropertyTemplate(term, template)
         if (property.path) {
@@ -22,7 +22,7 @@ const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void>
     [`${PREFIX_SHACL}targetClass`]:         (template, term) => { template.targetClass = term as NamedNode },
     [`${PREFIX_SHACL}or`]:                  (template, term) => { template.or = template.config.lists[term.value] },
     [`${PREFIX_SHACL}xone`]:                (template, term) => { template.xone = template.config.lists[term.value] },
-    [OWL_PREDICATE_IMPORTS.id]:             (template, term) => { template.owlImports.push(term as NamedNode) }
+    [OWL_PREDICATE_IMPORTS.id]:             (template, term) => { template.owlImports.add(term as NamedNode) }
 }
 
 export class ShaclNodeTemplate {
@@ -32,9 +32,9 @@ export class ShaclNodeTemplate {
     targetClass?: NamedNode
     or?: Term[]
     xone?: Term[]
-    extendedShapes: ShaclNodeTemplate[] = []
+    extendedShapes: Set<ShaclNodeTemplate> = new Set()
     properties: Record<string, ShaclPropertyTemplate[]> = {} // sh:path -> sh:property
-    owlImports: NamedNode[] = []
+    owlImports: Set<NamedNode> = new Set()
     config: Config
 
     constructor(id: Term, config: Config, parent?: ShaclNodeTemplate) {
