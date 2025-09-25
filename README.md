@@ -51,6 +51,7 @@ HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that
   </body>
 </html>
 ```
+A more detailed explanation of how the forms are generated is [available here](DETAILS.md).
 
 ### Element attributes
 
