@@ -88,7 +88,7 @@ export class ShaclNode extends HTMLElement {
         }
     }
 
-    toRDF(graph: Store, subject?: NamedNode | BlankNode): (NamedNode | BlankNode) {
+    toRDF(graph: Store, subject?: NamedNode | BlankNode, generateNodeShapeReference: string | null = null): (NamedNode | BlankNode) {
         if (!subject) {
             subject = this.nodeId
         }
@@ -100,9 +100,9 @@ export class ShaclNode extends HTMLElement {
             if (this.template.targetClass) {
                 graph.addQuad(subject, RDF_PREDICATE_TYPE, this.template.targetClass, this. template.config.valuesGraphId)
             }
-            // if this is the root shacl node, check if we should add one of the rdf:type or dcterms:conformsTo predicates
-            if (this. template.config.attributes.generateNodeShapeReference && !this.template.parent) {
-                graph.addQuad(subject, DataFactory.namedNode(this. template.config.attributes.generateNodeShapeReference), this.template.id as NamedNode, this. template.config.valuesGraphId)
+            // if this is the root shacl node, add one of the rdf:type or dcterms:conformsTo predicates
+            if (generateNodeShapeReference) {
+                graph.addQuad(subject, DataFactory.namedNode(generateNodeShapeReference), this.template.id as NamedNode, this. template.config.valuesGraphId)
             }
         }
         return subject
