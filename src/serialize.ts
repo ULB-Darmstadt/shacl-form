@@ -1,5 +1,5 @@
 import { DataFactory, NamedNode, Writer, Quad, Literal, Prefixes } from 'n3'
-import { PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL } from './constants'
+import { PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL, XSD_DATATYPE_STRING } from './constants'
 import { Editor } from './theme'
 import { NodeObject } from 'jsonld'
 
@@ -70,7 +70,7 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
                 value = new Date(value).toISOString().slice(0, 19)
             }
             // check if value is a typed rdf literal or langString
-            if (!languageOrDatatype && typeof value === 'string') {
+            if ((!languageOrDatatype || (languageOrDatatype instanceof NamedNode && XSD_DATATYPE_STRING.equals(languageOrDatatype))) && typeof value === 'string') {
                 // check for typed rdf literal
                 let tokens = value.split('^^')
                 if (tokens.length === 2 && tokens[0].startsWith('"') && tokens[0].endsWith('"') && tokens[1].split(':').length === 2) {
