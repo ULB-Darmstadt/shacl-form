@@ -97,7 +97,7 @@ export class ShaclProperty extends HTMLElement {
             } 
             if (!resolved) {
                 instance = createShaclOrConstraint(options, this, this.template.config)
-                appendRemoveButton(instance, '', this.template.config.attributes.dense === "true")
+                appendRemoveButton(instance, '', this.template.config.theme.dense)
             }
         } else {
             // check if value is part of the data graph. if not, create a linked resource
@@ -171,7 +171,7 @@ export class ShaclProperty extends HTMLElement {
 
     isValueValid(value: Term) {
         if (!this.template.extendedShapes.size) {
-            // property has no node shape, so value is valid
+            // property has no node shape, so assume value is valid
             return true
         }
         // property has node shape(s), so check if value conforms to any targetClass
@@ -185,7 +185,7 @@ export class ShaclProperty extends HTMLElement {
 
     createAddButton() {
         const addButton = new RokitSelect()
-        addButton.dense = this.template.config.attributes.dense === "true"
+        addButton.dense = this.template.config.theme.dense
         addButton.label = "+ " + this.template.label
         addButton.title = 'Add ' + this.template.label
         addButton.autoGrowLabelWidth = true
@@ -277,7 +277,7 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         }
     }
     if (template.config.editMode) {
-        appendRemoveButton(instance, template.label, template.config.attributes.dense === "true", forceRemovable)
+        appendRemoveButton(instance, template.label, template.config.theme.dense, forceRemovable)
     }
     instance.dataset.path = template.path
     return instance

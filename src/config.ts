@@ -7,6 +7,7 @@ import { Theme } from './theme'
 import { extractLists } from './util'
 import { ShaclNodeTemplate } from './node-template'
 import { ShaclPropertyTemplate } from './property-template'
+import { DefaultTheme } from './theme.default'
 
 export class ElementAttributes {
     shapes: string | null = null
@@ -43,7 +44,8 @@ export class Config {
 
     lists: Record<string, Term[]> = {}
     groups: string[] = []
-    theme: Theme
+    // @ts-ignore
+    _theme: Theme
     form: HTMLElement
     renderedNodes = new Set<string>()
     valuesGraphId: NamedNode | undefined
@@ -51,9 +53,9 @@ export class Config {
     propertyShapes: Record<string, ShaclPropertyTemplate> = {}
     private _store = new Store()
 
-    constructor(theme: Theme, form: HTMLElement) {
-        this.theme = theme
+    constructor(form: HTMLElement) {
         this.form = form
+        this.theme = new DefaultTheme()
         this.languages = [...new Set(navigator.languages.flatMap(lang => {
             if (lang.length > 2) {
                 // for each 5 letter lang code (e.g. de-DE) append its corresponding 2 letter code (e.g. de) directly afterwards
@@ -80,6 +82,7 @@ export class Config {
             }
         })
         this.editMode = atts.view === null
+        this.theme.setDense(atts.dense === "true")
         this.attributes = atts
         // for backward compatibility
         if (this.attributes.valueSubject && !this.attributes.valuesSubject) {
@@ -106,6 +109,15 @@ export class Config {
             key = key.replace(/[A-Z]/g, m => "-" + m.toLowerCase());
             return 'data-' + key
         })
+    }
+
+    get theme() {
+        return this._theme
+    }
+
+    set theme(theme: Theme) {
+        this._theme = theme
+        theme.setDense(this.attributes.dense === "true")
     }
 
     get store() {

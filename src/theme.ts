@@ -10,6 +10,7 @@ export type InputListEntry = { value: Term | string, label?: string, children?: 
 
 export abstract class Theme {
     stylesheet: CSSStyleSheet
+    dense: boolean = true
 
     constructor(styles?: string) {
         let aggregatedStyles = css
@@ -22,6 +23,10 @@ export abstract class Theme {
 
     apply(_: HTMLFormElement) {
         // NOP
+    }
+
+    setDense(dense: boolean) {
+        this.dense = dense
     }
 
     createViewer(label: string, value: Term, template: ShaclPropertyTemplate): HTMLElement {

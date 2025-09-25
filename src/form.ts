@@ -7,7 +7,6 @@ import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
-import { DefaultTheme } from './theme.default'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
 
 export * from './exports'
@@ -25,7 +24,7 @@ export class ShaclForm extends HTMLElement {
 
         this.attachShadow({ mode: 'open' })
         this.form = document.createElement('form')
-        this.config = new Config(new DefaultTheme(), this.form)
+        this.config = new Config(this.form)
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
             if (this.config.editMode) {

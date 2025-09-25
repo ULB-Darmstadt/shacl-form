@@ -78,7 +78,7 @@ export class DefaultTheme extends Theme {
             editor.type = 'date'
         }
         editor.clearable = true
-        editor.dense = template.config.attributes.dense === "true"
+        editor.dense = this.dense
         editor.classList.add('pr-0')
         const result = this.createDefaultTemplate(label, null, required, editor, template)
         if (value) {
@@ -106,7 +106,7 @@ export class DefaultTheme extends Theme {
         else {
             editor = new RokitInput()
         }
-        editor.dense = template.config.attributes.dense === "true"
+        editor.dense = this.dense
         if (template.pattern) {
             editor.pattern = template.pattern
         }
@@ -194,7 +194,7 @@ export class DefaultTheme extends Theme {
         const editor = new RokitInput()
         editor.type = 'number'
         editor.clearable = true
-        editor.dense = template.config.attributes.dense === "true"
+        editor.dense = this.dense
         editor.classList.add('pr-0')
         const min = template.minInclusive !== undefined ? template.minInclusive : template.minExclusive !== undefined ? template.minExclusive + 1 : undefined
         const max = template.maxInclusive !== undefined ? template.maxInclusive : template.maxExclusive !== undefined ? template.maxExclusive - 1 : undefined
@@ -213,7 +213,7 @@ export class DefaultTheme extends Theme {
     createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement {
         const editor = new RokitSelect()
         editor.clearable = true
-        editor.dense = template?.config.attributes.dense === "true"
+        editor.dense = this.dense
         const result = this.createDefaultTemplate(label, null, required, editor, template)
         const ul = document.createElement('ul')
         let isFlatList = true
