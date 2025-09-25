@@ -72,7 +72,8 @@ data-collapse | When set, `sh:group`s and properties with `sh:node` and `sh:maxC
 data-submit-button | [Ignored when `data-view` attribute is set] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events get emitted only when the form data validates
 data-generate-node-shape-reference | When generating the RDF data graph, &lt;shacl-form&gt; can create a triple that references the root `sh:NodeShape` of the data. Suggested values for this attribute are `http://www.w3.org/1999/02/22-rdf-syntax-ns#type` or `http://purl.org/dc/terms/conformsTo`. Default is empty, so that no such triple is created
 data-show-node-ids | When this attribute is set, shacl node shapes will have their subject id shown in the form
-data-proxy | URL of a proxy to use when fetching resources (e.g. `owl:imports`). This can help loading resources from the web that are not [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) enabled. The URL of the resource to fetch will be appended to the value of this attribute. Example value for this attribute: `http://you-proxy.org/?url=`. 
+data-proxy | URL of a proxy to use when fetching resources (e.g. `owl:imports`). This can help loading resources from the web that are not [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) enabled. The URL of the resource to fetch will be appended to the value of this attribute. Example value for this attribute: `http://you-proxy.org/?url=`.
+data-dense | Boolean inidcating to render a compact form with small paddings and margins. Default: true
 
 ### Element functions
 

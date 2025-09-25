@@ -97,7 +97,7 @@ export class ShaclProperty extends HTMLElement {
             } 
             if (!resolved) {
                 instance = createShaclOrConstraint(options, this, this.template.config)
-                appendRemoveButton(instance, '')
+                appendRemoveButton(instance, '', this.template.config.attributes.dense === "true")
             }
         } else {
             // check if value is part of the data graph. if not, create a linked resource
@@ -185,7 +185,7 @@ export class ShaclProperty extends HTMLElement {
 
     createAddButton() {
         const addButton = new RokitSelect()
-        addButton.dense = true
+        addButton.dense = this.template.config.attributes.dense === "true"
         addButton.label = "+ " + this.template.label
         addButton.title = 'Add ' + this.template.label
         addButton.autoGrowLabelWidth = true
@@ -277,17 +277,17 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         }
     }
     if (template.config.editMode) {
-        appendRemoveButton(instance, template.label, forceRemovable)
+        appendRemoveButton(instance, template.label, template.config.attributes.dense === "true", forceRemovable)
     }
     instance.dataset.path = template.path
     return instance
 }
 
-function appendRemoveButton(instance: HTMLElement, label: string, forceRemovable = false) {
+function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean, forceRemovable = false) {
     const removeButton = new RokitButton()
     removeButton.classList.add('remove-button', 'clear')
     removeButton.title = 'Remove ' + label
-    removeButton.dense = true
+    removeButton.dense = dense
     removeButton.icon = true
     removeButton.addEventListener('click', _ => {
         instance.classList.remove('fadeIn')

@@ -30,6 +30,7 @@ export class ElementAttributes {
     submitButton: string | null = null
     generateNodeShapeReference: string | null = null
     showNodeIds: string | null = null
+    dense: string = "true"
 }
 
 export class Config {
