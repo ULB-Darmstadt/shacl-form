@@ -12,6 +12,7 @@
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix prov:    <http://www.w3.org/ns/prov#> .
 @prefix example: <http://example.org/> .
+@prefix dfgfo:   <https://w3id.org/dfgfo/2024/> .
 
 example:ArchitectureModelDataset
   a               sh:NodeShape, rdfs:Class ;
@@ -81,6 +82,14 @@ example:Dataset
                   sh:maxCount     2 ;
                   sh:name         "Description"@en, "Beschreibung"@de ;
                   sh:path         dcterms:description
+                ] ;
+  sh:property   [ sh:description  "Subject classification of the dataset"@en, "Fachzuordnung des Datensatzes"@de ;
+                  sh:maxCount     1 ;
+                  sh:minCount     1 ;
+                  sh:name         "Subject classification"@en, "Fachzuordnung"@de ;
+                  sh:class        owl:Class ;
+                  sh:path         dcterms:subject ;
+                  owl:imports     <https://raw.githubusercontent.com/tibonto/DFG-Fachsystematik-Ontology/refs/heads/main/dfgfo.ttl> ;
                 ] ;
   sh:property   [ sh:description  "License of the dataset"@en, "Lizenz des Datensatzes"@de ;
                   sh:maxCount     1 ;
@@ -164,7 +173,6 @@ example:Attribution
   # Import an external taxonomy to the shapes graph.
   # In this case, the taxonomy provides class instances of prov:Role,
   # which will be displayed in a dropdown to select from.
-  owl:imports     <https://w3id.org/nfdi4ing/metadata4ing/> ;
 
   sh:property   [ sh:maxCount  1 ;
                   sh:minCount  1 ;
@@ -178,6 +186,7 @@ example:Attribution
                   sh:minCount  1 ;
                   sh:path      dcat:hadRole ;
                   sh:class     prov:Role ;
+                  owl:imports  <https://w3id.org/nfdi4ing/metadata4ing/> ;
                 ] ;
   sh:targetClass  prov:Attribution .
 

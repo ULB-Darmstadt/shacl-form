@@ -23,6 +23,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}pattern`]:      (template, term) => { template.pattern = term.value },
     [`${PREFIX_SHACL}order`]:        (template, term) => { template.order = parseInt(term.value) },
     [`${PREFIX_DASH}singleLine`]:    (template, term) => { template.singleLine = term.value === 'true' },
+    [`${PREFIX_DASH}readonly`]:      (template, term) => { template.readonly = term.value === 'true' },
     [`${PREFIX_OA}styleClass`]:      (template, term) => { template.cssClass = term.value },
     [`${PREFIX_SHACL}and`]:          (template, term) => { template.shaclAnd = term.value },
     [`${PREFIX_SHACL}in`]:           (template, term) => { template.shaclIn = term.value },
@@ -30,11 +31,14 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}languageIn`]:   (template, term) => { template.languageIn = template.config.lists[term.value]; template.datatype = DataFactory.namedNode(PREFIX_RDF + 'langString') },
     [`${PREFIX_SHACL}defaultValue`]: (template, term) => { template.defaultValue = term },
     [`${PREFIX_SHACL}hasValue`]:     (template, term) => { template.hasValue = term },
-    [OWL_PREDICATE_IMPORTS.id]:   (template, term) => { template.owlImports.push(term as NamedNode) },
-    [SHACL_PREDICATE_CLASS.id]:   (template, term) => {
+    [`${PREFIX_SHACL}qualifiedValueShape`]:     (template, term) => { template.qualifiedValueShape = term },
+    [`${PREFIX_SHACL}qualifiedMinCount`]: (template, term) => { template.minCount = parseInt(term.value) },
+    [`${PREFIX_SHACL}qualifiedMaxCount`]: (template, term) => { template.maxCount = parseInt(term.value) },
+    [OWL_PREDICATE_IMPORTS.id]:      (template, term) => { template.owlImports.push(term as NamedNode) },
+    [SHACL_PREDICATE_CLASS.id]:      (template, term) => {
         template.class = term as NamedNode
         // try to find node shape that has requested target class
-        const nodeShapes = template.config.shapesGraph.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, null)
+        const nodeShapes = template.config.store.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, null)
         if (nodeShapes.length > 0) {
             template.node = nodeShapes[0] as NamedNode
         }
@@ -44,12 +48,20 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
         if (list?.length) {
             template.shaclOr = list
         } else {
-            console.error('list not found:', term.value, 'existing lists:', template.config.lists)
+            console.error('list for sh:or not found:', term.value, 'existing lists:', template.config.lists)
+        }
+    },
+    [`${PREFIX_SHACL}xone`]:           (template, term) => {
+        const list = template.config.lists[term.value]
+        if (list?.length) {
+            template.shaclXone = list
+        } else {
+            console.error('list for sh:xone not found:', term.value, 'existing lists:', template.config.lists)
         }
     }
 }
 
-export class ShaclPropertyTemplate  {
+export class ShaclPropertyTemplate {
     parent: ShaclNode
     label = ''
     name: Literal | undefined
@@ -66,6 +78,7 @@ export class ShaclPropertyTemplate  {
     minExclusive: number | undefined
     maxExclusive: number | undefined
     singleLine: boolean | undefined
+    readonly: boolean | undefined
     cssClass: string | undefined
     defaultValue: Term | undefined
     pattern: string | undefined
@@ -74,18 +87,23 @@ export class ShaclPropertyTemplate  {
     shaclAnd: string | undefined
     shaclIn: string | undefined
     shaclOr: Term[] | undefined
+    shaclXone: Term[] | undefined
     languageIn: Term[] | undefined
     datatype: NamedNode | undefined
     hasValue: Term | undefined
+    qualifiedValueShape: Term | undefined
     owlImports: NamedNode[] = []
 
     config: Config
-    extendedShapes: NamedNode[] | undefined
+    extendedShapes: NamedNode[]  = []
 
     constructor(quads: Quad[], parent: ShaclNode, config: Config) {
         this.parent = parent
         this.config = config
         this.merge(quads)
+        if (this.qualifiedValueShape) {
+            this.merge(config.store.getQuads(this.qualifiedValueShape, null, null, null))
+        }
     }
 
     merge(quads: Quad[]): ShaclPropertyTemplate {
@@ -97,18 +115,15 @@ export class ShaclPropertyTemplate  {
         if (!this.label && !this.shaclAnd) {
             this.label = this.path ? removePrefixes(this.path, this.config.prefixes) : 'unknown'
         }
-        // resolve extended shapes
-        if (this.node || this.shaclAnd) {
-            this.extendedShapes = []
-            if (this.node) {
-                this.extendedShapes.push(this.node)
-            }
-            if (this.shaclAnd) {
-                const list = this.config.lists[this.shaclAnd]
-                if (list?.length) {
-                    for (const node of list) {
-                        this.extendedShapes.push(node as NamedNode)
-                    }
+        // register extended shapes
+        if (this.node) {
+            this.extendedShapes.push(this.node)
+        }
+        if (this.shaclAnd) {
+            const list = this.config.lists[this.shaclAnd]
+            if (list?.length) {
+                for (const node of list) {
+                    this.extendedShapes.push(node as NamedNode)
                 }
             }
         }
@@ -118,12 +133,16 @@ export class ShaclPropertyTemplate  {
     clone(): ShaclPropertyTemplate {
         const copy = Object.assign({}, this)
         // arrays are not cloned but referenced, so create them manually
+        copy.extendedShapes = [ ...this.extendedShapes ]
         copy.owlImports = [ ...this.owlImports ]
         if (this.languageIn) {
             copy.languageIn = [ ...this.languageIn ]
         }
         if (this.shaclOr) {
             copy.shaclOr = [ ...this.shaclOr ]
+        }
+        if (this.shaclXone) {
+            copy.shaclXone = [ ...this.shaclXone ]
         }
         copy.merge = this.merge.bind(copy)
         copy.clone = this.clone.bind(copy)

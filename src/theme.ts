@@ -6,7 +6,7 @@ import { ShaclPropertyTemplate } from './property-template'
 import css from './styles.css?raw'
 
 export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, binaryData?: string, checked?: boolean, disabled?: boolean }
-export type InputListEntry = { value: Term | string, label?: string, indent?: number }
+export type InputListEntry = { value: Term | string, label?: string, children?: InputListEntry[] }
 
 export abstract class Theme {
     stylesheet: CSSStyleSheet
@@ -20,7 +20,7 @@ export abstract class Theme {
         this.stylesheet.replaceSync(aggregatedStyles)
     }
 
-    apply(root: HTMLFormElement) {
+    apply(_: HTMLFormElement) {
         // NOP
     }
 
@@ -35,7 +35,7 @@ export abstract class Theme {
         let name = value.value
         let lang: HTMLElement | null = null
         if (value instanceof NamedNode) {
-            const quads = template.config.shapesGraph.getQuads(name, null, null, null)
+            const quads = template.config.store.getQuads(name, null, null, null)
             if (quads.length) {
                 const s = findLabel(quads, template.config.languages)
                 if (s) {
@@ -79,8 +79,8 @@ export abstract class Theme {
     abstract createButton(label: string, primary: boolean): HTMLElement
 }
 
-export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null): HTMLElement {
-    if (template.config.editMode) {
+export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null, editable: boolean): HTMLElement {
+    if (editable) {
         const required = template.minCount !== undefined && template.minCount > 0
         // if we have a class, find the instances and display them in a list
         if (template.class) {
@@ -91,7 +91,7 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
         if (template.shaclIn) {
             const list = template.config.lists[template.shaclIn]
             if (list?.length) {
-                const listEntries = createInputListEntries(list, template.config.shapesGraph, template.config.languages)
+                const listEntries = createInputListEntries(list, template.config.store, template.config.languages)
                 return template.config.theme.createListEditor(template.label, value, required, listEntries, template)
             }
             else {

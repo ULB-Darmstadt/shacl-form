@@ -7,12 +7,14 @@
 @prefix example: <http://example.org/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 
 example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
   a dcat:Dataset, example:ArchitectureModelDataset ;
   dcterms:title "Einsteinturm"@de, "Einstein Tower"@en ;
   dcterms:description "Modell des Einsteinturms"@de, "Model of the Einstein Tower"@en ;
   dcterms:issued "2023-07-27"^^xsd:date ;
+  dcterms:subject <https://w3id.org/dfgfo/2024/451-01>;
   dcterms:license <http://creativecommons.org/licenses/by/4.0/> ;
   schema:artworkSurface example:plaster ;
   schema:width 200 ;
@@ -33,5 +35,12 @@ example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
       foaf:name "Jane Doe";
       dcterms:identifier "https://orcid.org/0000-0002-1584-4316" ;
     ] ;
-    dcat:hadRole <http://w3id.org/nfdi4ing/metadata4ing#DataCollector> ;
+    dcat:hadRole <http://w3id.org/nfdi4ing/metadata4ing#Researcher> ;
   ] .
+
+
+example:darmstadt
+  a dcterms:Location ;
+  rdfs:label "Darmstadt" ;
+  geo:asWKT "POINT(8.657631022574474 49.87622847744955)"^^geo:wktLiteral ;
+  dcterms:description "Darmstadt is a city in germany" .

@@ -45,12 +45,16 @@ function serializeJsonld(quads: Quad[]): string {
     return JSON.stringify(triples)
 }
 
-export function toRDF(editor: Editor): Literal | NamedNode | undefined {
-    let languageOrDatatype: NamedNode<string> | string | undefined = editor['shaclDatatype']
+export function toRDF(editor: Editor): NamedNode | Literal | undefined {
+    let languageOrDatatype: NamedNode<string> | string | undefined = editor.shaclDatatype
     let value: number | string = editor.value
     if (value) {
-        if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
+        if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
+            return DataFactory.namedNode(value.substring(1, value.length - 1))
+        } else if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
             return DataFactory.namedNode(value)
+        } else if (editor.dataset.link) {
+            return JSON.parse(editor.dataset.link)
         } else {
             if (editor.dataset.lang) {
                 languageOrDatatype = editor.dataset.lang
@@ -64,6 +68,22 @@ export function toRDF(editor: Editor): Literal | NamedNode | undefined {
             else if (editor['type'] === 'datetime-local') {
                 // if seconds in value are 0, the input field omits them which is then not a valid xsd:dateTime
                 value = new Date(value).toISOString().slice(0, 19)
+            }
+            // check if value is a typed rdf literal or langString
+            if (!languageOrDatatype && typeof value === 'string') {
+                // check for typed rdf literal
+                let tokens = value.split('^^')
+                if (tokens.length === 2 && tokens[0].startsWith('"') && tokens[0].endsWith('"') && tokens[1].split(':').length === 2) {
+                    value = tokens[0].substring(1, tokens[0].length - 1)
+                    languageOrDatatype = DataFactory.namedNode(tokens[1])
+                } else {
+                    // check for langString
+                    tokens = value.split('@')
+                    if (tokens.length === 2 && tokens[0].startsWith('"') && tokens[0].endsWith('"')) {
+                        value = tokens[0].substring(1, tokens[0].length - 1)
+                        languageOrDatatype = tokens[1]
+                    }
+                }
             }
             return DataFactory.literal(value, languageOrDatatype)
         }

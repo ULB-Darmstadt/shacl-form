@@ -4,8 +4,8 @@ import { ShaclPropertyTemplate } from '../property-template'
 import { Editor, fieldFactory } from '../theme'
 import { Map, NavigationControl, FullscreenControl, LngLatBounds, LngLatLike } from 'mapbox-gl'
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
-import mapboxGlCss from 'mapbox-gl/dist/mapbox-gl.css'
-import mapboxGlDrawCss from '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
+import mapboxGlCss from 'mapbox-gl/dist/mapbox-gl.css?raw'
+import mapboxGlDrawCss from '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css?raw'
 import { Geometry, geometryToWkt, wktToGeometry } from './map-util'
 
 const css = `
@@ -106,12 +106,12 @@ export class MapboxPlugin extends Plugin {
             document.body.style.position = 'fixed'
             dialog.showModal()
         }
-        const instance = fieldFactory(template, value || null)
+        const instance = fieldFactory(template, value || null, true)
         instance.appendChild(button)
         return instance
     }
 
-    createViewer(template: ShaclPropertyTemplate, value: Term): HTMLElement {
+    createViewer(_: ShaclPropertyTemplate, value: Term): HTMLElement {
         const container = document.createElement('div')
         const geometry = wktToGeometry(value.value)
         if (geometry?.coordinates?.length) {

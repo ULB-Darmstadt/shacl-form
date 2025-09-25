@@ -1,9 +1,11 @@
 import { Term } from '@rdfjs/types'
 import { ShaclPropertyTemplate } from "../property-template"
 import { Editor, InputListEntry, Theme } from "../theme"
-import { PREFIX_XSD } from '../constants'
-import { Literal } from 'n3'
+import { PREFIX_SHACL, PREFIX_XSD } from '../constants'
+import { Literal, NamedNode } from 'n3'
+import { Term as N3Term }  from 'n3'
 import css from './default.css?raw'
+import { RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
 
 export class DefaultTheme extends Theme {
     idCtr = 0
@@ -17,7 +19,9 @@ export class DefaultTheme extends Theme {
         editor.classList.add('editor')
         if (template?.datatype) {
             // store datatype on editor, this is used for RDF serialization
-            editor['shaclDatatype'] = template.datatype
+            editor.shaclDatatype = template.datatype
+        } else if (value instanceof Literal) {
+            editor.shaclDatatype = value.datatype
         }
         if (template?.minCount !== undefined) {
             editor.dataset.minCount = String(template.minCount)
@@ -27,8 +31,10 @@ export class DefaultTheme extends Theme {
         }
         if (template?.nodeKind) {
             editor.dataset.nodeKind = template.nodeKind.value
+        } else if (value instanceof NamedNode) {
+            editor.dataset.nodeKind = PREFIX_SHACL + 'IRI'
         }
-        if (template?.hasValue) {
+        if (template?.hasValue || template?.readonly) {
             editor.disabled = true
         }
         editor.value = value?.value || template?.defaultValue?.value || ''
@@ -56,7 +62,7 @@ export class DefaultTheme extends Theme {
     }
 
     createDateEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
-        const editor: Editor = document.createElement('input')
+        const editor = new RokitInput()
         if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
             editor.type = 'datetime-local'
             // this enables seconds in dateTime input
@@ -65,6 +71,8 @@ export class DefaultTheme extends Theme {
         else {
             editor.type = 'date'
         }
+        editor.clearable = true
+        editor.dense = true
         editor.classList.add('pr-0')
         const result = this.createDefaultTemplate(label, null, required, editor, template)
         if (value) {
@@ -86,17 +94,16 @@ export class DefaultTheme extends Theme {
     createTextEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         let editor
         if (template.singleLine === false) {
-            editor = document.createElement('textarea')
-            editor.rows = 5
+            editor = new RokitTextArea()
+            editor.resize = 'auto'
         }
         else {
-            editor = document.createElement('input')
-            editor.type = 'text'
-            if (template.pattern) {
-                editor.pattern = template.pattern
-            }
+            editor = new RokitInput()
         }
-    
+        editor.dense = true
+        if (template.pattern) {
+            editor.pattern = template.pattern
+        }
         if (template.minLength) {
             editor.minLength = template.minLength
         }
@@ -120,10 +127,12 @@ export class DefaultTheme extends Theme {
         } else {
             langChooser = document.createElement('input')
             langChooser.maxLength = 5 // e.g. en-US
+            langChooser.size = 5
             langChooser.placeholder = 'lang?'
         }
         langChooser.title = 'Language of the text'
         langChooser.classList.add('lang-chooser')
+        langChooser.slot = 'suffix'
         // if lang chooser changes, fire a change event on the text input instead. this is for shacl validation handling.
         langChooser.addEventListener('change', (ev) => {
             ev.stopPropagation();
@@ -136,7 +145,7 @@ export class DefaultTheme extends Theme {
             langChooser.value = value.language
         }
         editor.dataset.lang = langChooser.value
-        editor.after(langChooser)
+        editor.appendChild(langChooser)
         return result
     }
 
@@ -176,8 +185,10 @@ export class DefaultTheme extends Theme {
     }
 
     createNumberEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
-        const editor = document.createElement('input')
+        const editor = new RokitInput()
         editor.type = 'number'
+        editor.clearable = true
+        editor.dense = true
         editor.classList.add('pr-0')
         const min = template.minInclusive !== undefined ? template.minInclusive : template.minExclusive !== undefined ? template.minExclusive + 1 : undefined
         const max = template.maxInclusive !== undefined ? template.maxInclusive : template.maxExclusive !== undefined ? template.maxExclusive - 1 : undefined
@@ -194,44 +205,51 @@ export class DefaultTheme extends Theme {
     }
 
     createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement {
-        const editor = document.createElement('select')
+        const editor = new RokitSelect()
+        editor.clearable = true
+        editor.dense = true
         const result = this.createDefaultTemplate(label, null, required, editor, template)
-        let addEmptyOption = true
-    
-        for (const item of listEntries) {
-            const option = document.createElement('option')
-            const itemValue = (typeof item.value === 'string') ? item.value : item.value.value
-            option.innerHTML = item.label ? item.label : itemValue
-            option.value = itemValue
-            if (item.indent) {
-                for (let i = 0; i < item.indent; i++) {
-                    option.innerHTML = '&#160;&#160;' + option.innerHTML
+        const ul = document.createElement('ul')
+        let isFlatList = true
+
+        const appendListEntry = (entry: InputListEntry, parent: HTMLUListElement) => {
+            const li = document.createElement('li')
+            if (typeof entry.value === 'string') {
+                li.dataset.value = entry.value
+                li.innerText = entry.label ? entry.label : entry.value
+            } else {
+                li.dataset.value = (entry.value as N3Term).id
+                if (entry.value instanceof NamedNode) {
+                    li.dataset.value = '<' + li.dataset.value + ">"
+                }
+                li.innerText = entry.label ? entry.label : entry.value.value
+            }
+            parent.appendChild(li)
+            if (entry.children?.length) {
+                isFlatList = false
+                const ul = document.createElement('ul')
+                li.appendChild(ul)
+                for (const child of entry.children) {
+                    appendListEntry(child, ul)
                 }
             }
-            if (value && value.value === itemValue) {
-                option.selected = true
-            }
-            if (itemValue === '') {
-                addEmptyOption = false
-            }
-            editor.appendChild(option)
         }
-        if (addEmptyOption) {
-            // add an empty element
-            const emptyOption = document.createElement('option')
-            emptyOption.value = ''
-            if (!value) {
-                emptyOption.selected = true
-            }
-            editor.prepend(emptyOption)
+
+        for (const item of listEntries) {
+            appendListEntry(item, ul)
         }
+        if (!isFlatList) {
+            editor.collapse = true
+        }
+
+        editor.appendChild(ul)
         if (value) {
-            editor.value = value.value
+            editor.value = (value as N3Term).id
         }
         return result
     }
 
-    createButton(label: string, primary: boolean): HTMLElement {
+    createButton(label: string, _: boolean): HTMLElement {
         const button = document.createElement('button')
         button.type = 'button'
         button.innerHTML = label

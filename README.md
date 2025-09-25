@@ -64,6 +64,7 @@ data-values | RDF triples (e.g. a turtle string) to use as existing data graph t
 data-values-url | When `data-values` is not set, the data graph triples are loaded from this URL
 data-values-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form
 data-values-namespace | RDF namespace to use when generating new RDF subjects. Default is empty, so that subjects will be blank nodes.
+data-values-graph | If set, serializing the form will create a named graph with the given IRI.
 data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/language) with fallback to [`navigator.languages`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/languages)
 data-loading | Text to display while the web component is initializing. Default: `"Loading..."`
 data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs are fetched and the resulting RDF triples are added to the shapes graph. Setting this attribute to any value disables this feature
@@ -72,6 +73,7 @@ data-collapse | When set, `sh:group`s and properties with `sh:node` and `sh:maxC
 data-submit-button | [Ignored when `data-view` attribute is set] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events get emitted only when the form data validates
 data-generate-node-shape-reference | When generating the RDF data graph, &lt;shacl-form&gt; can create a triple that references the root `sh:NodeShape` of the data. Suggested values for this attribute are `http://www.w3.org/1999/02/22-rdf-syntax-ns#type` or `http://purl.org/dc/terms/conformsTo`. Default is empty, so that no such triple is created
 data-show-node-ids | When this attribute is set, shacl node shapes will have their subject id shown in the form
+data-proxy | URL of a proxy to use when fetching resources (e.g. `owl:imports`). This can help loading resources from the web that are not [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) enabled. The URL of the resource to fetch will be appended to the value of this attribute. Example value for this attribute: `http://you-proxy.org/?url=`. 
 
 ### Element functions
 
@@ -84,7 +86,7 @@ Adds the form values as RDF triples to the given graph. If no graph object is pr
 ```typescript
 serialize(format?: string, graph?: Store): string
 ```
-Serializes the given RDF graph to the given format. If no graph object is provided, this function calls toRDF() (see above) to construct the form data graph. <a name="formats"></a>Supported formats:  `text/turtle` (default), `application/ld+json`, `application/n-triples`, `application/n-quads`, `application/trig`.
+Serializes the given RDF graph to the given format. If no graph object is provided, this function calls toRDF() (see above) to construct the form data graph in one of the supported [output formats](#output-formats) (default is `text/turtle`).
 
 ```typescript
 validate(ignoreEmptyValues: boolean): Promise<boolean>
@@ -106,11 +108,6 @@ setClassInstanceProvider((className: string) => Promise<string>)
 ```
 Sets a callback function that is invoked when a SHACL property has an `sh:class` definition to retrieve class instances. See [below](#classInstanceProvider) for more information.
 
-```typescript
-setSharedShapesGraph(graph: Store)
-```
-Set an externally managed shapes graph to use. This improves performance When using multiple instances of `shacl-form` on the same page. Note that the shape triples need to be stored in the graph with ID `shapes` to be recognized.
-
 ## Features
 
 ### Validation
@@ -128,25 +125,24 @@ In edit mode, `<shacl-form>` validates the constructed data graph using the libr
 ### Providing additional data to the shapes graph
 
 Apart from setting the element attributes `data-shapes` or `data-shapes-url`, there are two ways of adding RDF data to the shapes graph:
-1. While parsing the triples of the shapes graph, any encountered `owl:imports` predicate that has a valid HTTP URL value will be tried to fetch with the HTTP Accept header set to all of the [supported](#formats) MIME types. A successful response will be parsed and added to the shapes graph. The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
+1. While parsing the triples of the shapes graph, any encountered `owl:imports` predicate that has a valid HTTP URL is fetched with the HTTP Accept header set to all of the [supported](#formats) MIME types. A successful response is parsed and added to a named graph. This graph is scoped (i.e. available) only to the node where the `owl:import` statement is defined on and all its sub nodes.
+
+    The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
+
     ```
     example:Attribution
-      owl:imports <https://w3id.org/nfdi4ing/metadata4ing/> ;
       sh:property [
+        owl:imports <https://w3id.org/nfdi4ing/metadata4ing/> ;
         sh:name      "Role" ;
         sh:path      dcat:hadRole ;
         sh:class     prov:Role ;
       ] .
     ```
-    In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form.
+    In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form. The imported ontology is available only for rendering and validating this specific property.
 
 2. <a id="classInstanceProvider"></a>The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is invoked when a SHACL property has
-an `sh:class` predicate. The expected return value is a (promise of a) string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class. Instances can be defined e.g. like:
-    - `example:Instance a example:Class`
-    - `example:Instance a owl:NamedIndividual; skos:broader example:Class`
+an `sh:class` predicate. The expected return value is a (promise of a) string (e.g. in format `text/turtle`) that contains RDF class instance definitions of the given class.
   
-    Class hierarchies can be built using `rdfs:subClassOf` or `skos:broader`.
-    
     In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), the code:
   
     ```typescript
@@ -165,9 +161,15 @@ an `sh:class` predicate. The expected return value is a (promise of a) string (e
 
     A more realistic use case of this feature is calling some API endpoint to fetch class instance definitions from existing ontologies.
 
-### SHACL "or" constraint
+### Use of SHACL sh:class
 
-`<shacl-form>` supports using [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) to let users select between different options on nodes or properties.
+In case a property shape has a `sh:class`, all available graphs are scanned for instances of the given class to let the user choose from. `rdfs:subClassOf` is also considered when building the list of class instances.
+
+`shacl-form` also supports class instance hierarchies modelled with `skos:broader` and/or `skos:narrower`. This is illustrated by the "Subject classification" property in the [example](https://ulb-darmstadt.github.io/shacl-form/#example).
+
+### SHACL constraints sh:or and sh:xone
+
+`<shacl-form>` supports using [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) and [sh:xone](https://www.w3.org/TR/shacl/#XoneConstraintComponent) to let users select between different options on nodes or properties.
 The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) has the following triples:
 ```
 example:Attribution
@@ -184,9 +186,19 @@ example:Attribution
 ```
 When adding a new attribution, `<shacl-form>` renders a dropdown to let the user select between the two options Person/Organisation. After selecting one of the options, the dropdown is replaced by the input fields of the selected node shape.
 
-When binding an existing data graph to the form, the `sh:or` constraint is tried to be resolved depending on the respective data value:
+When binding an existing data graph to the form, the constraint is tried to be resolved depending on the respective data value:
 - For RDF literals, an `sh:or` option with a matching `sh:datatype` is chosen
 - For blank nodes or named nodes, the `rdf:type` of the value is tried to be matched with a node shape having a corresponding `sh:targetClass` or with a property shape having a corresponding `sh:class`. If there is no `rdf:type` but a `sh:nodeKind` of `sh:IRI`, the id of the the node is used as the value.
+
+### Linking existing data
+
+In case a node shape has a `sh:targetClass` and any graph, i.e.
+- the shapes graph
+- the data graph
+- any graph loaded by `owl:imports`
+- triples provided by [classInstanceProvider](#classInstanceProvider)
+
+contains instances of that class, those can be linked in the respective SHACL property. The generated data graph will then just contain a reference to the instance, but not the triples that the instance consists of.
 
 ### SHACL shape inheritance
 
@@ -218,9 +230,22 @@ When the element attribute `data-collapse` is set, `<shacl-form>` creates an acc
 
 Apart from grouped properties, all properties having an `sh:node` predicate and `sh:maxCount` != 1 are collapsed.
 
+### Supported RDF formats
+
+#### Input formats
+* text/turtle, application/n-triples, application/n-quads, application/trig using [N3 parser](https://github.com/rdfjs/N3.js?tab=readme-ov-file#parsing)
+* application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
+* application/rdf+xml using [rdfxml-streaming-parser](https://github.com/rdfjs/rdfxml-streaming-parser.js)
+
+#### Output formats
+<a id="output-formats"></a>
+
+* text/turtle, application/n-triples, application/n-quads, application/trig using [N3 writer](https://github.com/rdfjs/N3.js?tab=readme-ov-file#writing)
+* application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
+
 ### Use with Solid Pods
 
-`<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDF/JS N3 Store, as explained [above](#toRDF), it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod example](https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/getting-started/) shows how to merge data from a `<shacl-form>` with a Solid data resource at `readingListDataResourceURI`:
+`<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDF/JS N3 Store, as explained [above](#toRDF), it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod example](https://docs.inrupt.com/sdk/javascript-sdk/tutorial) shows how to merge data from a `<shacl-form>` with a Solid data resource at `readingListDataResourceURI`:
  
 ```js
   // Authentication is assumed, resulting in a fetch able to read and write into the Pod

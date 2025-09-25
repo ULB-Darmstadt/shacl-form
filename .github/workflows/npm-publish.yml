@@ -1,5 +1,8 @@
 name: Publish Package to npmjs
 
+permissions:
+  contents: read
+  
 on:
   release:
     types: [published]

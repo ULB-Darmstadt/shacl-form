@@ -1,12 +1,12 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
 import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
-import { Store, NamedNode, DataFactory } from 'n3'
-import { DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS } from './constants'
+import { Store, NamedNode, DataFactory, Quad, BlankNode } from 'n3'
+import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
-import { setSharedShapesGraph } from './loader'
+import { RokitCollapsible } from '@ro-kit/ui-widgets'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.dataAttributes() }
@@ -25,8 +25,8 @@ export class ShaclForm extends HTMLElement {
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
             if (this.config.editMode) {
-                this.validate(true).then(valid => {
-                    this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': valid } }))
+                this.validate(true).then(report => {
+                    this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': report.conforms, 'report': report } }))
                 }).catch(e => { console.warn(e) })
             }
         })
@@ -43,9 +43,11 @@ export class ShaclForm extends HTMLElement {
 
     private initialize() {
         clearTimeout(this.initDebounceTimeout)
+        // set loading attribute on element so that hosting app can apply special css rules
+        this.setAttribute('loading', '')
+        // remove all child elements from form and show loading indicator
+        this.form.replaceChildren(document.createTextNode(this.config.attributes.loading))
         this.initDebounceTimeout = setTimeout(async () => {
-            // remove all child elements from form and show loading indicator
-            this.form.replaceChildren(document.createTextNode(this.config.attributes.loading))
             try {
                 await this.config.loader.loadGraphs()
                 // remove loading indicator
@@ -82,22 +84,31 @@ export class ShaclForm extends HTMLElement {
                                 // let browser check form validity first
                                 if (this.form.reportValidity()) {
                                     // now validate data graph
-                                    this.validate().then(valid => {
-                                        if (valid) {
+                                    this.validate().then(report => {
+                                        if (report?.conforms) {
                                             // form and data graph are valid, so fire submit event
                                             this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
                                         } else {
                                             // focus first invalid element
-                                            (this.form.querySelector(':scope .invalid > .editor') as HTMLElement)?.focus()
+                                            let invalidEditor = this.form.querySelector(':scope .invalid > .editor')
+                                            if (invalidEditor) {
+                                                (invalidEditor as HTMLElement).focus()
+                                            } else {
+                                                this.form.querySelector(':scope .invalid')?.scrollIntoView()
+                                            }
                                         }
                                     })
                                 }
                             })
                             this.form.appendChild(button)
                         }
+                        // delete bound values from data graph, otherwise validation would be confused
+                        if (this.config.attributes.valuesSubject) {
+                            this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
+                        }
                         await this.validate(true)
                     }
-                } else if (this.config.shapesGraph.size > 0) {
+                } else if (this.config.store.countQuads(null, null, null, SHAPES_GRAPH) > 0) {
                     // raise error only when shapes graph is not empty
                     throw new Error('shacl root node shape not found')
                 }
@@ -107,6 +118,7 @@ export class ShaclForm extends HTMLElement {
                 errorDisplay.innerText = String(e)
                 this.form.replaceChildren(errorDisplay)
             }
+            this.removeAttribute('loading')
         }, 200)
     }
 
@@ -130,17 +142,13 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
-    public setSharedShapesGraph(graph: Store) {
-        setSharedShapesGraph(graph)
-        this.initialize()
-    }
-
     public setClassInstanceProvider(provider: ClassInstanceProvider) {
         this.config.classInstanceProvider = provider
         this.initialize()
     }
 
-    public async validate(ignoreEmptyValues = false): Promise<boolean> {
+    /* Returns the validation report */
+    public async validate(ignoreEmptyValues = false): Promise<any> {
         for (const elem of this.form.querySelectorAll(':scope .validation-error')) {
             elem.remove()
         }
@@ -153,10 +161,14 @@ export class ShaclForm extends HTMLElement {
             }
         }
 
-        this.config.shapesGraph.deleteGraph('')
-        this.shape?.toRDF(this.config.shapesGraph)
+        this.config.store.deleteGraph(this.config.valuesGraphId || '')
+        if (this.shape) {
+            this.shape.toRDF(this.config.store)
+            // add node target for validation. this is required in case of missing sh:targetClass in root shape
+            this.config.store.add(new Quad(this.shape.shaclSubject, DataFactory.namedNode(PREFIX_SHACL + 'targetNode'), this.shape.nodeId, this.config.valuesGraphId))
+        }
         try {
-            const dataset = this.config.shapesGraph
+            const dataset = this.config.store
             const report = await new Validator(dataset, { details: true, factory: DataFactory }).validate({ dataset })
 
             for (const result of report.results) {
@@ -167,10 +179,16 @@ export class ShaclForm extends HTMLElement {
                         if (result.path?.length) {
                             const path = result.path[0].predicates[0]
                             // try to find most specific editor elements first
-                            let invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}'] > .editor`)
+                            let invalidElements = this.form.querySelectorAll(`
+                                :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
+                                :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor,
+                                :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
+                                :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor`)
                             if (invalidElements.length === 0) {
                                 // if no editors found, select respective node. this will be the case for node shape violations.
-                                invalidElements = this.form.querySelectorAll(`:scope [data-node-id='${focusNode.id}'] [data-path='${path.id}']`)
+                                invalidElements = this.form.querySelectorAll(`
+                                    :scope [data-node-id='${focusNode.id}']  > shacl-property > .property-instance[data-path='${path.id}'],
+                                    :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .property-instance[data-path='${path.id}']`)
                             }
 
                             for (const invalidElement of invalidElements) {
@@ -182,8 +200,8 @@ export class ShaclForm extends HTMLElement {
                                         parent.classList.remove('valid')
                                         parent.appendChild(this.createValidationErrorDisplay(result))
                                         do {
-                                            if (parent.classList.contains('collapsible')) {
-                                                parent.classList.add('open')
+                                            if (parent instanceof RokitCollapsible) {
+                                                parent.open = true
                                             }
                                             parent = parent.parentElement
                                         } while (parent)
@@ -201,7 +219,7 @@ export class ShaclForm extends HTMLElement {
                     }
                 }
             }
-            return report.conforms
+            return report
         } catch(e) {
             console.error(e)
             return false
@@ -231,18 +249,18 @@ export class ShaclForm extends HTMLElement {
         // if data-shape-subject is set, use that
         if (this.config.attributes.shapeSubject) {
             rootShapeShaclSubject = DataFactory.namedNode(this.config.attributes.shapeSubject)
-            if (this.config.shapesGraph.getQuads(rootShapeShaclSubject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length === 0) {
+            if (this.config.store.getQuads(rootShapeShaclSubject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length === 0) {
                 console.warn(`shapes graph does not contain requested root shape ${this.config.attributes.shapeSubject}`)
                 return
             }
         }
         else {
             // if we have a data graph and data-values-subject is set, use shape of that
-            if (this.config.attributes.valuesSubject && this.config.dataGraph.size > 0) {
+            if (this.config.attributes.valuesSubject && this.config.store.countQuads(null, null, null, DATA_GRAPH) > 0) {
                 const rootValueSubject = DataFactory.namedNode(this.config.attributes.valuesSubject)
                 const rootValueSubjectTypes = [
-                    ...this.config.dataGraph.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, null),
-                    ...this.config.dataGraph.getQuads(rootValueSubject, DCTERMS_PREDICATE_CONFORMS_TO, null, null)
+                    ...this.config.store.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, DATA_GRAPH),
+                    ...this.config.store.getQuads(rootValueSubject, DCTERMS_PREDICATE_CONFORMS_TO, null, DATA_GRAPH)
                 ]
                 if (rootValueSubjectTypes.length === 0) {
                     console.warn(`value subject '${this.config.attributes.valuesSubject}' has neither ${RDF_PREDICATE_TYPE.id} nor ${DCTERMS_PREDICATE_CONFORMS_TO.id} statement`)
@@ -250,13 +268,13 @@ export class ShaclForm extends HTMLElement {
                 }
                 // if type/conformsTo refers to a node shape, prioritize that over targetClass resolution
                 for (const rootValueSubjectType of rootValueSubjectTypes) {
-                    if (this.config.shapesGraph.getQuads(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length > 0) {
+                    if (this.config.store.getQuads(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length > 0) {
                         rootShapeShaclSubject = rootValueSubjectType.object as NamedNode
                         break
                     }
                 }
                 if (!rootShapeShaclSubject) {
-                    const rootShapes = this.config.shapesGraph.getQuads(null, SHACL_PREDICATE_TARGET_CLASS, rootValueSubjectTypes[0].object, null)
+                    const rootShapes = this.config.store.getQuads(null, SHACL_PREDICATE_TARGET_CLASS, rootValueSubjectTypes[0].object, null)
                     if (rootShapes.length === 0) {
                         console.error(`value subject '${this.config.attributes.valuesSubject}' has no shacl shape definition in the shapes graph`)
                         return
@@ -264,7 +282,7 @@ export class ShaclForm extends HTMLElement {
                     if (rootShapes.length > 1) {
                         console.warn(`value subject '${this.config.attributes.valuesSubject}' has multiple shacl shape definitions in the shapes graph, choosing the first found (${rootShapes[0].subject})`)
                     }
-                    if (this.config.shapesGraph.getQuads(rootShapes[0].subject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length === 0) {
+                    if (this.config.store.getQuads(rootShapes[0].subject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length === 0) {
                         console.error(`value subject '${this.config.attributes.valuesSubject}' references a shape which is not a NodeShape (${rootShapes[0].subject})`)
                         return
                     }
@@ -273,7 +291,7 @@ export class ShaclForm extends HTMLElement {
             }
             else {
                 // choose first of all defined root shapes
-                const rootShapes = this.config.shapesGraph.getQuads(null, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null)
+                const rootShapes = this.config.store.getQuads(null, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null)
                 if (rootShapes.length == 0) {
                     console.warn('shapes graph does not contain any root shapes')
                     return
@@ -286,5 +304,16 @@ export class ShaclForm extends HTMLElement {
             }
         }
         return rootShapeShaclSubject
+    }
+
+    private removeFromDataGraph(subject: NamedNode | BlankNode) {
+        this.config.attributes.valuesSubject
+        for (const quad of this.config.store.getQuads(subject, null, null, DATA_GRAPH)) {
+            this.config.store.delete(quad)
+            if (quad.object.termType === 'NamedNode' || quad.object.termType === 'BlankNode') {
+                // recurse
+                this.removeFromDataGraph(quad.object)
+            }
+        }
     }
 }

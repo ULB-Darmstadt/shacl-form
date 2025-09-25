@@ -1,11 +1,13 @@
 import { ShaclPropertyTemplate } from '../property-template'
 import { Term } from '@rdfjs/types'
-import { Button, TextField, Select, MenuItem, Checkbox } from 'mdui'
+import { Button, TextField, Checkbox } from 'mdui'
 import { Theme } from '../theme'
 import { InputListEntry, Editor } from '../theme'
-import { Literal } from 'n3'
+import { Literal, NamedNode } from 'n3'
+import { Term as N3Term }  from 'n3'
 import css from './material.css?raw'
-import { PREFIX_XSD } from '../constants'
+import { PREFIX_SHACL, PREFIX_XSD, XSD_DATATYPE_STRING } from '../constants'
+import { RokitSelect } from '@ro-kit/ui-widgets'
 
 export class MaterialTheme extends Theme {
     constructor() {
@@ -16,7 +18,9 @@ export class MaterialTheme extends Theme {
         editor.classList.add('editor')
         if (template?.datatype) {
             // store datatype on editor, this is used for RDF serialization
-            editor['shaclDatatype'] = template.datatype
+            editor.shaclDatatype = template.datatype
+        } else if (value instanceof Literal) {
+            editor.shaclDatatype = value.datatype
         }
         if (template?.minCount !== undefined) {
             editor.dataset.minCount = String(template.minCount)
@@ -26,8 +30,10 @@ export class MaterialTheme extends Theme {
         }
         if (template?.nodeKind) {
             editor.dataset.nodeKind = template.nodeKind.value
+        } else if (value instanceof NamedNode) {
+            editor.dataset.nodeKind = PREFIX_SHACL + 'IRI'
         }
-        if (template?.hasValue) {
+        if (template?.hasValue || template?.readonly) {
             editor.disabled = true
         }
         editor.value = value?.value || template?.defaultValue?.value || ''
@@ -65,6 +71,7 @@ export class MaterialTheme extends Theme {
         if (template.pattern) {
             editor.pattern = template.pattern
         }
+        // @ts-ignore
         return this.createDefaultTemplate('', value, required, editor, template)
     }
 
@@ -85,45 +92,50 @@ export class MaterialTheme extends Theme {
         if (template.datatype?.value !== PREFIX_XSD + 'integer') {
             editor.setAttribute('step', '0.1')
         }
+        // @ts-ignore
         return this.createDefaultTemplate('', value, required, editor, template)
     }
 
     createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement {
-        const editor = new Select()
-        editor.variant = 'outlined'
-        editor.label = label
-        editor.helper = template?.description?.value
+        const editor = new RokitSelect()
         editor.clearable = true
-        // @ts-ignore
-        const result = this.createDefaultTemplate('', null, required, editor, template)
-        let addEmptyOption = true
-    
-        for (const item of listEntries) {
-            const option = new MenuItem()
-            const itemValue = (typeof item.value === 'string') ? item.value : item.value.value
-            const itemLabel = item.label ? item.label : itemValue
-            option.value = itemValue
-            option.textContent = itemLabel || itemValue
-            // if (value && value.value === itemValue) {
-            //     option.selected = true
-            // }
-            if (item.indent) {
-                for (let i = 0; i < item.indent; i++) {
-                    option.innerHTML = '&#160;&#160;' + option.innerHTML
+        const result = this.createDefaultTemplate(label, null, required, editor, template)
+        const ul = document.createElement('ul')
+        let isFlatList = true
+
+        const appendListEntry = (entry: InputListEntry, parent: HTMLUListElement) => {
+            const li = document.createElement('li')
+            if (typeof entry.value === 'string') {
+                li.dataset.value = entry.value
+                li.innerText = entry.label ? entry.label : entry.value
+            } else {
+                if (entry.value instanceof Literal && entry.value.datatype.equals(XSD_DATATYPE_STRING)) {
+                    li.dataset.value = entry.value.value
+                } else {
+                    // this is needed for typed rdf literals
+                    li.dataset.value = (entry.value as N3Term).id
+                }
+                li.innerText = entry.label ? entry.label : entry.value.value
+            }
+            parent.appendChild(li)
+            if (entry.children?.length) {
+                isFlatList = false
+                const ul = document.createElement('ul')
+                li.appendChild(ul)
+                for (const child of entry.children) {
+                    appendListEntry(child, ul)
                 }
             }
-            if (itemValue === '') {
-                addEmptyOption = false
-                option.ariaLabel = 'blank'
-            }
-            editor.appendChild(option)
         }
-        if (addEmptyOption) {
-            // add an empty element
-            const empty = new MenuItem()
-            empty.ariaLabel = 'blank'
-            editor.prepend(empty)
+
+        for (const item of listEntries) {
+            appendListEntry(item, ul)
         }
+        if (!isFlatList) {
+            editor.collapse = true
+        }
+
+        editor.appendChild(ul)
         if (value) {
             editor.value = value.value
         }
@@ -142,7 +154,7 @@ export class MaterialTheme extends Theme {
         return result
     }
 
-    createDateEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
+    createDateEditor(_: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = new TextField()
         editor.variant = 'outlined'
         editor.helper = template?.description?.value || template?.label || ''
@@ -155,6 +167,7 @@ export class MaterialTheme extends Theme {
             editor.type = 'date'
         }
         editor.classList.add('pr-0')
+        // @ts-ignore
         const result = this.createDefaultTemplate('', null, required, editor, template)
         if (value) {
             try {

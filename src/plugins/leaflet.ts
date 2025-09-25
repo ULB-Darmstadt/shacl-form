@@ -136,12 +136,12 @@ export class LeafletPlugin extends Plugin {
             document.body.style.position = 'fixed'
             dialog.showModal()
         }
-        const instance = fieldFactory(template, value || null)
+        const instance = fieldFactory(template, value || null, true)
         instance.appendChild(button)
         return instance
     }
 
-    createViewer(template: ShaclPropertyTemplate, value: Term): HTMLElement {
+    createViewer(_: ShaclPropertyTemplate, value: Term): HTMLElement {
         const container = document.createElement('div')
         const geometry = wktToGeometry(value.value)
         if (geometry?.coordinates?.length) {

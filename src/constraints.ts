@@ -3,9 +3,8 @@ import { Term } from '@rdfjs/types'
 import { ShaclNode } from "./node"
 import { ShaclProperty, createPropertyInstance } from "./property"
 import { Config } from './config'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY } from './constants'
 import { findLabel, removePrefixes } from './util'
-import { ShaclPropertyTemplate } from './property-template'
 import { Editor, InputListEntry } from './theme'
 
 
@@ -14,28 +13,54 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
     constraintElement.classList.add('shacl-or-constraint')
 
     const optionElements: InputListEntry[] =  []
-    optionElements.push({ label: '--- please choose ---', value: '' })
 
     if (context instanceof ShaclNode) {
-        const properties: ShaclProperty[] = []
-        // expect options to be shacl properties
+        const properties: ShaclProperty[][] = []
+        // options can be shacl properties or blank nodes referring to (list of) properties
+        let optionsAreReferencedProperties = false
+        if (options.length) {
+            optionsAreReferencedProperties = config.store.countQuads(options[0], SHACL_PREDICATE_PROPERTY, null, null) > 0
+        }
         for (let i = 0; i < options.length; i++) {
-            const property = new ShaclProperty(options[i] as NamedNode | BlankNode, context, config)
-            properties.push(property)
-            optionElements.push({ label: property.template.label, value: i.toString() })
+            if (optionsAreReferencedProperties) {
+                const quads = config.store.getObjects(options[i] , SHACL_PREDICATE_PROPERTY, null)
+                // option can be single property or list of properties
+                const list: ShaclProperty[] = []
+                let combinedText = ''
+                for (const subject of quads) {
+                    const property = new ShaclProperty(subject as NamedNode | BlankNode, context, config)
+                    list.push(property)
+                    combinedText += (combinedText.length > 1 ? ' / ' : '') + property.template.label
+                }
+                properties.push(list)
+                optionElements.push({ label: combinedText, value: i.toString() })
+            } else {
+                const property = new ShaclProperty(options[i] as NamedNode | BlankNode, context, config)
+                properties.push([property])
+                optionElements.push({ label: property.template.label, value: i.toString() })
+            }
         }
         const editor = config.theme.createListEditor('Please choose', null, false, optionElements)
         const select = editor.querySelector('.editor') as Editor
         select.onchange = () => {
             if (select.value) {
-                constraintElement.replaceWith(properties[parseInt(select.value)])
+                const selectedOptions = properties[parseInt(select.value)]
+                let lastAddedProperty: ShaclProperty
+                if (selectedOptions.length) {
+                    lastAddedProperty = selectedOptions[0]
+                    constraintElement.replaceWith(selectedOptions[0])
+                }
+                for (let i = 1; i < selectedOptions.length; i++) {
+                    lastAddedProperty!.after(selectedOptions[i])
+                    lastAddedProperty = selectedOptions[i]
+                }
             }
         }
         constraintElement.appendChild(editor)
     } else {
         const values: Quad[][] = []
         for (let i = 0; i < options.length; i++) {
-            const quads = config.shapesGraph.getQuads(options[i], null, null, null)
+            const quads = config.store.getQuads(options[i], null, null, null)
             if (quads.length) {
                 values.push(quads)
                 optionElements.push({ label: findLabel(quads, config.languages) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes)), value: i.toString() })
@@ -54,53 +79,71 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
     return constraintElement
 }
 
-export function resolveShaclOrConstraint(template: ShaclPropertyTemplate, value: Term): ShaclPropertyTemplate {
-    if (!template.shaclOr) {
-        console.warn('can\'t resolve sh:or because template has no options', template)
-        return template
-    }
+export function resolveShaclOrConstraintOnProperty(subjects: Term[], value: Term, config: Config): Quad[] {
     if (value instanceof Literal) {
-        // value is a literal, try to resolve sh:or by matching on given value datatype
+        // value is a literal, try to resolve sh:or/sh:xone by matching on given value datatype
         const valueType = value.datatype
-        for (const subject of template.shaclOr) {
-            const options = template.config.shapesGraph.getQuads(subject, null, null, null)
+        for (const subject of subjects) {
+            const options = config.store.getQuads(subject, null, null, null)
             for (const quad of options) {
                 if (quad.predicate.value === `${PREFIX_SHACL}datatype` && quad.object.equals(valueType)) {
-                    return template.clone().merge(options)
+                    return options
                 }
             }
         }
     } else {
-        // value is a NamedNode or BlankNode, try to resolve sh:or by matching rdf:type of given value with sh:node or sh:class in data graph or shapes graph
-        let types = template.config.dataGraph.getObjects(value, RDF_PREDICATE_TYPE, null)
-        types.push(...template.config.shapesGraph.getObjects(value, RDF_PREDICATE_TYPE, null))
-        for (const subject of template.shaclOr) {
-            const options = template.config.shapesGraph.getQuads(subject, null, null, null)
+        // value is a NamedNode or BlankNode, try to resolve sh:or/sh:xone by matching rdf:type of given value with sh:node or sh:class in data graph or shapes graph
+        const types = config.store.getObjects(value, RDF_PREDICATE_TYPE, null)
+        for (const subject of subjects) {
+            const options = config.store.getQuads(subject, null, null, null)
             for (const quad of options) {
                 if (types.length > 0) {
-                    // try to find matching sh:node in sh:or values
+                    // try to find matching sh:node in sh:or/sh:xone values
                     if (quad.predicate.value === `${PREFIX_SHACL}node`) {
                         for (const type of types) {
-                            if (template.config.shapesGraph.getQuads(quad.object, SHACL_PREDICATE_TARGET_CLASS, type, null).length > 0) {
-                                return template.clone().merge(options)
+                            if (config.store.getQuads(quad.object, SHACL_PREDICATE_TARGET_CLASS, type, null).length > 0) {
+                                return options
                             }
                         }
                     }
-                    // try to find matching sh:class in sh:or values
+                    // try to find matching sh:class in sh:or/sh:xone values
                     if (quad.predicate.equals(SHACL_PREDICATE_CLASS)) {
                         for (const type of types) {
                             if (quad.object.equals(type)) {
-                                return template.clone().merge(options)
+                                return options
                             }
                         }
                     }
                 } else if (quad.predicate.equals(SHACL_PREDICATE_NODE_KIND) && quad.object.equals(SHACL_OBJECT_IRI)) {
                     // if sh:nodeKind is sh:IRI, just use that
-                    return template.clone().merge(options)
+                    return options
                 }
             }
         }
     }
-    console.error('couldn\'t resolve sh:or for value', value)
-    return template
+    console.error('couldn\'t resolve sh:or/sh:xone on property for value', value)
+    return []
+}
+
+export function resolveShaclOrConstraintOnNode(subjects: Term[], value: Term, config: Config): Term[] {
+    for (const subject of subjects) {
+        let subjectMatches = false
+        const propertySubjects = config.store.getObjects(subject, SHACL_PREDICATE_PROPERTY, null)
+        for (const propertySubject of propertySubjects) {
+            const paths = config.store.getObjects(propertySubject, `${PREFIX_SHACL}path`, null)
+            for (const path of paths) {
+                // this allows partial matches in data or shapes graph on properties
+                subjectMatches = config.store.countQuads(value, path, null, null) > 0
+                if (subjectMatches) {
+                    break
+                }
+            }
+        }
+        if (subjectMatches) {
+            return propertySubjects
+        }
+    }
+
+    console.error('couldn\'t resolve sh:or/sh:xone on node for value', value)
+    return []
 }
