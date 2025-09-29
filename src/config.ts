@@ -8,6 +8,7 @@ import { extractLists } from './util'
 import { ShaclNodeTemplate } from './node-template'
 import { ShaclPropertyTemplate } from './property-template'
 import { DefaultTheme } from './theme.default'
+import { Validator } from 'shacl-engine'
 
 export class ElementAttributes {
     shapes: string | null = null
@@ -52,6 +53,7 @@ export class Config {
     nodeShapes: Record<string, ShaclNodeTemplate> = {}
     propertyShapes: Record<string, ShaclPropertyTemplate> = {}
     private _store = new Store()
+    validator = new Validator(this._store, { details: true, factory: DataFactory })
 
     constructor(form: HTMLElement) {
         this.form = form
@@ -131,5 +133,6 @@ export class Config {
         store.forSubjects(subject => {
             this.groups.push(subject.id)
         }, RDF_PREDICATE_TYPE, `${PREFIX_SHACL}PropertyGroup`, null)
+        this.validator = new Validator(store, { details: true, factory: DataFactory })
     }
 }
