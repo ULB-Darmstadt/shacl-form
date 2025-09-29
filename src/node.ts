@@ -109,7 +109,7 @@ export class ShaclNode extends HTMLElement {
     }
 
     addPropertyInstance(template: ShaclPropertyTemplate, valueSubject: NamedNode | BlankNode | undefined) {
-        let parentElement: HTMLElement = this
+        let container: HTMLElement = this
         // check if property belongs to a group
         if (template.group) {
             if (template.config.groups.indexOf(template.group) > -1) {
@@ -119,16 +119,19 @@ export class ShaclNode extends HTMLElement {
                     group = createShaclGroup(template.group, template.config)
                     this.appendChild(group)
                 }
-                parentElement = group
+                container = group
             } else {
                 console.warn('ignoring unknown group reference', template.group, 'existing groups:', template.config.groups)
             }
         }
         const property = new ShaclProperty(template, this, valueSubject)
-        // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
-        if (property.childElementCount > 0) {
-            parentElement.appendChild(property)
-        }
+        // property value binding is asznchronous, so delay instance count check
+        setTimeout(() => {
+            // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
+            if (template.config.editMode || property.instanceCount() > 0) {
+                container.appendChild(property)
+            }
+        })
     }
 
     tryResolve(options: Term[], valueSubject: NamedNode | BlankNode | undefined, config: Config) {

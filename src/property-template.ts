@@ -34,7 +34,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}hasValue`]:     (template, term) => { template.hasValue = term },
     [`${PREFIX_SHACL}qualifiedValueShape`]: (template, term) => { 
         template.qualifiedValueShape = term
-        template.extendedShapes.add(template.config.nodeShapes[term.value] || new ShaclNodeTemplate(term, template.config))
+        template.nodeShapes.add(template.config.nodeShapes[term.value] || new ShaclNodeTemplate(term, template.config))
     },
     [`${PREFIX_SHACL}qualifiedMinCount`]:   (template, term) => { template.minCount = parseInt(term.value) },
     [`${PREFIX_SHACL}qualifiedMaxCount`]:   (template, term) => { template.maxCount = parseInt(term.value) },
@@ -96,13 +96,15 @@ export class ShaclPropertyTemplate {
     datatype: NamedNode | undefined
     hasValue: Term | undefined
     qualifiedValueShape: Term | undefined
-    extendedShapes: Set<ShaclNodeTemplate> = new Set()
+    nodeShapes: Set<ShaclNodeTemplate> = new Set()
     owlImports: Set<NamedNode> = new Set()
  
+    id: Term
     parent: ShaclNodeTemplate
     config: Config
 
     constructor(id: Term, parent: ShaclNodeTemplate) {
+        this.id = id
         this.parent = parent
         this.config = parent.config
         this.config.propertyShapes[id.value] = this
@@ -113,7 +115,7 @@ export class ShaclPropertyTemplate {
 export function cloneProperty(template: ShaclPropertyTemplate) {
     const copy = Object.assign({}, template)
     // arrays are not cloned but referenced, so create them manually
-    copy.extendedShapes = new Set(template.extendedShapes )
+    copy.nodeShapes = new Set(template.nodeShapes )
     copy.owlImports = new Set(template.owlImports)
     if (template.languageIn) {
         copy.languageIn = [ ...template.languageIn ]
@@ -136,15 +138,15 @@ export function mergeQuads(template: ShaclPropertyTemplate, quads: Quad[]) {
     if (!template.label && !template.and) {
         template.label = template.path ? removePrefixes(template.path, template.config.prefixes) : 'unknown'
     }
-    // register extended shapes
+    // register node shapes
     if (template.node) {
-        template.extendedShapes.add(template.config.nodeShapes[template.node.value] || new ShaclNodeTemplate(template.node, template.config))
+        template.nodeShapes.add(template.config.nodeShapes[template.node.value] || new ShaclNodeTemplate(template.node, template.config))
     }
     if (template.and) {
         const list = template.config.lists[template.and]
         if (list?.length) {
             for (const node of list) {
-                template.extendedShapes.add(template.config.nodeShapes[node.value] || new ShaclNodeTemplate(node, template.config))
+                template.nodeShapes.add(template.config.nodeShapes[node.value] || new ShaclNodeTemplate(node, template.config))
             }
         }
     }
@@ -155,7 +157,7 @@ export function mergeProperty(target: ShaclPropertyTemplate, source: ShaclProper
     const s = source as Record<string, any>
     const t = target as Record<string, any>
     for (const key in source) {
-        if (key !== 'parent' && key !== 'config') {
+        if (key !== 'parent' && key !== 'config' && key !== 'id') {
             if (s[key] !== undefined && s[key] !== '') {
                 if (Array.isArray(s[key])) {
                     t[key].push(...s[key])
