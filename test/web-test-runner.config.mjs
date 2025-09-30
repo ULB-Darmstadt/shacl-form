@@ -1,7 +1,7 @@
-import { esbuildPlugin } from '@web/dev-server-esbuild';
+import { vitePlugin } from '@remcovaes/web-test-runner-vite-plugin';
 
 export default{
   files: 'test/**/*.test.ts',
   nodeResolve: true,
-  plugins: [esbuildPlugin({ ts: true })],
+  plugins: [vitePlugin()],
 };
