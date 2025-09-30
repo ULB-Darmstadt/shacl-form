@@ -129,7 +129,7 @@ export class ShaclForm extends HTMLElement {
                 this.form.replaceChildren(errorDisplay)
             }
             this.removeAttribute('loading')
-        }, 200)
+        }, 100)
     }
 
     public serialize(format = 'text/turtle', graph = this.toRDF()): string {

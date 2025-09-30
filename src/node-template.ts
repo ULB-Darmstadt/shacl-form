@@ -53,7 +53,7 @@ export function mergeQuads(template: ShaclNodeTemplate, quads: Quad[]) {
     return template
 }
 
-// merges properties with same path (and no qualifiedValueShape) on upmost suitable parent if cardinality of aggregated property's maxCount equals 1
+// merges properties with same sh:path and no sh:qualifiedValueShape on upmost suitable parent if cardinality of merged property's sh:maxCount equals 1
 export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
     const accumulatedProps: Record<string, ShaclPropertyTemplate[]> = {}
     accumulateProps(node, accumulatedProps)
