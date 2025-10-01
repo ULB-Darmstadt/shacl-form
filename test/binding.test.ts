@@ -47,7 +47,7 @@ describe('test value binding', () => {
         }
     })
 
-    it('xsd:langString binding', async () => {
+    it('xsd:langString with sh:languageIn binding', async () => {
         const value = '"example string"@en'
         const [shapesQuads, inputQuads] = await bind(form, `
             ${prefixes}

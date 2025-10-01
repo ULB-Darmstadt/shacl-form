@@ -9,6 +9,7 @@ import { RokitCollapsible } from '@ro-kit/ui-widgets'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
 
 export * from './exports'
+export const initTimeout = 50
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.dataAttributes() }
@@ -129,7 +130,7 @@ export class ShaclForm extends HTMLElement {
                 this.form.replaceChildren(errorDisplay)
             }
             this.removeAttribute('loading')
-        }, 100)
+        }, initTimeout)
     }
 
     public serialize(format = 'text/turtle', graph = this.toRDF()): string {

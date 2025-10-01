@@ -36,7 +36,7 @@
         "dev": "vite serve ./demo --host",
         "build": "npm run clean && tsc && npm run build-lib && npm run build-bundle && npm run build-plugins",
         "preview": "vite preview",
-        "test": "web-test-runner --config test/web-test-runner.config.mjs",
+        "test": "web-test-runner --config test/config.js",
         "clean": "rimraf dist",
         "build-lib": "vite build  -c ./vite.config.ts",
         "build-bundle": "vite build  -c ./vite.config.bundle.ts",

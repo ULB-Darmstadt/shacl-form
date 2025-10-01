@@ -1,5 +1,5 @@
-import { Quad, Store, StreamParser } from "n3"
-import { ShaclForm } from "../src/form"
+import { Quad, StreamParser } from "n3"
+import { initTimeout, ShaclForm } from "../src/form"
 import { expect } from "@open-wc/testing"
 import { isomorphic } from "rdf-isomorphic"
 
@@ -10,7 +10,7 @@ export function awaitFormLoaded(form: ShaclForm) {
                 clearInterval(interval)
                 resolve()
             }
-        }, 150)
+        }, initTimeout + 10)
     })
 }
 
