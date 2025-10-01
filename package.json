@@ -53,13 +53,12 @@
         "@types/mocha": "^10.0.10",
         "@types/n3": "^1.26.0",
         "@web/test-runner": "^0.20.2",
-        "glob": "^11.0.3",
+        "@web/test-runner-chrome": "^0.18.1",
         "rdf-isomorphic": "^2.0.1",
         "rimraf": "^6.0.1",
         "rollup-plugin-peer-deps-external": "^2.2.4",
-        "typescript": "^5.9.2",
-        "vite": "^7.1.7",
-        "vitest": "^3.2.4"
+        "typescript": "^5.9.3",
+        "vite": "^7.1.7"
     },
     "peerDependencies": {
         "@ro-kit/ui-widgets": "^1.0.9",
