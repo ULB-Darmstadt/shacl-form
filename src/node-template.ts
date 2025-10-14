@@ -15,7 +15,22 @@ const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void>
                 array = []
                 template.properties[property.path] = array
             }
-            array.push(property)
+            if (property.qualifiedValueShape) {
+                array.push(property)
+            } else {
+                // merge properties with same path and no qualifiedValueShape into one single property
+                let existingProperty: ShaclPropertyTemplate | undefined
+                for (let i = 0; i < template.properties[property.path].length && !existingProperty; i++) {
+                    if (!template.properties[property.path][i].qualifiedValueShape) {
+                        existingProperty = template.properties[property.path][i]
+                    }
+                }
+                if (existingProperty) {
+                    mergeProperty(existingProperty, property)
+                } else {
+                    array.push(property)
+                }
+            }
         }
     },
     [`${PREFIX_SHACL}nodeKind`]:            (template, term) => { template.nodeKind = term as NamedNode },
@@ -80,11 +95,11 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
     }
 }
 
-function accumulateProps(node: ShaclNodeTemplate, accumulatedProps: Record<string, ShaclPropertyTemplate[]>, visited = new WeakSet()) {
-    if (visited.has(node.id)) {
+function accumulateProps(node: ShaclNodeTemplate, accumulatedProps: Record<string, ShaclPropertyTemplate[]>, visited = new Set<string>()) {
+    if (visited.has(node.id.value)) {
         return
     }
-    visited.add(node.id)
+    visited.add(node.id.value)
     for (const [path, props] of Object.entries(node.properties)) {
         let array = accumulatedProps[path]
         if (!array) {
