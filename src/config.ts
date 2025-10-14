@@ -5,8 +5,6 @@ import { ClassInstanceProvider } from './plugin'
 import { Loader } from './loader'
 import { Theme } from './theme'
 import { extractLists } from './util'
-import { ShaclNodeTemplate } from './node-template'
-import { ShaclPropertyTemplate } from './property-template'
 import { DefaultTheme } from './theme.default'
 import { Validator } from 'shacl-engine'
 
@@ -50,8 +48,6 @@ export class Config {
     form: HTMLElement
     renderedNodes = new Set<string>()
     valuesGraphId: NamedNode | undefined
-    nodeShapes: Record<string, ShaclNodeTemplate> = {}
-    propertyShapes: Record<string, ShaclPropertyTemplate> = {}
     private _store = new Store()
     validator = new Validator(this._store, { details: true, factory: DataFactory })
 
@@ -71,8 +67,6 @@ export class Config {
         this.lists = {}
         this.groups = []
         this.renderedNodes.clear()
-        this.nodeShapes = {}
-        this.propertyShapes = {}
     }
  
     updateAttributes(elem: HTMLElement) {

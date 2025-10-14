@@ -9,7 +9,6 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; template.name = prioritizeByLanguage(template.config.languages, template.name, literal) },
     [`${PREFIX_SHACL}description`]:  (template, term) => { const literal = term as Literal; template.description = prioritizeByLanguage(template.config.languages, template.description, literal) },
     [`${PREFIX_SHACL}path`]:         (template, term) => { template.path = term.value },
-    [`${PREFIX_SHACL}node`]:         (template, term) => { template.node = term as NamedNode },
     [`${PREFIX_SHACL}group`]:        (template, term) => { template.group = (term as NamedNode).id },
     [`${PREFIX_SHACL}datatype`]:     (template, term) => { template.datatype = term as NamedNode },
     [`${PREFIX_SHACL}nodeKind`]:     (template, term) => { template.nodeKind = term as NamedNode },
@@ -26,15 +25,27 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_DASH}singleLine`]:    (template, term) => { template.singleLine = term.value === 'true' },
     [`${PREFIX_DASH}readonly`]:      (template, term) => { template.readonly = term.value === 'true' },
     [`${PREFIX_OA}styleClass`]:      (template, term) => { template.cssClass = term.value },
-    [`${PREFIX_SHACL}and`]:          (template, term) => { template.and = term.value },
     [`${PREFIX_SHACL}in`]:           (template, term) => { template.in = term.value },
     // sh:datatype might be undefined, but sh:languageIn defined. this is undesired. the spec says, that strings without a lang tag are not valid if sh:languageIn is set. but the shacl validator accepts these as valid. to prevent this, we just set the datatype here to 'langString'.
     [`${PREFIX_SHACL}languageIn`]:   (template, term) => { template.languageIn = template.config.lists[term.value]; template.datatype = DataFactory.namedNode(PREFIX_RDF + 'langString') },
     [`${PREFIX_SHACL}defaultValue`]: (template, term) => { template.defaultValue = term },
     [`${PREFIX_SHACL}hasValue`]:     (template, term) => { template.hasValue = term },
+    [`${PREFIX_SHACL}node`]:         (template, term) => {
+        template.node = term as NamedNode
+        template.nodeShapes.add(new ShaclNodeTemplate(term, template.config))
+    },
+    [`${PREFIX_SHACL}and`]:          (template, term) => {
+        template.and = term.value
+        const list = template.config.lists[template.and]
+        if (list?.length) {
+            for (const node of list) {
+                template.nodeShapes.add(new ShaclNodeTemplate(node, template.config))
+            }
+        }
+    },
     [`${PREFIX_SHACL}qualifiedValueShape`]: (template, term) => { 
         template.qualifiedValueShape = term
-        template.nodeShapes.add(template.config.nodeShapes[term.value] || new ShaclNodeTemplate(term, template.config))
+        template.nodeShapes.add(new ShaclNodeTemplate(term, template.config))
     },
     [`${PREFIX_SHACL}qualifiedMinCount`]:   (template, term) => { template.minCount = parseInt(term.value) },
     [`${PREFIX_SHACL}qualifiedMaxCount`]:   (template, term) => { template.maxCount = parseInt(term.value) },
@@ -107,14 +118,13 @@ export class ShaclPropertyTemplate {
         this.id = id
         this.parent = parent
         this.config = parent.config
-        this.config.propertyShapes[id.value] = this
         mergeQuads(this, this.config.store.getQuads(id, null, null, null))
     }
 }
 
 export function cloneProperty(template: ShaclPropertyTemplate) {
     const copy = Object.assign({}, template)
-    // arrays are not cloned but referenced, so create them manually
+    // arrays/sets are not cloned but referenced, so clone them manually
     copy.nodeShapes = new Set(template.nodeShapes )
     copy.owlImports = new Set(template.owlImports)
     if (template.languageIn) {
@@ -135,20 +145,8 @@ export function mergeQuads(template: ShaclPropertyTemplate, quads: Quad[]) {
     }
     // provide best fitting label for UI
     template.label = template.name?.value || findLabel(quads, template.config.languages)
-    if (!template.label && !template.and) {
+    if (!template.label) {
         template.label = template.path ? removePrefixes(template.path, template.config.prefixes) : 'unknown'
-    }
-    // register node shapes
-    if (template.node) {
-        template.nodeShapes.add(template.config.nodeShapes[template.node.value] || new ShaclNodeTemplate(template.node, template.config))
-    }
-    if (template.and) {
-        const list = template.config.lists[template.and]
-        if (list?.length) {
-            for (const node of list) {
-                template.nodeShapes.add(template.config.nodeShapes[node.value] || new ShaclNodeTemplate(node, template.config))
-            }
-        }
     }
     return template
 }

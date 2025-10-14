@@ -47,15 +47,9 @@ export class ShaclProperty extends HTMLElement {
             if (template.path) {
                 let values: Quad[] = []
                 if (valueSubject) {
-                    if (parent.linked) {
-                        // for linked resource, get values in all graphs
-                        values = template.config.store.getQuads(valueSubject, template.path, null, null)
-                    } else {
-                        // get values only from data graph
-                        values = template.config.store.getQuads(valueSubject, template.path, null, DATA_GRAPH)
-                    }
-                    // ignore values that do not conform to this property.
-                    // this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
+                    // for linked resource, get values in all graphs, otherwise only from data graph
+                    values = template.config.store.getQuads(valueSubject, template.path, null, parent.linked ? null : DATA_GRAPH)
+                    // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
                     values = await this.filterValidValues(values, valueSubject)
                 }
                 let valuesContainHasValue = false
@@ -168,11 +162,23 @@ export class ShaclProperty extends HTMLElement {
     }
 
     async filterValidValues(values: Quad[], valueSubject: NamedNode | BlankNode) {
-        const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: [ valueSubject ] }, [{ terms: [ this.template.id ] }])
+        // if this property is a sh:qualifiedValueShape, then filter values by validating against this shape
+        let nodeShapeToValidate = this.template.id
+        let dataSubjectsToValidate = [valueSubject]
+        if (this.template.qualifiedValueShape) {
+            nodeShapeToValidate = this.template.qualifiedValueShape
+            dataSubjectsToValidate = []
+            for (const value of values) {
+                dataSubjectsToValidate.push(value.object as NamedNode)
+            }
+        }
+        // console.log('--- filtering values for shape=', nodeShapeToValidate.value, 'valueSubjects=', JSON.stringify(dataSubjectsToValidate.map(v => { return v.value })), 'backmapping=', JSON.stringify(backMapping))
+        const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [{ terms: [ nodeShapeToValidate ] }])
         const invalidTerms: string[] =  []
         for (const result of report.results) {
-            if (result.value?.ptrs?.length) {
-                invalidTerms.push(result.value.ptrs[0]._term.id)
+            const reportObject = this.template.qualifiedValueShape ? result.focusNode : result.value
+            if (reportObject?.ptrs?.length) {
+                invalidTerms.push(reportObject.ptrs[0]._term.id)
             }
         }
         return values.filter(value => {

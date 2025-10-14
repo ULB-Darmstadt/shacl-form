@@ -29,7 +29,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                 const list: ShaclProperty[] = []
                 let combinedText = ''
                 for (const subject of quads) {
-                    const template = config.propertyShapes[subject.value] || new ShaclPropertyTemplate(subject, context.template)
+                    const template = new ShaclPropertyTemplate(subject, context.template)
                     const property = new ShaclProperty(template, context)
                     list.push(property)
                     combinedText += (combinedText.length > 1 ? ' / ' : '') + property.template.label
@@ -38,7 +38,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                 optionElements.push({ label: combinedText, value: i.toString() })
             } else {
                 const subject = options[i] as NamedNode | BlankNode
-                const template = config.propertyShapes[subject.value] || new ShaclPropertyTemplate(subject, context.template)
+                const template = new ShaclPropertyTemplate(subject, context.template)
                 const property = new ShaclProperty(template, context)
                 properties.push([property])
                 optionElements.push({ label: property.template.label, value: i.toString() })

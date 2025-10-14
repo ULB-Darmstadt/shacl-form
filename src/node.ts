@@ -51,7 +51,7 @@ export class ShaclNode extends HTMLElement {
             anchor.classList.add('ref-link')
             anchor.onclick = () => {
                 // if anchor is clicked, scroll referenced shacl node into view
-                this. template.config.form.querySelector(`shacl-node[data-node-id='${refId}']`)?.scrollIntoView()
+                this.template.config.form.querySelector(`shacl-node[data-node-id='${refId}']`)?.scrollIntoView()
             }
             this.appendChild(anchor)
             this.style.flexDirection = 'row'
@@ -60,7 +60,7 @@ export class ShaclNode extends HTMLElement {
                 template.config.renderedNodes.add(id)
             }
             this.dataset.nodeId = this.nodeId.id
-            if (this. template.config.attributes.showNodeIds !== null) {
+            if (this.template.config.attributes.showNodeIds !== null) {
                 const div = document.createElement('div')
                 div.innerText = `id: ${this.nodeId.id}`
                 div.classList.add('node-id-display')
@@ -98,11 +98,11 @@ export class ShaclNode extends HTMLElement {
                 (shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
             }
             if (this.template.targetClass) {
-                graph.addQuad(subject, RDF_PREDICATE_TYPE, this.template.targetClass, this. template.config.valuesGraphId)
+                graph.addQuad(subject, RDF_PREDICATE_TYPE, this.template.targetClass, this.template.config.valuesGraphId)
             }
             // if this is the root shacl node, add one of the rdf:type or dcterms:conformsTo predicates
             if (generateNodeShapeReference) {
-                graph.addQuad(subject, DataFactory.namedNode(generateNodeShapeReference), this.template.id as NamedNode, this. template.config.valuesGraphId)
+                graph.addQuad(subject, DataFactory.namedNode(generateNodeShapeReference), this.template.id as NamedNode, this.template.config.valuesGraphId)
             }
         }
         return subject
@@ -140,7 +140,7 @@ export class ShaclNode extends HTMLElement {
             const resolvedPropertySubjects = resolveShaclOrConstraintOnNode(options, valueSubject, config)
             if (resolvedPropertySubjects.length) {
                 for (const propertySubject of resolvedPropertySubjects) {
-                    this.addPropertyInstance(config.propertyShapes[propertySubject.value], valueSubject)
+                    this.addPropertyInstance(new ShaclPropertyTemplate(propertySubject, this.template), valueSubject)
                 }
                 resolved = true
             }
