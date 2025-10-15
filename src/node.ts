@@ -140,7 +140,7 @@ export class ShaclNode extends HTMLElement {
             const resolvedPropertySubjects = resolveShaclOrConstraintOnNode(options, valueSubject, config)
             if (resolvedPropertySubjects.length) {
                 for (const propertySubject of resolvedPropertySubjects) {
-                    this.addPropertyInstance(new ShaclPropertyTemplate(propertySubject, this.template), valueSubject)
+                    this.addPropertyInstance(config.getPropertyTemplate(propertySubject, this.template), valueSubject)
                 }
                 resolved = true
             }

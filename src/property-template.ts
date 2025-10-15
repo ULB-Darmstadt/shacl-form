@@ -32,20 +32,21 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_SHACL}hasValue`]:     (template, term) => { template.hasValue = term },
     [`${PREFIX_SHACL}node`]:         (template, term) => {
         template.node = term as NamedNode
-        template.nodeShapes.add(new ShaclNodeTemplate(term, template.config))
+        template.nodeShapes.add(template.config.getNodeTemplate(term, template))
     },
     [`${PREFIX_SHACL}and`]:          (template, term) => {
         template.and = term.value
         const list = template.config.lists[template.and]
         if (list?.length) {
             for (const node of list) {
-                template.nodeShapes.add(new ShaclNodeTemplate(node, template.config))
+                template.nodeShapes.add(template.config.getNodeTemplate(node, template))
             }
         }
     },
     [`${PREFIX_SHACL}qualifiedValueShape`]: (template, term) => { 
-        template.qualifiedValueShape = term
-        template.nodeShapes.add(new ShaclNodeTemplate(term, template.config))
+        const shape = template.config.getNodeTemplate(term, template)
+        template.qualifiedValueShape = shape
+        template.nodeShapes.add(shape)
     },
     [`${PREFIX_SHACL}qualifiedMinCount`]:   (template, term) => { template.minCount = parseInt(term.value) },
     [`${PREFIX_SHACL}qualifiedMaxCount`]:   (template, term) => { template.maxCount = parseInt(term.value) },
@@ -106,7 +107,7 @@ export class ShaclPropertyTemplate {
     languageIn: Term[] | undefined
     datatype: NamedNode | undefined
     hasValue: Term | undefined
-    qualifiedValueShape: Term | undefined
+    qualifiedValueShape: ShaclNodeTemplate | undefined
     nodeShapes: Set<ShaclNodeTemplate> = new Set()
     owlImports: Set<NamedNode> = new Set()
  
@@ -118,6 +119,8 @@ export class ShaclPropertyTemplate {
         this.id = id
         this.parent = parent
         this.config = parent.config
+        // register this template on config before merging quads to prevent recursion
+        this.config.registerPropertyTemplate(this)
         mergeQuads(this, this.config.store.getQuads(id, null, null, null))
     }
 }
@@ -125,7 +128,7 @@ export class ShaclPropertyTemplate {
 export function cloneProperty(template: ShaclPropertyTemplate) {
     const copy = Object.assign({}, template)
     // arrays/sets are not cloned but referenced, so clone them manually
-    copy.nodeShapes = new Set(template.nodeShapes )
+    copy.nodeShapes = new Set(template.nodeShapes)
     copy.owlImports = new Set(template.owlImports)
     if (template.languageIn) {
         copy.languageIn = [ ...template.languageIn ]

@@ -6,7 +6,7 @@ import { Config } from './config'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY } from './constants'
 import { findLabel, removePrefixes } from './util'
 import { Editor, InputListEntry } from './theme'
-import { cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
+import { cloneProperty, mergeQuads } from './property-template'
 
 
 export function createShaclOrConstraint(options: Term[], context: ShaclNode | ShaclProperty, config: Config): HTMLElement {
@@ -29,7 +29,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                 const list: ShaclProperty[] = []
                 let combinedText = ''
                 for (const subject of quads) {
-                    const template = new ShaclPropertyTemplate(subject, context.template)
+                    const template = config.getPropertyTemplate(subject, context.template)
                     const property = new ShaclProperty(template, context)
                     list.push(property)
                     combinedText += (combinedText.length > 1 ? ' / ' : '') + property.template.label
@@ -38,7 +38,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                 optionElements.push({ label: combinedText, value: i.toString() })
             } else {
                 const subject = options[i] as NamedNode | BlankNode
-                const template = new ShaclPropertyTemplate(subject, context.template)
+                const template = config.getPropertyTemplate(subject, context.template)
                 const property = new ShaclProperty(template, context)
                 properties.push([property])
                 optionElements.push({ label: property.template.label, value: i.toString() })

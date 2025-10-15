@@ -166,7 +166,7 @@ export class ShaclProperty extends HTMLElement {
         let nodeShapeToValidate = this.template.id
         let dataSubjectsToValidate = [valueSubject]
         if (this.template.qualifiedValueShape) {
-            nodeShapeToValidate = this.template.qualifiedValueShape
+            nodeShapeToValidate = this.template.qualifiedValueShape.id
             dataSubjectsToValidate = []
             for (const value of values) {
                 dataSubjectsToValidate.push(value.object as NamedNode)

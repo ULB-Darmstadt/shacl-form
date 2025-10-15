@@ -255,7 +255,7 @@ export class ShaclForm extends HTMLElement {
         if (this.config.attributes.shapeSubject) {
             const rootShapeShaclSubject = DataFactory.namedNode(this.config.attributes.shapeSubject)
             if (this.config.store.getQuads(rootShapeShaclSubject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length === 0) {
-                console.warn(`shapes graph does not contain requested root shape ${this.config.attributes.shapeSubject}`)
+                console.warn(`shapes graph does not contain requested node shape ${this.config.attributes.shapeSubject}`)
                 return
             } else {
                 return rootShapeShaclSubject
@@ -289,12 +289,12 @@ export class ShaclForm extends HTMLElement {
             // choose first of all defined root shapes
             const rootShapes = this.config.store.getQuads(null, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null)
             if (rootShapes.length == 0) {
-                console.warn('shapes graph does not contain any root shapes')
+                console.warn('shapes graph does not contain any node shapes')
                 return
             }
             if (rootShapes.length > 1) {
-                console.warn('shapes graph contains', rootShapes.length, 'root shapes. choosing first found which is', rootShapes[0].subject.value)
-                console.info('hint: set the shape to use with attribute "data-shape-subject"')
+                console.warn('shapes graph contains', rootShapes.length, 'node shapes. choosing first found which is', rootShapes[0].subject.value)
+                console.info('hint: set the node shape to use with element attribute "data-shape-subject"')
             }
             return rootShapes[0].subject as NamedNode
         }

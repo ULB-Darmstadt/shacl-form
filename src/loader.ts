@@ -95,7 +95,7 @@ export class Loader {
                     }
                 })
                 .on('error', (error) => {
-                    console.warn('failed parsing graph', graph, error.message)
+                    console.warn('failed parsing RDF', graph?.id, ', reason:' ,error.message)
                     reject(error)
                 })
                 .on('prefix', (prefix, iri) => {

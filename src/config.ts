@@ -7,6 +7,8 @@ import { Theme } from './theme'
 import { extractLists } from './util'
 import { DefaultTheme } from './theme.default'
 import { Validator } from 'shacl-engine'
+import { ShaclNodeTemplate } from './node-template'
+import { ShaclPropertyTemplate } from './property-template'
 
 export class ElementAttributes {
     shapes: string | null = null
@@ -43,17 +45,19 @@ export class Config {
 
     lists: Record<string, Term[]> = {}
     groups: string[] = []
-    // @ts-ignore
-    _theme: Theme
     form: HTMLElement
     renderedNodes = new Set<string>()
     valuesGraphId: NamedNode | undefined
     private _store = new Store()
+    private _theme: Theme
+    // template are stored here to prevent recursion errors
+    private _nodeTemplates: Record<string, ShaclNodeTemplate> = {}
+    private _propertyTemplates: Record<string, ShaclPropertyTemplate> = {}
     validator = new Validator(this._store, { details: true, factory: DataFactory })
 
     constructor(form: HTMLElement) {
         this.form = form
-        this.theme = new DefaultTheme()
+        this._theme = new DefaultTheme()
         this.languages = [...new Set(navigator.languages.flatMap(lang => {
             if (lang.length > 2) {
                 // for each 5 letter lang code (e.g. de-DE) append its corresponding 2 letter code (e.g. de) directly afterwards
@@ -67,6 +71,8 @@ export class Config {
         this.lists = {}
         this.groups = []
         this.renderedNodes.clear()
+        this._nodeTemplates = {}
+        this._propertyTemplates = {}
     }
  
     updateAttributes(elem: HTMLElement) {
@@ -105,6 +111,47 @@ export class Config {
             key = key.replace(/[A-Z]/g, m => "-" + m.toLowerCase());
             return 'data-' + key
         })
+    }
+
+    // we're not caching templates on their ID alone, but on the complete parent ID hierarchy to allow for property overriding
+    private buildTemplateKey(id: Term, parent?: ShaclNodeTemplate | ShaclPropertyTemplate): string {
+        let key = id.value
+        if (parent) {
+            if (parent instanceof ShaclPropertyTemplate) {
+                key += '*' + parent.id.value
+            } else {
+                key += '*' + this.buildTemplateKey(parent.id, parent.parent)
+            }
+        }
+        return key
+    }
+
+    registerNodeTemplate(template: ShaclNodeTemplate) {
+        this._nodeTemplates[this.buildTemplateKey(template.id, template.parent)] = template
+    }
+    
+    registerPropertyTemplate(template: ShaclPropertyTemplate) {
+        this._propertyTemplates[this.buildTemplateKey(template.id, template.parent)] = template
+    }
+
+    getNodeTemplate(id: Term, parent: ShaclNodeTemplate | ShaclPropertyTemplate) {
+        const key = this.buildTemplateKey(id, parent)
+        let shape = this._nodeTemplates[key]
+        if (!shape) {
+            shape = new ShaclNodeTemplate(id, this, parent)
+            // dont' need to register the new shape in _nodeTemplates because this is done in the constructor
+        }
+        return shape
+    }
+
+    getPropertyTemplate(id: Term, parent: ShaclNodeTemplate) {
+        const key = this.buildTemplateKey(id, parent)
+        let shape = this._propertyTemplates[key]
+        if (!shape) {
+            shape = new ShaclPropertyTemplate(id, parent)
+            // dont' need to register the new shape in _propertyTemplates because this is done in the constructor
+        }
+        return shape
     }
 
     get theme() {
