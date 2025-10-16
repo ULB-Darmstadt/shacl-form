@@ -1,10 +1,11 @@
 import { Term } from '@rdfjs/types'
 import { ShaclPropertyTemplate } from "./property-template"
 import { Editor, InputListEntry, Theme } from "./theme"
-import { PREFIX_SHACL, PREFIX_XSD } from './constants'
-import { Literal, NamedNode } from 'n3'
+import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI } from './constants'
+import { DataFactory, Literal, NamedNode } from 'n3'
 import { Term as N3Term }  from 'n3'
 import { RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
+import { findLabel } from './util'
 
 const css = `
 .editor:not([type='checkbox']) { border: 1px solid #DDD; }
@@ -37,8 +38,17 @@ export class DefaultTheme extends Theme {
         }
         if (template?.nodeKind) {
             editor.dataset.nodeKind = template.nodeKind.value
-        } else if (value instanceof NamedNode) {
+        } else if (value && (value instanceof NamedNode || template?.nodeKind?.equals(SHACL_OBJECT_IRI))) {
             editor.dataset.nodeKind = PREFIX_SHACL + 'IRI'
+            // try to find label for term
+            if (template) {
+                const label = findLabel(template.config.store.getQuads(value, null, null, null), template.config.languages)
+                if (label) {
+                    // replace value by label and set real value as data-link
+                    editor.dataset.value = '<' + value.value + '>'
+                    value = DataFactory.literal(label)
+                }
+            }
         }
         if ((template?.hasValue && value) || template?.readonly) {
             editor.disabled = true

@@ -47,7 +47,8 @@ function serializeJsonld(quads: Quad[]): string {
 
 export function toRDF(editor: Editor): NamedNode | Literal | undefined {
     let languageOrDatatype: NamedNode<string> | string | undefined = editor.shaclDatatype
-    let value: number | string = editor.value
+    // prefer value from dataset over editor value (this is used by rdfs:label substitution for term values)
+    let value: number | string = editor.dataset.value || editor.value
     if (value) {
         if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
             return DataFactory.namedNode(value.substring(1, value.length - 1))
