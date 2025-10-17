@@ -14,7 +14,7 @@ describe('test value binding', () => {
 
     it('sh:in binding', async () => {
         const listValues = [
-            '<http://example.org/path/>',
+            '<http://example.org/term>',
             '1000',
             '3.141592654',
             '"2000"',
@@ -133,5 +133,34 @@ describe('test value binding', () => {
         )
         await expectValid(form, shapesQuads)
         expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
+    })
+
+    it('sh:hasValue binding', async () => {
+        const values = [
+            '<http://example.org/term>',
+            '1000',
+            '3.141592654',
+            '"2000"',
+            false,
+            '"lang string"@en',
+            '"1900-01-01"^^xsd:date',
+            '"http://example.org"^^xsd:anyUri',
+            true,
+            '"aGVsbG8K"^^xsd:base64Binary'
+        ]
+        for (const value of values) {
+            const [shapesQuads, _] = await bind(form, `
+                ${prefixes}
+                <${shapeSubject}> a sh:NodeShape ;
+                sh:property [
+                    sh:path :path ;
+                    sh:hasValue ${value} ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1 ;
+                ] .`,
+                shapeSubject
+            )
+            await expectValid(form, shapesQuads)
+        }
     })
 })

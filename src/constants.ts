@@ -15,6 +15,7 @@ export const SHAPES_GRAPH = DataFactory.namedNode('loaded-shapes')
 export const DATA_GRAPH = DataFactory.namedNode('loaded-data')
 
 export const RDF_PREDICATE_TYPE = DataFactory.namedNode(PREFIX_RDF + 'type')
+export const RDF_OBJECT_LANG_STRING = DataFactory.namedNode(PREFIX_RDF + 'langString')
 export const DCTERMS_PREDICATE_CONFORMS_TO = DataFactory.namedNode(PREFIX_DCTERMS + 'conformsTo')
 export const RDFS_PREDICATE_SUBCLASS_OF = DataFactory.namedNode(PREFIX_RDFS + 'subClassOf')
 export const OWL_PREDICATE_IMPORTS = DataFactory.namedNode(PREFIX_OWL + 'imports')

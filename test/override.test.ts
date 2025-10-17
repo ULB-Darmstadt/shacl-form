@@ -1,6 +1,6 @@
 import { html, fixture, expect } from '@open-wc/testing'
 import { ShaclForm } from '../src/form'
-import { bind, expectIsomorphic, expectValid } from './util'
+import { bind, expectIsomorphic, expectValid, printQuads } from './util'
 import '../src/form'
 import { DataFactory, Quad } from 'n3'
 
@@ -38,7 +38,7 @@ describe('test property overriding', () => {
         expect(form.shape?.template.properties['http://example.org/pathToMerge'].length).to.equal(2)
     })
 
-    it('sh:qualifiedValueShape multiple override', async () => {
+    it('sh:qualifiedValueShape multiple override with sh:in', async () => {
         const [shapesQuads, inputQuads] = await bind(form, `
             ${prefixes}
             :BaseShape  a sh:NodeShape ;
@@ -82,6 +82,52 @@ describe('test property overriding', () => {
             valuesSubject
         )
         await expectValid(form, shapesQuads)
+        expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
+    })
+
+    it('sh:qualifiedValueShape multiple override with sh:hasValue', async () => {
+        const [shapesQuads, inputQuads] = await bind(form, `
+            ${prefixes}
+            :BaseShape  a sh:NodeShape ;
+            sh:property [
+                sh:path :pathToOverride ;
+                sh:maxCount 1;
+                sh:class :ExampleClass ;
+            ] .
+            :MiddleShape1  a sh:NodeShape ;
+            sh:node :BaseShape ;
+            sh:property [
+                sh:path :pathToOverride ;
+                sh:hasValue :instance1 ;
+            ] .
+            :MiddleShape2  a sh:NodeShape ;
+            sh:node :BaseShape ;
+            sh:property [
+                sh:path :pathToOverride ;
+                sh:hasValue :instance2 ;
+            ] .
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :dummy ;
+                sh:qualifiedValueShape :MiddleShape1 ;
+                sh:qualifiedMinCount 1 ;
+                sh:qualifiedMaxCount 1 ;
+            ], [
+                sh:path :dummy ;
+                sh:qualifiedValueShape :MiddleShape2 ;
+                sh:qualifiedMinCount 1 ;
+                sh:qualifiedMaxCount 1 ;
+            ] .
+            :instance1 a :ExampleClass .
+            :instance2 a :ExampleClass .
+            `,
+            shapeSubject, `
+            ${prefixes}
+            <${valuesSubject}> :dummy [ :pathToOverride :instance1 ] ; :dummy [ :pathToOverride :instance2 ] .`,
+            valuesSubject
+        )
+        await expectValid(form, shapesQuads)
+        printQuads(form.toRDF().getQuads(null, null, null, null))
         expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
     })
 })

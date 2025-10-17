@@ -1,7 +1,7 @@
 import { Term } from '@rdfjs/types'
 import { ShaclPropertyTemplate } from "./property-template"
 import { Editor, InputListEntry, Theme } from "./theme"
-import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI } from './constants'
+import { PREFIX_SHACL, PREFIX_XSD, RDF_OBJECT_LANG_STRING, SHACL_OBJECT_IRI } from './constants'
 import { DataFactory, Literal, NamedNode } from 'n3'
 import { Term as N3Term }  from 'n3'
 import { RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
@@ -28,7 +28,12 @@ export class DefaultTheme extends Theme {
             // store datatype on editor, this is used for RDF serialization
             editor.shaclDatatype = template.datatype
         } else if (value instanceof Literal) {
-            editor.shaclDatatype = value.datatype
+            // template does not define a datatype, so try to derive it from the given value
+            if (value.datatype.equals(RDF_OBJECT_LANG_STRING)) {
+                editor.dataset.lang = value.language
+            } else {
+                editor.shaclDatatype = value.datatype
+            }
         }
         if (template?.minCount !== undefined) {
             editor.dataset.minCount = String(template.minCount)

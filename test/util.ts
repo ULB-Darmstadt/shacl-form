@@ -10,7 +10,7 @@ export function awaitFormLoaded(form: ShaclForm) {
                 clearInterval(interval)
                 resolve()
             }
-        }, initTimeout + 10)
+        }, initTimeout + 30)
     })
 }
 
@@ -26,9 +26,13 @@ export async function bind(form: ShaclForm, shapes?: string, shapeSubject?: stri
     if (values) {
         form.dataset.values = values
         result[1] = parse(values)
+    } else {
+        form.dataset.values
     }
     if (valuesSubject) {
         form.dataset.valuesSubject = valuesSubject
+    } else {
+        delete form.dataset.valuesSubject
     }
     await awaitFormLoaded(form)
     return result

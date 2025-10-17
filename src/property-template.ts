@@ -1,6 +1,6 @@
-import { Literal, NamedNode, Quad, DataFactory } from 'n3'
+import { Literal, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
-import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_OA, PREFIX_RDF, PREFIX_SHACL, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS } from './constants'
+import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_OA, PREFIX_SHACL, RDF_OBJECT_LANG_STRING, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS } from './constants'
 import { Config } from './config'
 import { findLabel, prioritizeByLanguage, removePrefixes } from './util'
 import { ShaclNodeTemplate } from './node-template'
@@ -27,7 +27,7 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
     [`${PREFIX_OA}styleClass`]:      (template, term) => { template.cssClass = term.value },
     [`${PREFIX_SHACL}in`]:           (template, term) => { template.in = term.value },
     // sh:datatype might be undefined, but sh:languageIn defined. this is undesired. the spec says, that strings without a lang tag are not valid if sh:languageIn is set. but the shacl validator accepts these as valid. to prevent this, we just set the datatype here to 'langString'.
-    [`${PREFIX_SHACL}languageIn`]:   (template, term) => { template.languageIn = template.config.lists[term.value]; template.datatype = DataFactory.namedNode(PREFIX_RDF + 'langString') },
+    [`${PREFIX_SHACL}languageIn`]:   (template, term) => { template.languageIn = template.config.lists[term.value]; template.datatype = RDF_OBJECT_LANG_STRING },
     [`${PREFIX_SHACL}defaultValue`]: (template, term) => { template.defaultValue = term },
     [`${PREFIX_SHACL}hasValue`]:     (template, term) => { template.hasValue = term },
     [`${PREFIX_SHACL}node`]:         (template, term) => {

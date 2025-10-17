@@ -1,6 +1,6 @@
 import { Literal, NamedNode } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_XSD, PREFIX_RDF } from './constants'
+import { PREFIX_XSD, RDF_OBJECT_LANG_STRING } from './constants'
 import { createInputListEntries, findInstancesOf, findLabel, isURL } from './util'
 import { ShaclPropertyTemplate } from './property-template'
 import css from './styles.css?raw'
@@ -105,7 +105,7 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
         }
 
         // check if it is a langstring
-        if  (template.datatype?.value === `${PREFIX_RDF}langString` || template.languageIn?.length) {
+        if  (template.datatype?.equals(RDF_OBJECT_LANG_STRING) || template.languageIn?.length) {
             return template.config.theme.createLangStringEditor(template.label, value, required, template)
         }
 
