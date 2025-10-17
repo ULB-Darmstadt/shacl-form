@@ -29,11 +29,15 @@ export class ElementAttributes {
     proxy: string | null = null
     ignoreOwlImports: string | null = null
     collapse: string | null = null
+    hierarchyColors: string | null = null
     submitButton: string | null = null
     generateNodeShapeReference: string | null = null
     showNodeIds: string | null = null
     dense: string = "true"
 }
+
+const defaultHierarchyColorPalette = '#003273, #4c93d7, #f85e9a, #87001f'
+
 
 export class Config {
     attributes = new ElementAttributes()
@@ -48,6 +52,7 @@ export class Config {
     form: HTMLElement
     renderedNodes = new Set<string>()
     valuesGraphId: NamedNode | undefined
+    hierarchyColorsStyleSheet: CSSStyleSheet | undefined
     private _store = new Store()
     private _theme: Theme
     // template are stored here to prevent recursion errors
@@ -101,6 +106,20 @@ export class Config {
         }
         if (atts.valuesGraph) {
             this.valuesGraphId = DataFactory.namedNode(atts.valuesGraph)
+        }
+        if (atts.hierarchyColors != null) {
+            const palette = atts.hierarchyColors.length ? atts.hierarchyColors : defaultHierarchyColorPalette
+            let css = `:host { --hierarchy-colors: ${palette}; --hierarchy-colors-length: ${palette.split(',').length}; --hierarchy-color-width: 3px }`
+            // generate hierarchy level css variables
+            for (let level = 8; level >= 0; level--) {
+                let rule = `shacl-property { --hierarchy-level: ${level} }`
+                for (let i = 0; i < level; i++) {
+                    rule = 'shacl-property ' + rule
+                }
+                css = css + '\n' + rule
+            }
+            this.hierarchyColorsStyleSheet = new CSSStyleSheet()
+            this.hierarchyColorsStyleSheet.replaceSync(css)
         }
     }
 

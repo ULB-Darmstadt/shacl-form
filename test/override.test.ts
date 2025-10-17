@@ -1,8 +1,7 @@
 import { html, fixture, expect } from '@open-wc/testing'
 import { ShaclForm } from '../src/form'
-import { bind, expectIsomorphic, expectValid, printQuads } from './util'
+import { bind, expectIsomorphic, expectValid } from './util'
 import '../src/form'
-import { DataFactory, Quad } from 'n3'
 
 const prefixes = '@prefix : <http://example.org/> . @prefix sh: <http://www.w3.org/ns/shacl#> . @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .'
 const shapeSubject = 'http://example.org/TestShape'
@@ -127,7 +126,6 @@ describe('test property overriding', () => {
             valuesSubject
         )
         await expectValid(form, shapesQuads)
-        printQuads(form.toRDF().getQuads(null, null, null, null))
         expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
     })
 })

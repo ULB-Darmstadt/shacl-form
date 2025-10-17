@@ -69,6 +69,9 @@ export class ShaclForm extends HTMLElement {
                     this.config.theme.apply(this.form)
                     // adopt stylesheets from theme and plugins
                     const styles: CSSStyleSheet[] = [ this.config.theme.stylesheet ]
+                    if (this.config.hierarchyColorsStyleSheet) {
+                        styles.push(this.config.hierarchyColorsStyleSheet)
+                    }
                     for (const plugin of listPlugins()) {
                         if (plugin.stylesheet) {
                             styles.push(plugin.stylesheet)

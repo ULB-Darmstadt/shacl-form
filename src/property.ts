@@ -85,7 +85,7 @@ export class ShaclProperty extends HTMLElement {
             } 
             if (!resolved) {
                 instance = createShaclOrConstraint(options, this, this.template.config)
-                appendRemoveButton(instance, '', this.template.config.theme.dense)
+                appendRemoveButton(instance, '', this.template.config.theme.dense, this.template.config.hierarchyColorsStyleSheet !== undefined)
             }
         } else {
             // check if value is part of the data graph. if not, create a linked resource
@@ -280,13 +280,18 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         }
     }
     if (template.config.editMode) {
-        appendRemoveButton(instance, template.label, template.config.theme.dense, forceRemovable)
+        appendRemoveButton(instance, template.label, template.config.theme.dense, template.config.hierarchyColorsStyleSheet !== undefined, forceRemovable)
     }
     instance.dataset.path = template.path
     return instance
 }
 
-function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean, forceRemovable = false) {
+function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean, colorize: boolean, forceRemovable = false) {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'remove-button-wrapper'
+    if (colorize) {
+        wrapper.classList.add('colorize')
+    }
     const removeButton = new RokitButton()
     removeButton.classList.add('remove-button', 'clear')
     removeButton.title = 'Remove ' + label
@@ -304,7 +309,8 @@ function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean
     if (forceRemovable) {
         removeButton.classList.add('persistent')
     }
-    instance.appendChild(removeButton)
+    wrapper.appendChild(removeButton)
+    instance.appendChild(wrapper)
 }
 
 window.customElements.define('shacl-property', ShaclProperty)
