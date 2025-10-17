@@ -105,7 +105,7 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
         }
 
         // check if it is a langstring
-        if  (template.datatype?.equals(RDF_OBJECT_LANG_STRING) || template.languageIn?.length) {
+        if  (template.datatype?.equals(RDF_OBJECT_LANG_STRING) || template.languageIn?.length || (template.datatype === undefined && value instanceof Literal && value.language)) {
             return template.config.theme.createLangStringEditor(template.label, value, required, template)
         }
 
