@@ -80,7 +80,9 @@ export class ShaclForm extends HTMLElement {
                     this.shadowRoot!.adoptedStyleSheets = styles
 
                     const rootTemplate = new ShaclNodeTemplate(rootShapeShaclSubject, this.config)
-                    mergeOverriddenProperties(rootTemplate)
+                    for (const nodeTemplate of this.config.nodeTemplates) {
+                        mergeOverriddenProperties(nodeTemplate)
+                    }
                     this.shape = new ShaclNode(rootTemplate, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
                     this.form.appendChild(this.shape)
 

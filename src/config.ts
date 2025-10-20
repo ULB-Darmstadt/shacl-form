@@ -173,6 +173,10 @@ export class Config {
         return shape
     }
 
+    get nodeTemplates() {
+        return Object.values(this._nodeTemplates)
+    }
+
     get theme() {
         return this._theme
     }

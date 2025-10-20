@@ -73,74 +73,38 @@ export function mergeQuads(template: ShaclNodeTemplate, quads: Quad[]) {
 export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
     for (const props of Object.values(node.properties)) {
         for (const prop of props) {
-            if (prop.qualifiedValueShape) {
-                mergeOverriddenProperties(prop.qualifiedValueShape)
-            } else {
-                const [tree, maxCountIsOne] = buildPropertyChain(prop, prop.path!)
-                // length must be greater than 1 for overridden property
-                if (tree.length > 1 && maxCountIsOne) {
-                    // merge properties into the last element in array and remove preceding properties
-                    const target = tree[tree.length - 1]
-                    for (let i = tree.length - 2; i >= 0; i--) {
-                        const source = tree[i]
-                        delete source.parent.properties[source.path!]
-                        // console.log('--- vertical merge', source.label, '(parent=', source.parent.id.value, ')', 'into', target, '(parent=', target.parent.id.value, ')')
-                        mergeProperty(target, source)
-                    }
+            const [chain, maxCountIsOne] = buildPropertyChain(node, prop.path!)
+            // length must be > 1 and maxCount = 1 for overridden property
+            if (chain.length > 1 && maxCountIsOne) {
+                // merge properties into the last element in array (which is the topmost in the hierarchy) and remove preceding properties
+                const target = chain[chain.length - 1]
+                for (let i = chain.length - 2; i >= 0; i--) {
+                    const source = chain[i]
+                    delete source.parent.properties[source.path!]
+                    mergeProperty(target, source)
                 }
             }
         }
-    }
-    for (const parent of node.extendedShapes) {
-        mergeOverriddenProperties(parent)
     }
 }
 
-function buildPropertyChain(property: ShaclPropertyTemplate, path: string, chain: ShaclPropertyTemplate[] = [], currentMaxCountIsOne = false, visited = new Set<string>()): [ShaclPropertyTemplate[], boolean] {
-    const key = buildTemplateKey(property.id, property.parent)
-    if (visited.has(key)) {
-        return [chain, currentMaxCountIsOne]
-    }
-    visited.add(key)
-    if (!property.qualifiedValueShape && property.path === path) {
-        chain.push(property)
-        currentMaxCountIsOne = currentMaxCountIsOne || property.maxCount === 1
-    }
-    for (const node of property.nodeShapes) {
-        for (const parentProps of Object.values(node.properties)) {
-            for (const parentProp of parentProps) {
-                const [_, max] = buildPropertyChain(parentProp, path, chain, currentMaxCountIsOne, visited)
+function buildPropertyChain(currentNode: ShaclNodeTemplate, path: string, visited = new Set<string>(), chain: ShaclPropertyTemplate[] = [], currentMaxCountIsOne = false): [ShaclPropertyTemplate[], boolean] {
+    if (!visited.has(currentNode.id.value)) {
+        visited.add(currentNode.id.value)
+        const prop = currentNode.properties[path]
+        // length == 1 excludes sh:qualifiedValueShapes
+        if (prop?.length === 1) {
+            chain.push(prop[0])
+            currentMaxCountIsOne = currentMaxCountIsOne || prop[0].maxCount === 1
+            for (const node of prop[0].nodeShapes) {
+                const [_, max] = buildPropertyChain(node, path, visited, chain, currentMaxCountIsOne)
                 currentMaxCountIsOne = currentMaxCountIsOne || max
             }
         }
-        for (const parentShape of node.extendedShapes) {
-            for (const [_, props] of Object.entries(parentShape.properties)) {
-                for (const parentProp of props) {
-                    const [_, max] = buildPropertyChain(parentProp, path, chain, currentMaxCountIsOne, visited)
-                    currentMaxCountIsOne = currentMaxCountIsOne || max
-                }
-            }
-        }
-    }
-    for (const node of property.parent.extendedShapes) {
-        for (const [_, props] of Object.entries(node.properties)) {
-            for (const parentProp of props) {
-                const [_, max] = buildPropertyChain(parentProp, path, chain, currentMaxCountIsOne, visited)
-                currentMaxCountIsOne = currentMaxCountIsOne || max
-            }
+        for (const node of currentNode.extendedShapes) {
+            const [_, max] = buildPropertyChain(node, path, visited, chain, currentMaxCountIsOne)
+            currentMaxCountIsOne = currentMaxCountIsOne || max
         }
     }
     return [chain, currentMaxCountIsOne]
-}
-
-function buildTemplateKey(id: Term, parent?: ShaclNodeTemplate | ShaclPropertyTemplate): string {
-    let key = id.value
-    if (parent) {
-        if (parent instanceof ShaclPropertyTemplate) {
-            key += '*' + parent.id.value
-        } else {
-            key += '*' + buildTemplateKey(parent.id, parent.parent)
-        }
-    }
-    return key
 }
