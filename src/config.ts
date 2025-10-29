@@ -36,7 +36,7 @@ export class ElementAttributes {
     dense: string = "true"
 }
 
-const defaultHierarchyColorPalette = '#003273, #4c93d7, #f85e9a, #87001f'
+const defaultHierarchyColorPalette = '#4c93d785, #f85e9a85, #00327385, #87001f85'
 
 
 export class Config {
