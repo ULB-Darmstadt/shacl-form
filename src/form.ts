@@ -7,6 +7,7 @@ import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { Validator } from 'shacl-engine'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
+import { generateQuery } from './query'
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.dataAttributes() }
@@ -130,6 +131,23 @@ export class ShaclForm extends HTMLElement {
     public toRDF(graph = new Store()): Store {
         this.shape?.toRDF(graph)
         return graph
+    }
+
+    public toQuery(queryType: 'construct' | 'select' = 'construct'): string {
+        if (!this.shape) {
+            throw new Error('Form not initialized. Cannot generate query without a shape.')
+        }
+        
+        // Get the form values as RDF
+        const valuesGraph = this.toRDF()
+        
+        // Generate and return the SPARQL query
+        return generateQuery(
+            this.config.store,
+            this.shape.shaclSubject,
+            valuesGraph,
+            queryType
+        )
     }
 
     public registerPlugin(plugin: Plugin) {
