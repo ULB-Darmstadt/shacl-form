@@ -1,160 +1,148 @@
-# Using the toQuery() Function
+# Using the `toQuery()` Function
 
 ## Overview
 
-The `toQuery()` function is a new feature in shacl-form that generates SPARQL queries from SHACL-based forms. This enables using forms not just for data entry, but also as search interfaces to query SPARQL endpoints.
+`toQuery()` turns the current `<shacl-form>` state into a SPARQL query. The method complements the existing serialization helpers so that a form can double as a search/filter UI against a SPARQL endpoint.
+
+The feature now ships with this repository. The public API mirrors `src/form.ts` and the builder logic in `src/query.ts`.
 
 ## Basic Usage
 
 ```javascript
-// Get a reference to the shacl-form element
-const form = document.querySelector('shacl-form');
+// Reference your form element
+const form = document.querySelector('shacl-form')
 
-// Generate a CONSTRUCT query (default)
-const constructQuery = form.toQuery();
-console.log(constructQuery);
+// Default: generate a CONSTRUCT query
+const constructQuery = form.toQuery()
 
-// Generate a SELECT query
-const selectQuery = form.toQuery('select');
-console.log(selectQuery);
+// Generate a SELECT query and tweak the projection
+const selectQuery = form.toQuery({
+    type: 'select',
+    selectVariables: ['resource', 'name', 'email'],
+    distinct: true
+})
 ```
+
+`toQuery()` throws if the form has not completed initialization (no SHACL shape loaded).
 
 ## How It Works
 
-1. **Base Query Generation**: The function uses the SHACL shape to generate a base SPARQL query pattern using the [@hydrofoil/shape-to-query](https://www.npmjs.com/package/@hydrofoil/shape-to-query) library.
+1. **Base query from shapes** – We load the active SHACL `NodeShape` into [`@hydrofoil/shape-to-query`](https://www.npmjs.com/package/@hydrofoil/shape-to-query) to generate an initial SPARQL CONSTRUCT query.
+2. **Form values to RDF** – `ShaclForm.toRDF()` captures the current editors as an `n3.Store`.
+3. **Value patterns** – The builder from `src/query.ts` walks the store and injects triple patterns for populated values (blank nodes become fresh variables, literals keep their datatype/language). No FILTERs are added; existing triples are reused.
+4. **Query type switch** – When `options.type === 'select'`, the WHERE clause is preserved but SELECT variables come from `options.selectVariables` (defaulting to the main subject variable). Otherwise the CONSTRUCT query returned by `shape-to-query` is re-stringified with the augmented WHERE.
 
-2. **Form Value Extraction**: It extracts the values entered in the form using the existing `toRDF()` method.
+## Minimal Example
 
-3. **Filter Addition**: The form values are added as FILTER clauses to the query, allowing you to search for data matching the form inputs.
-
-4. **Query Type Selection**: You can choose between CONSTRUCT (returns triples) or SELECT (returns variables) query types.
-
-## Example
-
-### HTML Form Setup
+HTML (using `String.raw` to keep Turtle quoting intact):
 
 ```html
-<shacl-form id="search-form" data-shapes="
-  @prefix sh:   <http://www.w3.org/ns/shacl#> .
-  @prefix ex:   <http://example.org#> .
-  @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+<shacl-form id="search-form"></shacl-form>
+<script type="module">
+    const form = document.getElementById('search-form')
+    form.dataset.shapes = String.raw`
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix ex:   <http://example.org#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
-  ex:PersonShape
+ex:PersonShape
     a sh:NodeShape ;
     sh:targetClass ex:Person ;
     sh:property [
-      sh:name 'Name' ;
-      sh:path ex:name ;
-      sh:datatype xsd:string ;
+        sh:name "Name" ;
+        sh:path ex:name ;
+        sh:datatype xsd:string ;
     ] ;
     sh:property [
-      sh:name 'Email' ;
-      sh:path ex:email ;
-      sh:datatype xsd:string ;
+        sh:name "Email" ;
+        sh:path ex:email ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[^\s@]+@[^\s@]+\.[^\s@]+$" ;
     ] .
-"></shacl-form>
+`
+</script>
 ```
 
-### JavaScript Usage
+JavaScript:
 
 ```javascript
-// User fills in the form with:
-// Name: "John Doe"
-// Email: "john@example.org"
+const form = document.getElementById('search-form')
 
-const form = document.getElementById('search-form');
-
-// Generate a CONSTRUCT query
-const query = form.toQuery('construct');
-
-// Send the query to your SPARQL endpoint
-fetch('https://your-sparql-endpoint.com/query', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/sparql-query',
-    'Accept': 'application/n-triples'
-  },
-  body: query
+// Wait for the component to load its shapes
+form.addEventListener('shacl-form-loaded', () => {
+    const query = form.toQuery()
+    console.log(query)
 })
-.then(response => response.text())
-.then(results => {
-  console.log('Query results:', results);
-})
-.catch(error => {
-  console.error('Query error:', error);
-});
 ```
 
-## Generated Query Example
+### Posting the query
 
-If the form has values for name="John Doe" and email="john@example.org", the generated query might look like:
+```javascript
+const query = form.toQuery({ type: 'select', distinct: true })
+
+await fetch('https://example.org/sparql', {
+    method: 'POST',
+    headers: {
+        'content-type': 'application/sparql-query',
+        accept: 'application/sparql-results+json'
+    },
+    body: query
+})
+```
+
+## Generated Query Snapshot
+
+With `name` set to `John Doe` and `email` set to `john@example.org`, `toQuery()` returns a CONSTRUCT like:
 
 ```sparql
 CONSTRUCT {
-  ?subject ex:name ?name .
-  ?subject ex:email ?email .
+  ?resource <http://example.org#name> ?resource_name_1 .
+  ?resource <http://example.org#email> ?resource_email_1 .
 }
 WHERE {
-  ?subject a ex:Person .
-  ?subject ex:name ?name .
-  ?subject ex:email ?email .
-  FILTER(?name = "John Doe")
-  FILTER(?email = "john@example.org")
+  ?resource a <http://example.org#Person> .
+  ?resource <http://example.org#name> "John Doe" .
+  ?resource <http://example.org#email> "john@example.org" .
 }
 ```
+
+Literal values appear directly in the WHERE clause instead of FILTER expressions, matching the form’s data graph.
 
 ## Important Notes
 
-1. **Query Execution**: The `toQuery()` function only generates the query string. It does NOT execute the query. Query execution should be handled by your application's server-side code.
+1. **No execution** – The method returns a query string. Dispatch it to your endpoint or client library yourself.
+2. **Empty forms** – If the form has no values, the result is the bare shape-driven query (still valid to run).
+3. **QueryBuildOptions** – `src/query.ts` exports:
 
-2. **Empty Forms**: If no values are entered in the form, the function returns a base query without any filter clauses.
+   ```ts
+   interface QueryBuildOptions {
+       type?: 'construct' | 'select'
+       subjectVariable?: string
+       selectVariables?: string[]
+       distinct?: boolean
+   }
+   ```
 
-3. **Query Types**:
-   - `'construct'` (default): Returns a CONSTRUCT query that builds RDF triples
-   - `'select'`: Returns a SELECT query that returns variable bindings
-
-4. **Integration**: This function is designed to work with the existing form structure and does not modify the form's behavior for data entry.
+   `subjectVariable` defaults to `resource`. Blank nodes in the form become fresh variables derived from that name.
+4. **Patterns vs FILTERs** – The local implementation emits triple patterns. Add extra filters manually if you need partial matches.
+5. **Validation still applies** – `toQuery()` doesn’t bypass SHACL validation. Use `validate()` first if you depend on clean data before fetching.
 
 ## Use Cases
 
-1. **Search Forms**: Create search interfaces where users can find data matching specific criteria
-2. **Data Discovery**: Allow users to explore datasets by querying for patterns
-3. **Filter Interfaces**: Build complex filter UIs that generate appropriate SPARQL queries
-4. **API Integration**: Generate queries to send to SPARQL endpoints or triple stores
+- Build a faceted search form powered by SHACL shapes
+- Offer editable forms that can also pre-filter results lists
+- Reuse form state in downstream data synchronization scripts
 
-## Demo
+## Demo and Tests
 
-See `demo/toQuery-example.html` for a complete working example.
-
-## API Reference
-
-### ShaclForm.toQuery(queryType?)
-
-**Parameters:**
-- `queryType` (optional): Either `'construct'` or `'select'`. Default is `'construct'`.
-
-**Returns:**
-- A string containing the generated SPARQL query
-
-**Throws:**
-- Error if the form is not initialized or no shape is loaded
-
-**Example:**
-```javascript
-const form = document.querySelector('shacl-form');
-
-// Get a CONSTRUCT query
-const construct = form.toQuery('construct');
-
-// Get a SELECT query  
-const select = form.toQuery('select');
-```
+- `demo/toQuery-example.html` – interactive example styled like the main demo site
+- `test/toQuery.test.ts` – Vitest coverage for CONSTRUCT/SELECT output and empty-form behaviour
 
 ## Dependencies
 
-The toQuery() function uses the following npm packages:
-- [@hydrofoil/shape-to-query](https://www.npmjs.com/package/@hydrofoil/shape-to-query) - For generating base SPARQL patterns from SHACL shapes
-- [rdf-sparql-builder](https://www.npmjs.com/package/rdf-sparql-builder) - For programmatic SPARQL query construction
-- [clownface](https://www.npmjs.com/package/clownface) - For RDF graph traversal
+- [`@hydrofoil/shape-to-query`](https://www.npmjs.com/package/@hydrofoil/shape-to-query)
+- [`rdf-sparql-builder`](https://www.npmjs.com/package/rdf-sparql-builder)
+- [`clownface`](https://www.npmjs.com/package/clownface)
+- [`@zazuko/env`](https://www.npmjs.com/package/@zazuko/env)
 
-All dependencies are bundled with the library.
+All required packages are already declared in this repository’s `package.json`.
