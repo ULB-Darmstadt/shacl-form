@@ -1,110 +1,59 @@
-/**
- * Test file for toQuery() functionality
- * 
- * This test demonstrates the usage of the toQuery() function to generate
- * SPARQL queries from SHACL-based forms.
- */
-
 import { describe, it, expect } from 'vitest'
 import { Store, DataFactory } from 'n3'
-import { generateQuery } from '../src/query'
+import { buildQuery } from '../src/query'
+import { SHAPES_GRAPH } from '../src/constants'
 
-const { namedNode, literal, quad } = DataFactory
+const { namedNode, blankNode, literal, quad } = DataFactory
 
-describe('toQuery', () => {
-  it('should generate a basic CONSTRUCT query from a simple shape', () => {
-    // Create a simple SHACL shape
-    const shapesStore = new Store()
-    const shapeIRI = namedNode('http://example.org/ExampleShape')
-    
-    shapesStore.addQuad(
-      quad(
-        shapeIRI,
-        namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-        namedNode('http://www.w3.org/ns/shacl#NodeShape')
-      )
-    )
-    
-    shapesStore.addQuad(
-      quad(
-        shapeIRI,
-        namedNode('http://www.w3.org/ns/shacl#property'),
-        namedNode('http://example.org/property1')
-      )
-    )
-    
-    shapesStore.addQuad(
-      quad(
-        namedNode('http://example.org/property1'),
-        namedNode('http://www.w3.org/ns/shacl#path'),
-        namedNode('http://example.org/name')
-      )
-    )
-    
-    // Create form values
-    const valuesStore = new Store()
-    valuesStore.addQuad(
-      quad(
-        namedNode('http://example.org/instance1'),
-        namedNode('http://example.org/name'),
-        literal('Test Name')
-      )
-    )
-    
-    // Generate query
-    const query = generateQuery(shapesStore, shapeIRI, valuesStore, 'construct')
-    
-    // Verify the query is a string
-    expect(typeof query).toBe('string')
-    
-    // Verify it's a CONSTRUCT query
-    expect(query).toContain('CONSTRUCT')
-    
-    // Verify it has a WHERE clause
-    expect(query).toContain('WHERE')
-  })
-  
-  it('should generate a SELECT query when specified', () => {
-    const shapesStore = new Store()
-    const shapeIRI = namedNode('http://example.org/ExampleShape')
-    
-    shapesStore.addQuad(
-      quad(
-        shapeIRI,
-        namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-        namedNode('http://www.w3.org/ns/shacl#NodeShape')
-      )
-    )
-    
-    const valuesStore = new Store()
-    
-    // Generate SELECT query
-    const query = generateQuery(shapesStore, shapeIRI, valuesStore, 'select')
-    
-    // Verify it's a SELECT query
-    expect(typeof query).toBe('string')
-    expect(query).toContain('SELECT')
-  })
-  
-  it('should handle empty form values', () => {
-    const shapesStore = new Store()
-    const shapeIRI = namedNode('http://example.org/ExampleShape')
-    
-    shapesStore.addQuad(
-      quad(
-        shapeIRI,
-        namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-        namedNode('http://www.w3.org/ns/shacl#NodeShape')
-      )
-    )
-    
-    const valuesStore = new Store()
-    
-    // Generate query with no values
-    const query = generateQuery(shapesStore, shapeIRI, valuesStore, 'construct')
-    
-    // Should still generate a valid query
-    expect(typeof query).toBe('string')
-    expect(query.length).toBeGreaterThan(0)
-  })
+describe('buildQuery', () => {
+    const shapeIri = namedNode('http://example.org/ExampleShape')
+    const propertyShape = blankNode('propertyShape')
+    const namePredicate = namedNode('http://example.org/name')
+    const rootInstance = namedNode('http://example.org/instance1')
+
+    function createShapesStore(): Store {
+        const store = new Store()
+        store.addQuad(quad(shapeIri, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), namedNode('http://www.w3.org/ns/shacl#NodeShape'), SHAPES_GRAPH))
+        store.addQuad(quad(shapeIri, namedNode('http://www.w3.org/ns/shacl#property'), propertyShape, SHAPES_GRAPH))
+        store.addQuad(quad(propertyShape, namedNode('http://www.w3.org/ns/shacl#path'), namePredicate, SHAPES_GRAPH))
+        return store
+    }
+
+    it('generates a CONSTRUCT query with value patterns', () => {
+        const shapesStore = createShapesStore()
+        const valuesStore = new Store()
+        valuesStore.addQuad(quad(rootInstance, namePredicate, literal('Test Name')))
+
+        const query = buildQuery(shapesStore, shapeIri, valuesStore, rootInstance)
+
+        expect(typeof query).toBe('string')
+        expect(query).toContain('CONSTRUCT')
+        expect(query).toContain('WHERE')
+        expect(query).toContain('<http://example.org/name> "Test Name"')
+    })
+
+    it('falls back to a SELECT query when requested', () => {
+        const shapesStore = createShapesStore()
+        const valuesStore = new Store()
+
+        const query = buildQuery(shapesStore, shapeIri, valuesStore, rootInstance, {
+            type: 'select',
+            distinct: false
+        })
+
+        expect(typeof query).toBe('string')
+        expect(query).toContain('SELECT')
+        expect(query).not.toContain('DISTINCT')
+    })
+
+    it('omits value patterns when the form is empty', () => {
+        const shapesStore = createShapesStore()
+        const valuesStore = new Store()
+
+        const query = buildQuery(shapesStore, shapeIri, valuesStore, rootInstance)
+
+        expect(typeof query).toBe('string')
+        expect(query.length).toBeGreaterThan(0)
+        expect(query).not.toContain('"Test Name"')
+    })
 })

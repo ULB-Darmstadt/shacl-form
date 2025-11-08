@@ -68,11 +68,9 @@
     "dependencies": {
         "@hydrofoil/shape-to-query": "^0.15.0",
         "@mapbox/mapbox-gl-draw": "^1.5.0",
-        "@hydrofoil/shape-to-query": "^0.13.3",
         "@zazuko/env": "3.0.1",
-        "clownface": "2.0.3",
         "bootstrap": "^5.3.8",
-        "clownface": "^2.0.3",
+        "clownface": "2.0.3",
         "jsonld": "^8.3.3",
         "leaflet": "^1.9.4",
         "leaflet-editable": "^1.3.2",
