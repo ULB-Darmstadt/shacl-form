@@ -89,6 +89,11 @@ serialize(format?: string, graph?: Store): string
 Serializes the given RDF graph to the given format. If no graph object is provided, this function calls toRDF() (see above) to construct the form data graph in one of the supported [output formats](#output-formats) (default is `text/turtle`).
 
 ```typescript
+toQuery(queryType?: 'construct' | 'select'): string
+```
+Generates a SPARQL query from the SHACL shape and form values. The query can be used to search for additional data in a SPARQL endpoint. The `queryType` parameter specifies whether to generate a CONSTRUCT query (default) or a SELECT query. The generated query includes the basic graph pattern from the SHACL shape and adds filters based on the values entered in the form. **Note**: This function does not execute the query; it only generates the query string for use with a SPARQL endpoint.
+
+```typescript
 validate(ignoreEmptyValues: boolean): Promise<boolean>
 ```
 Validates the form data against the SHACL shapes graph and displays validation results as icons next to the respective input fields. If `ignoreEmptyValues` is true, empty form fields will not be marked as invalid. This function is also internally called on `change` and `submit` events.

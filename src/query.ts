@@ -27,15 +27,19 @@ export function generateQuery(
     // Extract form values to add as filters
     const valueQuads = valuesStore.getQuads(null, null, null, null)
     
+    // Start with the base query
+    let finalQuery = baseQuery
+    
     if (valueQuads.length === 0) {
-        // No form values, return base query
-        return baseQuery
+        // No form values, but still need to apply query type conversion
+        if (queryType === 'select' && finalQuery.includes('CONSTRUCT')) {
+            finalQuery = finalQuery.replace(/CONSTRUCT\s*\{[\s\S]*?\}\s*WHERE/i, 'SELECT * WHERE')
+        }
+        return finalQuery
     }
-    
     // Parse the generated CONSTRUCT query to extract patterns
-    // We'll use rdf-sparql-builder to add filters based on form values
+    // We'll add filters based on form values
     
-    // For now, we'll use a simple approach: append filters to the base query
     // Extract predicates and their values from the form data
     const filters: string[] = []
     const predicateValues = new Map<string, Set<string>>()
@@ -81,8 +85,7 @@ export function generateQuery(
         }
     }
     
-    // Modify the base query to add filters
-    let finalQuery = baseQuery
+    // Modify the query to add filters
     
     if (filters.length > 0) {
         // Find WHERE clause and insert filters before the closing brace
@@ -99,7 +102,11 @@ export function generateQuery(
     
     // Convert to SELECT if requested
     if (queryType === 'select') {
-        finalQuery = finalQuery.replace(/^CONSTRUCT\s*{[^}]*}\s*WHERE/s, 'SELECT * WHERE')
+        // Match CONSTRUCT { ... } WHERE and replace with SELECT * WHERE
+        // Handle both single-line and multi-line formats, including whitespace and newlines
+        if (finalQuery.includes('CONSTRUCT')) {
+            finalQuery = finalQuery.replace(/CONSTRUCT\s*\{[\s\S]*?\}\s*WHERE/i, 'SELECT * WHERE')
+        }
     }
     
     return finalQuery
