@@ -51,6 +51,7 @@ HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that
   </body>
 </html>
 ```
+
 A more detailed explanation of how the forms are generated is [available here](DETAILS.md).
 
 ### Element attributes
@@ -78,39 +79,47 @@ A more detailed explanation of how the forms are generated is [available here](D
 ### Element functions
 
 <a id="toRDF"></a>
+
 ```typescript
 toRDF(graph?: Store): Store
 ```
+
 Adds the form values as RDF triples to the given graph. If no graph object is provided, creates a new [N3 Store](https://github.com/rdfjs/N3.js#storing).
 
 ```typescript
 serialize(format?: string, graph?: Store): string
 ```
+
 Serializes the given RDF graph to the given format. If no graph object is provided, this function calls toRDF() (see above) to construct the form data graph in one of the supported [output formats](#output-formats) (default is `text/turtle`).
 
 ```typescript
 toQuery(options?: QueryBuildOptions): string
 ```
-Creates a SPARQL query for the current form values. By default, this returns a CONSTRUCT query derived from the loaded shapes graph via [`@hydrofoil/shape-to-query`](https://github.com/zazuko/shape-to-query). Optional parameters allow requesting a SELECT query (`type: 'select'`) and customizing the resulting variables. Generated queries use the populated form data as additional patterns so they can serve as filters against external endpoints.
+
+Creates a SPARQL query for the current form values. By default, this returns a CONSTRUCT query derived from the loaded shapes graph via [`@hydrofoil/shape-to-query`](https://github.com/zazuko/shape-to-query). Optional parameters allow requesting a SELECT query (`type: 'select'`) and customizing the resulting variables. Generated queries use the populated form data as additional patterns so they can serve as filters against external endpoints. More details [can be found here](./TOQUERY_USAGE.md).
 
 ```typescript
 validate(ignoreEmptyValues: boolean): Promise<boolean>
 ```
+
 Validates the form data against the SHACL shapes graph and displays validation results as icons next to the respective input fields. If `ignoreEmptyValues` is true, empty form fields will not be marked as invalid. This function is also internally called on `change` and `submit` events.
 
 ```typescript
 registerPlugin(plugin: Plugin)
 ```
+
 Register a [plugin](./src/plugin.ts) to customize editing/viewing certain property values. Plugins handle specific RDF predicates or `xsd:datatype`s or both. Examples: [Leaflet](./src/plugins/leaflet.ts), [Mapbox](./src/plugins/mapbox.ts), [FixedList](./src/plugins/fixed-list.ts)
 
 ```typescript
 setTheme(theme: Theme)
 ```
-Set a design theme to use for rendering. See section [Theming](#Theming).
+
+Set a design theme to use for rendering. See section [Theming](#theming).
 
 ```typescript
 setClassInstanceProvider((className: string) => Promise<string>)
 ```
+
 Sets a callback function that is invoked when a SHACL property has an `sh:class` definition to retrieve class instances. See [below](#classInstanceProvider) for more information.
 
 ## Features
@@ -130,11 +139,12 @@ In edit mode, `<shacl-form>` validates the constructed data graph using the libr
 ### Providing additional data to the shapes graph
 
 Apart from setting the element attributes `data-shapes` or `data-shapes-url`, there are two ways of adding RDF data to the shapes graph:
+
 1. While parsing the triples of the shapes graph, any encountered `owl:imports` predicate that has a valid HTTP URL is fetched with the HTTP Accept header set to all of the [supported](#formats) MIME types. A successful response is parsed and added to a named graph. This graph is scoped (i.e. available) only to the node where the `owl:import` statement is defined on and all its sub nodes.
 
     The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
 
-    ```
+    ```rdf
     example:Attribution
       sh:property [
         owl:imports <https://w3id.org/nfdi4ing/metadata4ing/> ;
@@ -143,6 +153,7 @@ Apart from setting the element attributes `data-shapes` or `data-shapes-url`, th
         sh:class     prov:Role ;
       ] .
     ```
+
     In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form. The imported ontology is available only for rendering and validating this specific property.
 
 2. <a id="classInstanceProvider"></a>The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is invoked when a SHACL property has
@@ -162,6 +173,7 @@ an `sh:class` predicate. The expected return value is a (promise of a) string (e
       }}
     )
     ```
+
     returns instances of the class `http://example.org/Material` that are then used to populate the "Artwork material" dropdown in the form.
 
     A more realistic use case of this feature is calling some API endpoint to fetch class instance definitions from existing ontologies.
@@ -176,7 +188,8 @@ In case a property shape has a `sh:class`, all available graphs are scanned for 
 
 `<shacl-form>` supports using [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) and [sh:xone](https://www.w3.org/TR/shacl/#XoneConstraintComponent) to let users select between different options on nodes or properties.
 The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) has the following triples:
-```
+
+```rdf
 example:Attribution
   a sh:NodeShape ;
   sh:property [
@@ -189,15 +202,18 @@ example:Attribution
     )
   ] .
 ```
+
 When adding a new attribution, `<shacl-form>` renders a dropdown to let the user select between the two options Person/Organisation. After selecting one of the options, the dropdown is replaced by the input fields of the selected node shape.
 
 When binding an existing data graph to the form, the constraint is tried to be resolved depending on the respective data value:
+
 - For RDF literals, an `sh:or` option with a matching `sh:datatype` is chosen
 - For blank nodes or named nodes, the `rdf:type` of the value is tried to be matched with a node shape having a corresponding `sh:targetClass` or with a property shape having a corresponding `sh:class`. If there is no `rdf:type` but a `sh:nodeKind` of `sh:IRI`, the id of the the node is used as the value.
 
 ### Linking existing data
 
 In case a node shape has a `sh:targetClass` and any graph, i.e.
+
 - the shapes graph
 - the data graph
 - any graph loaded by `owl:imports`
@@ -210,7 +226,7 @@ contains instances of that class, those can be linked in the respective SHACL pr
 SHACL defines two ways of inheriting shapes: [sh:and](https://www.w3.org/TR/shacl/#AndConstraintComponent)
 and [sh:node](https://www.w3.org/TR/shacl/#NodeConstraintComponent). `<shacl-form>` supports both. In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), node shape `example:ArchitectureModelDataset` extends `example:Dataset` by defining the following RDF triple:
 
-```
+```rdf
 example:ArchitectureModelDataset sh:node example:Dataset .
 ```
 
@@ -219,11 +235,13 @@ Properties of inherited shapes are displayed first.
 ### Plugins
 
 Plugins can modify rendering of the form and add functionality to edit and view certain RDF datatypes or predicates (or a combination of both). As an example, the JavaScript of [this page](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following code:
+
 ```typescript
 import { LeafletPlugin } from '@ulb-darmstadt/shacl-form/plugins/leaflet.js'
 const form = document.getElementById("shacl-form")
 form.registerPlugin(new LeafletPlugin({ datatype: 'http://www.opengis.net/ont/geosparql#wktLiteral' }))
 ```
+
 In effect, whenever a SHACL property has an `sh:datatype` of `http://www.opengis.net/ont/geosparql#wktLiteral`, the plugin is called to create the editor and/or viewer HTML elements. This specific plugin uses [Leaflet](https://leafletjs.com/) to edit or view geometry in format [well known text](http://giswiki.org/wiki/Well_Known_Text) on a map.
 Custom plugins can be built by extending class [Plugin](https://github.com/ULB-Darmstadt/shacl-form/blob/main/src/plugin.ts#L40).
 
@@ -238,20 +256,22 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
 ### Supported RDF formats
 
 #### Input formats
+
 * text/turtle, application/n-triples, application/n-quads, application/trig using [N3 parser](https://github.com/rdfjs/N3.js?tab=readme-ov-file#parsing)
-* application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
-* application/rdf+xml using [rdfxml-streaming-parser](https://github.com/rdfjs/rdfxml-streaming-parser.js)
+- application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
+- application/rdf+xml using [rdfxml-streaming-parser](https://github.com/rdfjs/rdfxml-streaming-parser.js)
 
 #### Output formats
+
 <a id="output-formats"></a>
 
-* text/turtle, application/n-triples, application/n-quads, application/trig using [N3 writer](https://github.com/rdfjs/N3.js?tab=readme-ov-file#writing)
-* application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
+- text/turtle, application/n-triples, application/n-quads, application/trig using [N3 writer](https://github.com/rdfjs/N3.js?tab=readme-ov-file#writing)
+- application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
 
 ### Use with Solid Pods
 
 `<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDF/JS N3 Store, as explained [above](#toRDF), it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod example](https://docs.inrupt.com/sdk/javascript-sdk/tutorial) shows how to merge data from a `<shacl-form>` with a Solid data resource at `readingListDataResourceURI`:
- 
+
 ```js
   // Authentication is assumed, resulting in a fetch able to read and write into the Pod
   try {

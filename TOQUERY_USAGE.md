@@ -2,9 +2,7 @@
 
 ## Overview
 
-`toQuery()` turns the current `<shacl-form>` state into a SPARQL query. The method complements the existing serialization helpers so that a form can double as a search/filter UI against a SPARQL endpoint.
-
-The feature now ships with this repository. The public API mirrors `src/form.ts` and the builder logic in `src/query.ts`.
+`toQuery()` turns the current `<shacl-form>` state into a SPARQL query. Use it to reuse a form as a filter/search UI against a SPARQL endpoint. The implementation lives in `src/form.ts` and `src/query.ts`.
 
 ## Basic Usage
 
@@ -27,10 +25,14 @@ const selectQuery = form.toQuery({
 
 ## How It Works
 
-1. **Base query from shapes** – We load the active SHACL `NodeShape` into [`@hydrofoil/shape-to-query`](https://www.npmjs.com/package/@hydrofoil/shape-to-query) to generate an initial SPARQL CONSTRUCT query.
-2. **Form values to RDF** – `ShaclForm.toRDF()` captures the current editors as an `n3.Store`.
-3. **Value patterns** – The builder from `src/query.ts` walks the store and injects triple patterns for populated values (blank nodes become fresh variables, literals keep their datatype/language). No FILTERs are added; existing triples are reused.
-4. **Query type switch** – When `options.type === 'select'`, the WHERE clause is preserved but SELECT variables come from `options.selectVariables` (defaulting to the main subject variable). Otherwise the CONSTRUCT query returned by `shape-to-query` is re-stringified with the augmented WHERE.
+1. **Base query from shapes** – [`@hydrofoil/shape-to-query`](https://www.npmjs.com/package/@hydrofoil/shape-to-query) produces the initial CONSTRUCT query, including all mandatory triples.
+2. **Form state to RDF** – `ShaclForm.toRDF()` captures the current editors as an `n3.Store`.
+3. **Value injection** – `src/query.ts` walks the store, maps blank nodes to fresh variables, and augments the base WHERE clause:
+    - Filled required properties stay as straight triple patterns.
+    - Optional properties without values are wrapped into `OPTIONAL { ... }` blocks.
+    - Literal inputs become `FILTER(?var = "value")` clauses, or `FILTER(?var IN (...))` when several values are present.
+4. **Variable alignment** – Shape-to-query may rename the focus variable (for example `?resource1`). The builder detects that name and keeps any extra triples/filters in sync so the query remains connected. Passing `subjectVariable` lets you request a prefix; `toQuery()` still binds to the actual generated name.
+5. **Query type switch** – When `options.type === 'select'`, the WHERE clause is reused and the SELECT projection is built from `selectVariables` (defaulting to the resolved focus variable). Otherwise the enriched CONSTRUCT query is returned.
 
 ## Minimal Example
 
@@ -92,21 +94,27 @@ await fetch('https://example.org/sparql', {
 
 ## Generated Query Snapshot
 
-With `name` set to `John Doe` and `email` set to `john@example.org`, `toQuery()` returns a CONSTRUCT like:
+With `name` set to `John Doe`, `email` set to `john@example.org`, and `age` left empty, the resulting CONSTRUCT looks like:
 
 ```sparql
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 CONSTRUCT {
-  ?resource <http://example.org#name> ?resource_name_1 .
-  ?resource <http://example.org#email> ?resource_email_1 .
+    ?resource1 a <http://example.org#Person> .
+    ?resource1 <http://example.org#name> ?resource2 .
+    ?resource1 <http://example.org#email> ?resource3 .
+    ?resource1 <http://example.org#age> ?resource4 .
 }
 WHERE {
-  ?resource a <http://example.org#Person> .
-  ?resource <http://example.org#name> "John Doe" .
-  ?resource <http://example.org#email> "john@example.org" .
+    ?resource1 a <http://example.org#Person> ;
+                         <http://example.org#name> ?resource2 ;
+                         <http://example.org#email> ?resource3 .
+    OPTIONAL { ?resource1 <http://example.org#age> ?resource4 }
+    FILTER(?resource2 = "John Doe")
+    FILTER(?resource3 = "john@example.org"^^xsd:string)
 }
 ```
 
-Literal values appear directly in the WHERE clause instead of FILTER expressions, matching the form’s data graph.
+Notice how the focus variable coming from shape-to-query became `?resource1`; `toQuery()` reuses that same name for all added filters so the graph stays connected.
 
 ## Important Notes
 
@@ -124,8 +132,10 @@ Literal values appear directly in the WHERE clause instead of FILTER expressions
    ```
 
    `subjectVariable` defaults to `resource`. Blank nodes in the form become fresh variables derived from that name.
-4. **Patterns vs FILTERs** – The local implementation emits triple patterns. Add extra filters manually if you need partial matches.
-5. **Validation still applies** – `toQuery()` doesn’t bypass SHACL validation. Use `validate()` first if you depend on clean data before fetching.
+4. **Structural vs value logic** – The builder keeps structural triples intact and adds equality-style filters. Layer your own FILTERs if you need partial matches or advanced conditions.
+5. **Literal behaviour** – Straight equality and `IN` filters are emitted for exact matches. Add your own regex or range filters on top if you need partial search.
+6. **No dev server requirement** – The demos run as standalone HTML pages. `npm run dev` is optional and only needed if you want Vite’s live reload.
+7. **Validation still applies** – `toQuery()` doesn’t bypass SHACL validation. Use `validate()` first if you depend on clean data before fetching.
 
 ## Use Cases
 
