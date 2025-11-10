@@ -8,6 +8,9 @@ import { PREFIX_XSD, SHAPES_GRAPH } from './constants'
 import { Parser, Generator } from 'sparqljs'
 import type { Pattern, BgpPattern, Triple, OptionalPattern, FilterPattern, OperationExpression, VariableTerm, LiteralTerm, Tuple, UnionPattern } from 'sparqljs'
 
+/**
+ * Options that control how a SPARQL query is generated from the current form state.
+ */
 export interface QueryBuildOptions {
     type?: 'construct' | 'select'
     subjectVariable?: string
@@ -17,11 +20,17 @@ export interface QueryBuildOptions {
     limit?: number
 }
 
+/**
+ * Minimal metadata extracted from the SHACL property shapes to decide optionality.
+ */
 interface PropertyMetadata {
     predicate: string
     optional: boolean
 }
 
+/**
+ * Representation of the collected form value graph after normalisation.
+ */
 interface NormalizedData {
     patterns: Pattern[]
     literalFilters: Map<string, LiteralTerm[]>
@@ -29,11 +38,17 @@ interface NormalizedData {
     rootVariable: VariableTerm
 }
 
+/**
+ * BGP wrapped in an OPTIONAL clause together with the variables it touches.
+ */
 interface OptionalGroup {
     pattern: OptionalPattern
     variables: Set<string>
 }
 
+/**
+ * Result of splitting a pattern into required and optional fragments.
+ */
 interface OptionalExtraction {
     patterns: Pattern[]
     optionalGroups: OptionalGroup[]
@@ -43,6 +58,11 @@ const parser = new Parser()
 const generator = new Generator()
 const sh = rdf.namespace('http://www.w3.org/ns/shacl#')
 
+/**
+ * Builds a SPARQL query by combining the static structure derived from the SHACL shapes
+ * with the dynamic values currently present in the form. Supports both CONSTRUCT and SELECT
+ * output as well as stricter and lenient filter generation modes.
+ */
 export function buildQuery(store: Store, shapeSubject: NamedNode, data: Store, rootNode: NamedNode | BlankNode, options: QueryBuildOptions = {}): string {
     const subjectVariable = options.subjectVariable || 'resource'
     const lenient = options.lenient === true
@@ -84,6 +104,7 @@ export function buildQuery(store: Store, shapeSubject: NamedNode, data: Store, r
             prefixes: parsed.prefixes,
             where: wherePatterns,
             distinct: options.distinct ?? true,
+            // SparqlJS serialises this numeric value into a trailing LIMIT clause.
             limit: options.limit
         })
     }
@@ -94,6 +115,10 @@ export function buildQuery(store: Store, shapeSubject: NamedNode, data: Store, r
     })
 }
 
+/**
+ * Creates a clownface pointer that contains only the quads from the SHACL shapes graph
+ * for the requested shape. This isolates the template used by shape-to-query.
+ */
 function createShapePointer(store: Store, shapeSubject: NamedNode) {
     const dataset = rdf.dataset()
     for (const quad of store.getQuads(null, null, null, SHAPES_GRAPH)) {
@@ -102,6 +127,9 @@ function createShapePointer(store: Store, shapeSubject: NamedNode) {
     return clownface({ dataset, term: rdf.namedNode(shapeSubject.value) })
 }
 
+/**
+ * Reads the property shapes and records whether each predicate is mandatory or optional.
+ */
 function extractPropertyMetadata(shapePointer: AnyPointer): Map<string, PropertyMetadata> {
     const metadata = new Map<string, PropertyMetadata>()
     shapePointer.out(sh.property).forEach((property: AnyPointer) => {
@@ -110,6 +138,7 @@ function extractPropertyMetadata(shapePointer: AnyPointer): Map<string, Property
             return
         }
 
+        // Detect explicit minCount to decide if the property must stay non-optional.
         const minCountLiteral = property.out(sh.minCount).term
         const minCount = minCountLiteral && minCountLiteral.termType === 'Literal' ? Number.parseInt(minCountLiteral.value, 10) : 0
         const existing = metadata.get(pathTerm.value)
@@ -126,6 +155,10 @@ function extractPropertyMetadata(shapePointer: AnyPointer): Map<string, Property
     return metadata
 }
 
+/**
+ * Converts the form's RDF store into a set of query patterns plus literal filters, aligning
+ * form blank nodes with generated variables and optionally trimming literal values.
+ */
 function collectAndNormalizeData(data: Store, rootNode: NamedNode | BlankNode, subjectVariable: string, lenient: boolean): NormalizedData {
     const rootVar = rdf.variable(subjectVariable)
     const blankNodeVars = new Map<string, VariableTerm>()
@@ -162,6 +195,7 @@ function collectAndNormalizeData(data: Store, rootNode: NamedNode | BlankNode, s
             }
         }
 
+        // Skip duplicate triples to avoid redundant patterns downstream.
         const signature = `${termKey(subjectTerm)}|${termKey(predicateTerm)}|${termKey(objectTerm)}`
         if (seen.has(signature)) {
             continue
@@ -197,6 +231,10 @@ function collectAndNormalizeData(data: Store, rootNode: NamedNode | BlankNode, s
     }
 }
 
+/**
+ * Ensures optional properties are wrapped in OPTIONAL blocks when they have not been
+ * provided by the user while keeping required triples in the main BGP.
+ */
 function applyOptionalPredicates(patterns: Pattern[], propertyMetadata: Map<string, PropertyMetadata>, filledPredicates: Set<string>): OptionalExtraction {
     const result: Pattern[] = []
     const optionalGroups: OptionalGroup[] = []
@@ -204,6 +242,7 @@ function applyOptionalPredicates(patterns: Pattern[], propertyMetadata: Map<stri
     for (const pattern of patterns) {
         if (pattern.type !== 'bgp') {
             if (pattern.type === 'union') {
+                // Unpack unions so optional logic can be applied consistently per branch.
                 const transformed = transformUnionPattern(pattern, propertyMetadata, filledPredicates)
                 result.push(...transformed.patterns)
                 optionalGroups.push(...transformed.optionalGroups)
@@ -232,6 +271,10 @@ function applyOptionalPredicates(patterns: Pattern[], propertyMetadata: Map<stri
     }
 }
 
+/**
+ * Splits a BGP into mandatory triples and optional groups that share variables, preserving
+ * connected components so each OPTIONAL stays semantically correct.
+ */
 function extractOptionalGroups(pattern: BgpPattern, propertyMetadata: Map<string, PropertyMetadata>, filledPredicates: Set<string>): { remaining: BgpPattern; optional: OptionalGroup[] } {
     const optionalPatterns: OptionalGroup[] = []
     const remainingTriples: Triple[] = []
@@ -277,6 +320,10 @@ function extractOptionalGroups(pattern: BgpPattern, propertyMetadata: Map<string
     }
 }
 
+/**
+ * Applies the optional wrapping logic to each branch of a UNION and merges the resulting
+ * required and optional fragments back into a flat pattern list when possible.
+ */
 function transformUnionPattern(pattern: UnionPattern, propertyMetadata: Map<string, PropertyMetadata>, filledPredicates: Set<string>): OptionalExtraction {
     if (!pattern.patterns.every((branch) => branch.type === 'bgp')) {
         return { patterns: [pattern], optionalGroups: [] }
@@ -324,6 +371,10 @@ function transformUnionPattern(pattern: UnionPattern, propertyMetadata: Map<stri
     }
 }
 
+/**
+ * Performs a BFS over triples to gather all patterns that are linked via shared variables,
+ * ensuring optional groups remain connected subgraphs.
+ */
 function collectConnectedTriples(triples: Triple[], startIndex: number): { indices: number[]; triples: Triple[]; variables: Set<string> } {
     const queue: number[] = [startIndex]
     const collected = new Set<number>()
@@ -337,6 +388,7 @@ function collectConnectedTriples(triples: Triple[], startIndex: number): { indic
 
         collected.add(index)
         const triple = triples[index]
+        // Track variables referenced by the current triple so we can follow connected edges.
         addVariablesFromTerm(triple.subject, variables)
         addVariablesFromTerm(triple.object, variables)
 
@@ -366,6 +418,9 @@ function collectConnectedTriples(triples: Triple[], startIndex: number): { indic
     }
 }
 
+/**
+ * Adds triples to a target list while avoiding duplicates based on subject/predicate/object signature.
+ */
 function appendTriplesUnique(target: Triple[], triples: Triple[]): void {
     const existing = new Set(target.map(tripleKey))
     for (const triple of triples) {
@@ -378,10 +433,16 @@ function appendTriplesUnique(target: Triple[], triples: Triple[]): void {
     }
 }
 
+/**
+ * Builds a unique key for a triple to allow stable comparison and de-duplication.
+ */
 function tripleKey(triple: Triple): string {
     return `${termKey(triple.subject)}|${predicateKey(triple.predicate)}|${termKey(triple.object)}`
 }
 
+/**
+ * Provides stable serialization for predicate terms when composing triple keys.
+ */
 function predicateKey(predicate: Triple['predicate']): string {
     if (isNamedNode(predicate) || isVariableTerm(predicate)) {
         return termKey(predicate as unknown as Term)
@@ -389,6 +450,10 @@ function predicateKey(predicate: Triple['predicate']): string {
     return JSON.stringify(predicate)
 }
 
+/**
+ * Detects the actual focus variable emitted by shape-to-query so additional triples and filters
+ * bind against the same variable even when the library renames it.
+ */
 function resolveSubjectVariableName(patterns: Pattern[] | undefined, fallback: string): string {
     if (!patterns || !patterns.length) {
         return fallback
@@ -435,20 +500,33 @@ function resolveSubjectVariableName(patterns: Pattern[] | undefined, fallback: s
     return discovered[0] || fallback
 }
 
+/**
+ * Checks whether a triple references any variable from the provided set.
+ */
 function sharesVariable(triple: Triple, variables: Set<string>): boolean {
     return hasVariable(triple.subject, variables) || hasVariable(triple.object, variables)
 }
 
+/**
+ * Helper that verifies if a term is a variable contained in the tracking set.
+ */
 function hasVariable(term: Term, variables: Set<string>): boolean {
     return term.termType === 'Variable' && variables.has(term.value)
 }
 
+/**
+ * Adds any variable identifiers found in the term to the provided set.
+ */
 function addVariablesFromTerm(term: Term, set: Set<string>): void {
     if (term.termType === 'Variable') {
         set.add(term.value)
     }
 }
 
+/**
+ * Generates FILTER clauses for literal inputs, switching between strict equality/IN checks
+ * and lenient CONTAINS disjunctions depending on the selected mode.
+ */
 function buildValueFilters(patterns: Pattern[], literalFilters: Map<string, LiteralTerm[]>, lenient: boolean): FilterPattern[] {
     if (!literalFilters.size) {
         return []
@@ -468,6 +546,7 @@ function buildValueFilters(patterns: Pattern[], literalFilters: Map<string, Lite
             continue
         }
 
+        // Lenient mode lowers the barrier by emitting a disjunction of CONTAINS checks; otherwise keep strict comparisons.
         const expression = lenient ? buildContainsDisjunction(variables[0], uniqueValues) : uniqueValues.length === 1 ? buildEqualsExpression(variables[0], uniqueValues[0]) : buildInExpression(variables[0], uniqueValues)
 
         filters.push({
@@ -479,6 +558,9 @@ function buildValueFilters(patterns: Pattern[], literalFilters: Map<string, Lite
     return filters
 }
 
+/**
+ * Builds a simple equality comparison between a variable and a literal value.
+ */
 function buildEqualsExpression(variable: VariableTerm, value: LiteralTerm): OperationExpression {
     return {
         type: 'operation',
@@ -487,6 +569,9 @@ function buildEqualsExpression(variable: VariableTerm, value: LiteralTerm): Oper
     }
 }
 
+/**
+ * Emits an IN expression for multi-valued literals in strict mode.
+ */
 function buildInExpression(variable: VariableTerm, values: LiteralTerm[]): OperationExpression {
     const tuple: Tuple = values.map((term) => term) as Tuple
     return {
@@ -496,6 +581,9 @@ function buildInExpression(variable: VariableTerm, values: LiteralTerm[]): Opera
     }
 }
 
+/**
+ * Combines multiple CONTAINS expressions with OR to support lenient partial matching.
+ */
 function buildContainsDisjunction(variable: VariableTerm, values: LiteralTerm[]): OperationExpression {
     const [first, ...rest] = values.map((value) => buildContainsExpression(variable, value))
     if (!first) {
@@ -513,6 +601,9 @@ function buildContainsDisjunction(variable: VariableTerm, values: LiteralTerm[])
     )
 }
 
+/**
+ * Creates a case-insensitive CONTAINS expression for a single literal.
+ */
 function buildContainsExpression(variable: VariableTerm, value: LiteralTerm): OperationExpression {
     const normalized = value.value.trim().toLowerCase()
     return {
@@ -520,6 +611,7 @@ function buildContainsExpression(variable: VariableTerm, value: LiteralTerm): Op
         operator: 'contains',
         args: [
             {
+                // Compare against a lower-cased lexical form to avoid issues with language tags/casing.
                 type: 'operation',
                 operator: 'lcase',
                 args: [
@@ -535,6 +627,9 @@ function buildContainsExpression(variable: VariableTerm, value: LiteralTerm): Op
     }
 }
 
+/**
+ * Builds an index from predicate IRIs to the variables they bind within the WHERE clause.
+ */
 function mapPredicateVariables(patterns: Pattern[]): Map<string, VariableTerm[]> {
     const mapping = new Map<string, VariableTerm[]>()
 
@@ -562,6 +657,10 @@ function mapPredicateVariables(patterns: Pattern[]): Map<string, VariableTerm[]>
     return mapping
 }
 
+/**
+ * Moves FILTER clauses that depend solely on optional variables inside their OPTIONAL blocks
+ * so they do not eliminate rows when the optional data is absent.
+ */
 function relocateFilters(patterns: Pattern[], optionalGroups: OptionalGroup[]): Pattern[] {
     if (!optionalGroups.length || !patterns.length) {
         return patterns
@@ -591,6 +690,9 @@ function relocateFilters(patterns: Pattern[], optionalGroups: OptionalGroup[]): 
     return relocated
 }
 
+/**
+ * Recursively walks a SPARQL.js expression tree to collect all variable names referenced within.
+ */
 function collectExpressionVariables(node: unknown, target: Set<string>): void {
     if (!node) {
         return
@@ -620,6 +722,9 @@ function collectExpressionVariables(node: unknown, target: Set<string>): void {
     }
 }
 
+/**
+ * Returns true when every element of the subset exists in the target superset.
+ */
 function isSubset(subset: Set<string>, superset: Set<string>): boolean {
     for (const value of subset) {
         if (!superset.has(value)) {
@@ -629,6 +734,10 @@ function isSubset(subset: Set<string>, superset: Set<string>): boolean {
     return true
 }
 
+/**
+ * Drops any FILTER clauses that explicitly check DATATYPE(), used by lenient mode to reduce
+ * overly strict comparisons. Operates recursively on nested patterns.
+ */
 function removeDatatypeFilters(patterns: Pattern[]): Pattern[] {
     const result: Pattern[] = []
 
@@ -658,6 +767,9 @@ function removeDatatypeFilters(patterns: Pattern[]): Pattern[] {
     return result
 }
 
+/**
+ * Detects DATATYPE() usages within an expression tree.
+ */
 function containsDatatypeFunction(node: unknown): boolean {
     if (!node) {
         return false
@@ -685,6 +797,10 @@ function containsDatatypeFunction(node: unknown): boolean {
     return false
 }
 
+/**
+ * Trims whitespace around literal values and preserves language/datatype metadata.
+ * Returns null when the resulting literal would be empty.
+ */
 function prepareLiteralValue(literal: Literal): Literal | null {
     const trimmed = literal.value.trim()
     if (!trimmed) {
@@ -703,6 +819,9 @@ function prepareLiteralValue(literal: Literal): Literal | null {
     return datatype ? rdf.literal(trimmed, datatype) : rdf.literal(trimmed)
 }
 
+/**
+ * Extracts the string value from named node predicates when available.
+ */
 function getPredicateValue(predicate: Triple['predicate']): string | null {
     if (isNamedNode(predicate)) {
         return predicate.value
@@ -710,6 +829,9 @@ function getPredicateValue(predicate: Triple['predicate']): string | null {
     return null
 }
 
+/**
+ * Removes duplicate terms while keeping their first occurrence order.
+ */
 function deduplicateTerms<T extends Term>(terms: T[]): T[] {
     const seen = new Set<string>()
     const result: T[] = []
@@ -724,6 +846,10 @@ function deduplicateTerms<T extends Term>(terms: T[]): T[] {
     return result
 }
 
+/**
+ * Converts RDFJS terms from the form store into the corresponding SPARQL.js terms, mapping
+ * the form's focus node and blank nodes onto variables.
+ */
 function toQueryTerm(term: Term, rootNode: NamedNode | BlankNode, rootVar: VariableTerm, blankNodeVars: Map<string, VariableTerm>, subjectVariable: string): Term {
     if ('equals' in term && term.equals(rootNode)) {
         return rootVar
@@ -749,6 +875,9 @@ function toQueryTerm(term: Term, rootNode: NamedNode | BlankNode, rootVar: Varia
     return rdf.namedNode(term.value)
 }
 
+/**
+ * Normalises literal terms so SPARQL.js understands their datatype or language.
+ */
 function toLiteral(term: Literal): LiteralTerm {
     if (term.language) {
         return rdf.literal(term.value, term.language)
@@ -758,6 +887,9 @@ function toLiteral(term: Literal): LiteralTerm {
     return datatype ? rdf.literal(term.value, datatype) : rdf.literal(term.value)
 }
 
+/**
+ * Generates a stable signature for RDFJS terms, differentiating literal facets.
+ */
 function termKey(term: Term): string {
     switch (term.termType) {
         case 'Literal':
@@ -767,14 +899,23 @@ function termKey(term: Term): string {
     }
 }
 
+/**
+ * Checks whether a term is the root variable requested by the caller.
+ */
 function isRootVariable(term: Term, subjectVariable: string): term is VariableTerm {
     return term.termType === 'Variable' && term.value === subjectVariable
 }
 
+/**
+ * Narrowing helper that ensures a value is a named node.
+ */
 function isNamedNode(value: unknown): value is NamedNode {
     return Boolean(value) && typeof value === 'object' && 'termType' in (value as Record<string, unknown>) && (value as { termType: string }).termType === 'NamedNode'
 }
 
+/**
+ * Narrowing helper that ensures a value is a SPARQL.js variable term.
+ */
 function isVariableTerm(value: unknown): value is VariableTerm {
     return Boolean(value) && typeof value === 'object' && 'termType' in (value as Record<string, unknown>) && (value as { termType: string }).termType === 'Variable'
 }
