@@ -93,6 +93,34 @@ describe('buildQuery', () => {
         expect(filterExpressions.length).toBe(0)
     })
 
+    it('aligns filters with variables produced by shape-to-query', () => {
+        const shapesStore = createShapesStore()
+        const valuesStore = new Store()
+        valuesStore.addQuad(quad(rootInstance, namePredicate, literal('Aligned Name')))
+
+        const query = buildQuery(shapesStore, shapeIri, valuesStore, rootInstance)
+        const parsed = parseQuery(query)
+        const filterExpressions = getFilterExpressions(parsed)
+
+        const tripleVariable = (parsed.where ?? [])
+            .filter((pattern) => pattern.type === 'bgp')
+            .flatMap((pattern) => pattern.triples)
+            .find((triple) => isTerm(triple.predicate) && triple.predicate.termType === 'NamedNode' && triple.predicate.value === namePredicate.value)?.object
+
+        expect(tripleVariable && tripleVariable.termType === 'Variable').toBe(true)
+
+        expect(
+            filterExpressions.some((expression) => {
+                if (expression.operator !== '=') {
+                    return false
+                }
+
+                const [variable, value] = expression.args ?? []
+                return isTerm(variable) && variable.termType === 'Variable' && variable.value === tripleVariable?.value && isTerm(value) && value.termType === 'Literal' && value.value === 'Aligned Name'
+            })
+        ).toBe(true)
+    })
+
     it('wraps optional properties in OPTIONAL blocks when no value is provided', () => {
         const shapesStore = new Store()
         const nameShape = blankNode('requiredPropertyShape')

@@ -27,6 +27,16 @@ interface NormalizedData {
     rootVariable: VariableTerm
 }
 
+interface OptionalGroup {
+    pattern: OptionalPattern
+    variables: Set<string>
+}
+
+interface OptionalExtraction {
+    patterns: Pattern[]
+    optionalGroups: OptionalGroup[]
+}
+
 const parser = new Parser()
 const generator = new Generator()
 const sh = rdf.namespace('http://www.w3.org/ns/shacl#')
@@ -48,7 +58,9 @@ export function buildQuery(store: Store, shapeSubject: NamedNode, data: Store, r
         wherePatterns = [...wherePatterns, ...normalized.patterns]
     }
 
-    wherePatterns = applyOptionalPredicates(wherePatterns, propertyMetadata, normalized.filledPredicates)
+    const optionalized = applyOptionalPredicates(wherePatterns, propertyMetadata, normalized.filledPredicates)
+    wherePatterns = relocateFilters(optionalized.patterns, optionalized.optionalGroups)
+    wherePatterns = removeDatatypeFilters(wherePatterns)
 
     const filterPatterns = buildValueFilters(wherePatterns, normalized.literalFilters)
     if (filterPatterns.length) {
@@ -117,13 +129,14 @@ function collectAndNormalizeData(data: Store, rootNode: NamedNode | BlankNode, s
     const triples: Triple[] = []
 
     for (const quad of data.getQuads(null, null, null, null)) {
-        if (quad.object.termType === 'Literal' && quad.object.value === '') {
+        const preparedObject = quad.object.termType === 'Literal' ? prepareLiteralValue(quad.object) : quad.object
+        if (!preparedObject) {
             continue
         }
 
         const subjectTerm = toQueryTerm(quad.subject, rootNode, rootVar, blankNodeVars, subjectVariable)
         const predicateTerm = rdf.namedNode(quad.predicate.value)
-        const objectTerm = toQueryTerm(quad.object, rootNode, rootVar, blankNodeVars, subjectVariable)
+        const objectTerm = toQueryTerm(preparedObject, rootNode, rootVar, blankNodeVars, subjectVariable)
 
         if (isRootVariable(subjectTerm, subjectVariable)) {
             filledPredicates.add(predicateTerm.value)
@@ -170,13 +183,16 @@ function collectAndNormalizeData(data: Store, rootNode: NamedNode | BlankNode, s
     }
 }
 
-function applyOptionalPredicates(patterns: Pattern[], propertyMetadata: Map<string, PropertyMetadata>, filledPredicates: Set<string>): Pattern[] {
+function applyOptionalPredicates(patterns: Pattern[], propertyMetadata: Map<string, PropertyMetadata>, filledPredicates: Set<string>): OptionalExtraction {
     const result: Pattern[] = []
+    const optionalGroups: OptionalGroup[] = []
 
     for (const pattern of patterns) {
         if (pattern.type !== 'bgp') {
             if (pattern.type === 'union') {
-                result.push(...transformUnionPattern(pattern, propertyMetadata, filledPredicates))
+                const transformed = transformUnionPattern(pattern, propertyMetadata, filledPredicates)
+                result.push(...transformed.patterns)
+                optionalGroups.push(...transformed.optionalGroups)
                 continue
             }
 
@@ -189,15 +205,21 @@ function applyOptionalPredicates(patterns: Pattern[], propertyMetadata: Map<stri
             result.push(transformed.remaining)
         }
         if (transformed.optional.length) {
-            result.push(...transformed.optional)
+            for (const group of transformed.optional) {
+                optionalGroups.push(group)
+                result.push(group.pattern)
+            }
         }
     }
 
-    return result
+    return {
+        patterns: result,
+        optionalGroups
+    }
 }
 
-function extractOptionalGroups(pattern: BgpPattern, propertyMetadata: Map<string, PropertyMetadata>, filledPredicates: Set<string>): { remaining: BgpPattern; optional: OptionalPattern[] } {
-    const optionalPatterns: OptionalPattern[] = []
+function extractOptionalGroups(pattern: BgpPattern, propertyMetadata: Map<string, PropertyMetadata>, filledPredicates: Set<string>): { remaining: BgpPattern; optional: OptionalGroup[] } {
+    const optionalPatterns: OptionalGroup[] = []
     const remainingTriples: Triple[] = []
     const visited = new Set<number>()
 
@@ -219,13 +241,16 @@ function extractOptionalGroups(pattern: BgpPattern, propertyMetadata: Map<string
         const group = collectConnectedTriples(pattern.triples, index)
         group.indices.forEach((value) => visited.add(value))
         optionalPatterns.push({
-            type: 'optional',
-            patterns: [
-                {
-                    type: 'bgp',
-                    triples: group.triples
-                }
-            ]
+            pattern: {
+                type: 'optional',
+                patterns: [
+                    {
+                        type: 'bgp',
+                        triples: group.triples
+                    }
+                ]
+            },
+            variables: new Set(group.variables)
         })
     }
 
@@ -238,13 +263,13 @@ function extractOptionalGroups(pattern: BgpPattern, propertyMetadata: Map<string
     }
 }
 
-function transformUnionPattern(pattern: UnionPattern, propertyMetadata: Map<string, PropertyMetadata>, filledPredicates: Set<string>): Pattern[] {
+function transformUnionPattern(pattern: UnionPattern, propertyMetadata: Map<string, PropertyMetadata>, filledPredicates: Set<string>): OptionalExtraction {
     if (!pattern.patterns.every((branch) => branch.type === 'bgp')) {
-        return [pattern]
+        return { patterns: [pattern], optionalGroups: [] }
     }
 
     const requiredTriples: Triple[] = []
-    const optionalPatterns: OptionalPattern[] = []
+    const optionalPatterns: OptionalGroup[] = []
     let transformed = false
 
     for (const branch of pattern.patterns as BgpPattern[]) {
@@ -259,7 +284,7 @@ function transformUnionPattern(pattern: UnionPattern, propertyMetadata: Map<stri
     }
 
     if (!transformed) {
-        return [pattern]
+        return { patterns: [pattern], optionalGroups: [] }
     }
 
     const merged: Pattern[] = []
@@ -270,13 +295,22 @@ function transformUnionPattern(pattern: UnionPattern, propertyMetadata: Map<stri
         })
     }
     if (optionalPatterns.length) {
-        merged.push(...optionalPatterns)
+        for (const group of optionalPatterns) {
+            merged.push(group.pattern)
+        }
     }
 
-    return merged.length ? merged : [pattern]
+    if (!merged.length) {
+        return { patterns: [pattern], optionalGroups: [] }
+    }
+
+    return {
+        patterns: merged,
+        optionalGroups: optionalPatterns
+    }
 }
 
-function collectConnectedTriples(triples: Triple[], startIndex: number): { indices: number[]; triples: Triple[] } {
+function collectConnectedTriples(triples: Triple[], startIndex: number): { indices: number[]; triples: Triple[]; variables: Set<string> } {
     const queue: number[] = [startIndex]
     const collected = new Set<number>()
     const variables = new Set<string>()
@@ -305,9 +339,16 @@ function collectConnectedTriples(triples: Triple[], startIndex: number): { indic
     }
 
     const ordered = Array.from(collected).sort((a, b) => a - b)
+    const collectedTriples = ordered.map((index) => triples[index])
+    const collectedVariables = new Set<string>()
+    for (const triple of collectedTriples) {
+        addVariablesFromTerm(triple.subject, collectedVariables)
+        addVariablesFromTerm(triple.object, collectedVariables)
+    }
     return {
         indices: ordered,
-        triples: ordered.map((index) => triples[index])
+        triples: collectedTriples,
+        variables: collectedVariables
     }
 }
 
@@ -466,6 +507,147 @@ function mapPredicateVariables(patterns: Pattern[]): Map<string, VariableTerm[]>
     }
 
     return mapping
+}
+
+function relocateFilters(patterns: Pattern[], optionalGroups: OptionalGroup[]): Pattern[] {
+    if (!optionalGroups.length || !patterns.length) {
+        return patterns
+    }
+
+    const relocated: Pattern[] = []
+
+    for (const pattern of patterns) {
+        if (pattern.type === 'filter') {
+            const variables = new Set<string>()
+            collectExpressionVariables(pattern.expression, variables)
+            if (variables.size) {
+                const target = optionalGroups.find((group) => isSubset(variables, group.variables))
+                if (target) {
+                    target.pattern.patterns.push(pattern)
+                    continue
+                }
+            }
+
+            relocated.push(pattern)
+            continue
+        }
+
+        relocated.push(pattern)
+    }
+
+    return relocated
+}
+
+function collectExpressionVariables(node: unknown, target: Set<string>): void {
+    if (!node) {
+        return
+    }
+
+    if (Array.isArray(node)) {
+        for (const item of node) {
+            collectExpressionVariables(item, target)
+        }
+        return
+    }
+
+    if (typeof node !== 'object') {
+        return
+    }
+
+    if ('termType' in (node as Record<string, unknown>)) {
+        const term = node as Term
+        if (term.termType === 'Variable') {
+            target.add((term as VariableTerm).value)
+        }
+        return
+    }
+
+    for (const value of Object.values(node as Record<string, unknown>)) {
+        collectExpressionVariables(value, target)
+    }
+}
+
+function isSubset(subset: Set<string>, superset: Set<string>): boolean {
+    for (const value of subset) {
+        if (!superset.has(value)) {
+            return false
+        }
+    }
+    return true
+}
+
+function removeDatatypeFilters(patterns: Pattern[]): Pattern[] {
+    const result: Pattern[] = []
+
+    for (const pattern of patterns) {
+        if (pattern.type === 'filter' && containsDatatypeFunction(pattern.expression)) {
+            continue
+        }
+
+        if ('patterns' in pattern) {
+            const nested = (pattern as { patterns?: Pattern[] }).patterns
+            if (Array.isArray(nested)) {
+                ;(pattern as { patterns: Pattern[] }).patterns = removeDatatypeFilters(nested)
+            }
+        }
+
+        if ('pattern' in pattern) {
+            const nestedPattern = (pattern as { pattern?: Pattern }).pattern
+            if (nestedPattern) {
+                const stripped = removeDatatypeFilters([nestedPattern])
+                ;(pattern as { pattern?: Pattern }).pattern = stripped.length ? stripped[0] : nestedPattern
+            }
+        }
+
+        result.push(pattern)
+    }
+
+    return result
+}
+
+function containsDatatypeFunction(node: unknown): boolean {
+    if (!node) {
+        return false
+    }
+
+    if (Array.isArray(node)) {
+        return node.some((value) => containsDatatypeFunction(value))
+    }
+
+    if (typeof node !== 'object') {
+        return false
+    }
+
+    const record = node as Record<string, unknown>
+    if (typeof record.operator === 'string' && record.operator.toLowerCase() === 'datatype') {
+        return true
+    }
+
+    for (const value of Object.values(record)) {
+        if (containsDatatypeFunction(value)) {
+            return true
+        }
+    }
+
+    return false
+}
+
+function prepareLiteralValue(literal: Literal): Literal | null {
+    const trimmed = literal.value.trim()
+    if (!trimmed) {
+        return null
+    }
+
+    if (trimmed === literal.value) {
+        return literal
+    }
+
+    if (literal.language) {
+        return rdf.literal(trimmed, literal.language)
+    }
+
+    const datatype = literal.datatype ? rdf.namedNode(literal.datatype.value) : null
+    return datatype ? rdf.literal(trimmed, datatype) : rdf.literal(trimmed)
 }
 
 function getPredicateValue(predicate: Triple['predicate']): string | null {

@@ -35,15 +35,49 @@
         }
 
         .query-layout {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         .form-wrapper,
-        .query-wrapper {
+        .query-wrapper,
+        .results-wrapper {
             display: flex;
             flex-direction: column;
             gap: 20px;
             width: 100%;
+        }
+
+        .results-output {
+            min-height: 220px;
+            overflow-x: auto;
+            padding: 0 4px;
+        }
+
+        .results-output table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.9em;
+        }
+
+        .results-output th,
+        .results-output td {
+            border: 1px solid #d1d1d1;
+            padding: 6px 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .results-output tbody tr:nth-child(even) {
+            background-color: #f6f6f6;
+        }
+
+        .results-output a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .results-output a:hover {
+            text-decoration: underline;
         }
 
         #instructions {
@@ -80,7 +114,7 @@
                         <shacl-form id="example-form"></shacl-form>
                         <div class="query-actions">
                             <button type="button" onclick="generateConstructQuery()">Generate CONSTRUCT query</button>
-                            <button type="button" onclick="generateSelectQuery()">Generate SELECT query</button>
+                            <button type="button" onclick="runSelectQuery()">Run SELECT against DBpedia</button>
                         </div>
                     </div>
                 </fieldset>
@@ -90,16 +124,24 @@
                         <pre id="query-output" class="query-output">Click a button to generate a query...</pre>
                     </div>
                 </fieldset>
+                <fieldset>
+                    <legend>Live Results (dbpedia.org)</legend>
+                    <div class="results-wrapper">
+                        <div id="results-output" class="results-output">SELECT queries will display up to 15 matches
+                            here.</div>
+                    </div>
+                </fieldset>
             </div>
             <fieldset id="instructions">
                 <legend>How it works</legend>
                 <ul>
-                    <li>Fill in the form fields with example data</li>
-                    <li>Use the buttons to produce a CONSTRUCT or SELECT query based on the current form state</li>
-                    <li>The generated query includes value patterns for populated editors so it can be executed against
-                        external endpoints</li>
-                    <li><code>toQuery()</code> returns the query string only; running it is up to the hosting
-                        application</li>
+                    <li>The shape targets <code>dbo:Person</code> resources on the public DBpedia endpoint.</li>
+                    <li>Fill in one or more fields (name, occupation, nationality, birthplace). Optional
+                        fields become
+                        OPTIONAL blocks automatically.</li>
+                    <li><strong>Generate CONSTRUCT</strong> shows the base query; <strong>Run SELECT</strong> executes
+                        the same WHERE clause against https://dbpedia.org/sparql and lists up to 15 results.</li>
+                    <li>DBpedia may throttle rapid requests; if you see an error, wait a moment and try again.</li>
                 </ul>
             </fieldset>
         </div>
@@ -115,36 +157,47 @@
     <script>
         const form = document.getElementById('example-form')
         const output = document.getElementById('query-output')
+        const results = document.getElementById('results-output')
 
         const shapesTurtle = String.raw`
 @prefix sh:   <http://www.w3.org/ns/shacl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix ex:   <http://example.org#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix dbo:  <http://dbpedia.org/ontology/> .
+@prefix dbp:  <http://dbpedia.org/property/> .
+@prefix dbr:  <http://dbpedia.org/resource/> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
-ex:PersonShape
+dbo:PersonSearchShape
     a sh:NodeShape, rdfs:Class ;
-    sh:targetClass ex:Person ;
+    sh:targetClass dbo:Person ;
     sh:property [
-        sh:name "Name" ;
-        sh:path ex:name ;
-        # sh:pattern "^WILLIAM TELL$" ;
-        sh:datatype xsd:string ;
-        sh:minCount 1 ;
+        sh:name "Name (exact match, en)" ;
+        sh:datatype rdf:langString ;
+        sh:path dbp:name ;
         sh:maxCount 1 ;
+        sh:languageIn ( "en" ) ;
     ] ;
     sh:property [
-        sh:name "Email" ;
-        sh:path ex:email ;
-        # FIXME sh:pattern "^[^\s@]+@[^\s@]+\.[^\s@]+$" ;
-        sh:datatype xsd:string ;
+        sh:name "Nationality (exact match, en)" ;
+        sh:path dbp:nationality ;
+        sh:datatype rdf:langString ;
+        sh:maxCount 1 ;
+        sh:languageIn ( "en" ) ;
     ] ;
     sh:property [
-        sh:name "Age" ;
-        sh:path ex:age ;
-        sh:maxCount 1 ;
-        sh:datatype xsd:integer ;
-    ] .
+        sh:name "Occupation" ;
+        sh:path dbo:occupation ;
+        sh:in (
+            dbr:Actor
+            dbr:Painter
+            dbr:Software_engineer
+            dbr:Musician
+            dbr:Chemist
+        ) ;
+    ] ;
+    .
 `
 
         form.dataset.shapes = shapesTurtle
@@ -158,17 +211,85 @@ ex:PersonShape
             }
         }
 
-        function generateSelectQuery() {
+        async function runSelectQuery() {
             try {
                 const query = form.toQuery({
                     type: 'select',
-                    selectVariables: ['resource', 'name', 'email'],
                     distinct: true
                 })
                 output.textContent = query
+                results.innerHTML = '<p>Running query against DBpedia…</p>'
+
+                const response = await fetch('https://dbpedia.org/sparql', {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/sparql-query',
+                        accept: 'application/sparql-results+json'
+                    },
+                    body: query
+                })
+
+                if (!response.ok) {
+                    throw new Error(`Endpoint returned ${response.status} ${response.statusText}`)
+                }
+
+                const data = await response.json()
+                renderResults(data)
             } catch (error) {
                 output.textContent = 'Error: ' + error.message
+                results.innerHTML = `<p>Query failed: ${escapeHtml(error.message)}</p>`
             }
+        }
+
+        function renderResults(data) {
+            const vars = (data.head && Array.isArray(data.head.vars)) ? data.head.vars : []
+            const bindings = (data.results && Array.isArray(data.results.bindings)) ? data.results.bindings : []
+
+            if (!vars.length) {
+                results.innerHTML = '<p>No variables returned.</p>'
+                return
+            }
+
+            if (!bindings.length) {
+                results.innerHTML = '<p>No matches found.</p>'
+                return
+            }
+
+            const limited = bindings.slice(0, 15)
+            const header = vars.map((name) => `<th>${escapeHtml(name)}</th>`).join('')
+            const rows = limited
+                .map((binding) => `<tr>${vars.map((name) => `<td>${formatBinding(binding[name])}</td>`).join('')}</tr>`)
+                .join('')
+
+            results.innerHTML = `
+                <table>
+                    <thead><tr>${header}</tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `
+        }
+
+        function formatBinding(binding) {
+            if (!binding) {
+                return ''
+            }
+
+            if (binding.type === 'uri') {
+                const href = escapeHtml(binding.value)
+                return `<a href="${href}" target="_blank" rel="noopener">${href}</a>`
+            }
+
+            const suffix = binding['xml:lang'] ? `@${escapeHtml(binding['xml:lang'])}` : binding.datatype ? `^^${escapeHtml(binding.datatype)}` : ''
+            return `${escapeHtml(binding.value)}${suffix}`
+        }
+
+        function escapeHtml(value) {
+            return value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
         }
     </script>
 </body>
