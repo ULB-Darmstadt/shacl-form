@@ -52,59 +52,74 @@ HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that
 </html>
 ```
 
+A more detailed explanation of how the forms are generated is [available here](DETAILS.md).
+
 ### Element attributes
 
-Attribute | Description
----|---
-data-shapes | SHACL shape definitions (e.g. a turtle string) to generate the form from
-data-shapes-url | When `data-shapes` is not set, the SHACL shapes are loaded from this URL
-data-shape-subject | Optional subject (id) of the SHACL node shape to use as root for the form. If not set, the first found node shape will be used
-data-values | RDF triples (e.g. a turtle string) to use as existing data graph to fill the form
-data-values-url | When `data-values` is not set, the data graph triples are loaded from this URL
-data-values-subject | The subject (id) of the generated data. If this is not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form
-data-values-namespace | RDF namespace to use when generating new RDF subjects. Default is empty, so that subjects will be blank nodes.
-data-values-graph | If set, serializing the form will create a named graph with the given IRI.
-data-language | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/language) with fallback to [`navigator.languages`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/languages)
-data-loading | Text to display while the web component is initializing. Default: `"Loading..."`
-data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs are fetched and the resulting RDF triples are added to the shapes graph. Setting this attribute to any value disables this feature
-data-view | When set, turns the web component into a viewer that displays the given data graph without editing functionality
-data-collapse | When set, `sh:group`s and properties with `sh:node` and `sh:maxCount` != 1 are displayed in a collapsible accordion-like widget to reduce visual complexity of the form. The collapsible element is initially shown closed, except when this attribute's value is `"open"`
-data-submit-button | [Ignored when `data-view` attribute is set] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events get emitted only when the form data validates
-data-generate-node-shape-reference | When generating the RDF data graph, &lt;shacl-form&gt; can create a triple that references the root `sh:NodeShape` of the data. Suggested values for this attribute are `http://www.w3.org/1999/02/22-rdf-syntax-ns#type` or `http://purl.org/dc/terms/conformsTo`. Default is empty, so that no such triple is created
-data-show-node-ids | When this attribute is set, shacl node shapes will have their subject id shown in the form
-data-proxy | URL of a proxy to use when fetching resources (e.g. `owl:imports`). This can help loading resources from the web that are not [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) enabled. The URL of the resource to fetch will be appended to the value of this attribute. Example value for this attribute: `http://you-proxy.org/?url=`. 
+| Attribute                                    | Description                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| data-shapes                                  | SHACL shape definitions (e.g. a turtle string) to generate the form from                                                                                                                                                                                                                                                                                     |
+| data-shapes-url                              | When `data-shapes` is not set, the SHACL shapes are loaded from this URL                                                                                                                                                                                                                                                                                     |
+| data-shape-subject                           | Optional subject (id) of the SHACL node shape to use as root for the form. If not set, the first found node shape will be used                                                                                                                                                                                                                               |
+| data-values                                  | RDF triples (e.g. a turtle string) to use as existing data graph to fill the form                                                                                                                                                                                                                                                                            |
+| data-values-url                              | When `data-values` is not set, the data graph triples are loaded from this URL                                                                                                                                                                                                                                                                               |
+| data-values-subject                          | The subject (id) of the generated data. If this is not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is also used to find the root node in the data graph to fill the form                                                                                                                             |
+| data-values-namespace                        | RDF namespace to use when generating new RDF subjects. Default is empty, so that subjects will be blank nodes.                                                                                                                                                                                                                                               |
+| data-values-graph                            | If set, serializing the form will create a named graph with the given IRI.                                                                                                                                                                                                                                                                                   |
+| data-language                                | Language to use if shapes contain langStrings, e.g. in `sh:name` or `rdfs:label`. Default is [`navigator.language`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/language) with fallback to [`navigator.languages`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/languages)                                                      |
+| data-loading                                 | Text to display while the web component is initializing. Default: `"Loading..."`                                                                                                                                                                                                                                                                             |
+| data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs are fetched and the resulting RDF triples are added to the shapes graph. Setting this attribute to any value disables this feature                                                                                                                                                                                            |
+| data-view                                    | When set, turns the web component into a viewer that displays the given data graph without editing functionality                                                                                                                                                                                                                                             |
+| data-collapse                                | When set, `sh:group`s and properties with `sh:node` and `sh:maxCount` != 1 are displayed in a collapsible accordion-like widget to reduce visual complexity of the form. The collapsible element is initially shown closed, except when this attribute's value is `"open"`                                                                                   |
+| data-submit-button                           | [Ignored when `data-view` attribute is set] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events get emitted only when the form data validates                                                                                                                                               |
+| data-generate-node-shape-reference           | When generating the RDF data graph, &lt;shacl-form&gt; can create a triple that references the root `sh:NodeShape` of the data. Suggested values for this attribute are `http://www.w3.org/1999/02/22-rdf-syntax-ns#type` or `http://purl.org/dc/terms/conformsTo`. Default is empty, so that no such triple is created                                      |
+| data-show-node-ids                           | When this attribute is set, shacl node shapes will have their subject id shown in the form                                                                                                                                                                                                                                                                   |
+| data-proxy                                   | URL of a proxy to use when fetching resources (e.g. `owl:imports`). This can help loading resources from the web that are not [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) enabled. The URL of the resource to fetch will be appended to the value of this attribute. Example value for this attribute: `http://you-proxy.org/?url=`. |
 
 ### Element functions
 
 <a id="toRDF"></a>
+
 ```typescript
 toRDF(graph?: Store): Store
 ```
+
 Adds the form values as RDF triples to the given graph. If no graph object is provided, creates a new [N3 Store](https://github.com/rdfjs/N3.js#storing).
 
 ```typescript
 serialize(format?: string, graph?: Store): string
 ```
+
 Serializes the given RDF graph to the given format. If no graph object is provided, this function calls toRDF() (see above) to construct the form data graph in one of the supported [output formats](#output-formats) (default is `text/turtle`).
+
+```typescript
+toQuery(options?: QueryBuildOptions): string
+```
+
+Creates a SPARQL query for the current form values. By default, this returns a CONSTRUCT query derived from the loaded shapes graph via [`@hydrofoil/shape-to-query`](https://github.com/zazuko/shape-to-query). Optional parameters allow requesting a SELECT query (`type: 'select'`) and customizing the resulting variables. Generated queries use the populated form data as additional patterns so they can serve as filters against external endpoints. More details [can be found here](./TOQUERY_USAGE.md).
 
 ```typescript
 validate(ignoreEmptyValues: boolean): Promise<boolean>
 ```
+
 Validates the form data against the SHACL shapes graph and displays validation results as icons next to the respective input fields. If `ignoreEmptyValues` is true, empty form fields will not be marked as invalid. This function is also internally called on `change` and `submit` events.
 
 ```typescript
 registerPlugin(plugin: Plugin)
 ```
+
 Register a [plugin](./src/plugin.ts) to customize editing/viewing certain property values. Plugins handle specific RDF predicates or `xsd:datatype`s or both. Examples: [Leaflet](./src/plugins/leaflet.ts), [Mapbox](./src/plugins/mapbox.ts), [FixedList](./src/plugins/fixed-list.ts)
 
 ```typescript
 setTheme(theme: Theme)
 ```
-Set a design theme to use for rendering. See section [Theming](#Theming).
+
+Set a design theme to use for rendering. See section [Theming](#theming).
 
 ```typescript
 setClassInstanceProvider((className: string) => Promise<string>)
 ```
+
 Sets a callback function that is invoked when a SHACL property has an `sh:class` definition to retrieve class instances. See [below](#classInstanceProvider) for more information.
 
 ## Features
@@ -124,11 +139,12 @@ In edit mode, `<shacl-form>` validates the constructed data graph using the libr
 ### Providing additional data to the shapes graph
 
 Apart from setting the element attributes `data-shapes` or `data-shapes-url`, there are two ways of adding RDF data to the shapes graph:
+
 1. While parsing the triples of the shapes graph, any encountered `owl:imports` predicate that has a valid HTTP URL is fetched with the HTTP Accept header set to all of the [supported](#formats) MIME types. A successful response is parsed and added to a named graph. This graph is scoped (i.e. available) only to the node where the `owl:import` statement is defined on and all its sub nodes.
 
     The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
 
-    ```
+    ```rdf
     example:Attribution
       sh:property [
         owl:imports <https://w3id.org/nfdi4ing/metadata4ing/> ;
@@ -137,6 +153,7 @@ Apart from setting the element attributes `data-shapes` or `data-shapes-url`, th
         sh:class     prov:Role ;
       ] .
     ```
+
     In this case, the URL references an ontology which among other things defines instances of class `prov:Role` that are then used to populate the "Role" dropdown in the form. The imported ontology is available only for rendering and validating this specific property.
 
 2. <a id="classInstanceProvider"></a>The `<shacl-form>` element has a function `setClassInstanceProvider((className: string) => Promise<string>)` that registers a callback function which is invoked when a SHACL property has
@@ -156,6 +173,7 @@ an `sh:class` predicate. The expected return value is a (promise of a) string (e
       }}
     )
     ```
+
     returns instances of the class `http://example.org/Material` that are then used to populate the "Artwork material" dropdown in the form.
 
     A more realistic use case of this feature is calling some API endpoint to fetch class instance definitions from existing ontologies.
@@ -170,7 +188,8 @@ In case a property shape has a `sh:class`, all available graphs are scanned for 
 
 `<shacl-form>` supports using [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) and [sh:xone](https://www.w3.org/TR/shacl/#XoneConstraintComponent) to let users select between different options on nodes or properties.
 The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) has the following triples:
-```
+
+```rdf
 example:Attribution
   a sh:NodeShape ;
   sh:property [
@@ -183,15 +202,18 @@ example:Attribution
     )
   ] .
 ```
+
 When adding a new attribution, `<shacl-form>` renders a dropdown to let the user select between the two options Person/Organisation. After selecting one of the options, the dropdown is replaced by the input fields of the selected node shape.
 
 When binding an existing data graph to the form, the constraint is tried to be resolved depending on the respective data value:
+
 - For RDF literals, an `sh:or` option with a matching `sh:datatype` is chosen
 - For blank nodes or named nodes, the `rdf:type` of the value is tried to be matched with a node shape having a corresponding `sh:targetClass` or with a property shape having a corresponding `sh:class`. If there is no `rdf:type` but a `sh:nodeKind` of `sh:IRI`, the id of the the node is used as the value.
 
 ### Linking existing data
 
 In case a node shape has a `sh:targetClass` and any graph, i.e.
+
 - the shapes graph
 - the data graph
 - any graph loaded by `owl:imports`
@@ -204,7 +226,7 @@ contains instances of that class, those can be linked in the respective SHACL pr
 SHACL defines two ways of inheriting shapes: [sh:and](https://www.w3.org/TR/shacl/#AndConstraintComponent)
 and [sh:node](https://www.w3.org/TR/shacl/#NodeConstraintComponent). `<shacl-form>` supports both. In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), node shape `example:ArchitectureModelDataset` extends `example:Dataset` by defining the following RDF triple:
 
-```
+```rdf
 example:ArchitectureModelDataset sh:node example:Dataset .
 ```
 
@@ -213,11 +235,13 @@ Properties of inherited shapes are displayed first.
 ### Plugins
 
 Plugins can modify rendering of the form and add functionality to edit and view certain RDF datatypes or predicates (or a combination of both). As an example, the JavaScript of [this page](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following code:
+
 ```typescript
 import { LeafletPlugin } from '@ulb-darmstadt/shacl-form/plugins/leaflet.js'
 const form = document.getElementById("shacl-form")
 form.registerPlugin(new LeafletPlugin({ datatype: 'http://www.opengis.net/ont/geosparql#wktLiteral' }))
 ```
+
 In effect, whenever a SHACL property has an `sh:datatype` of `http://www.opengis.net/ont/geosparql#wktLiteral`, the plugin is called to create the editor and/or viewer HTML elements. This specific plugin uses [Leaflet](https://leafletjs.com/) to edit or view geometry in format [well known text](http://giswiki.org/wiki/Well_Known_Text) on a map.
 Custom plugins can be built by extending class [Plugin](https://github.com/ULB-Darmstadt/shacl-form/blob/main/src/plugin.ts#L40).
 
@@ -232,20 +256,22 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
 ### Supported RDF formats
 
 #### Input formats
+
 * text/turtle, application/n-triples, application/n-quads, application/trig using [N3 parser](https://github.com/rdfjs/N3.js?tab=readme-ov-file#parsing)
-* application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
-* application/rdf+xml using [rdfxml-streaming-parser](https://github.com/rdfjs/rdfxml-streaming-parser.js)
+- application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
+- application/rdf+xml using [rdfxml-streaming-parser](https://github.com/rdfjs/rdfxml-streaming-parser.js)
 
 #### Output formats
+
 <a id="output-formats"></a>
 
-* text/turtle, application/n-triples, application/n-quads, application/trig using [N3 writer](https://github.com/rdfjs/N3.js?tab=readme-ov-file#writing)
-* application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
+- text/turtle, application/n-triples, application/n-quads, application/trig using [N3 writer](https://github.com/rdfjs/N3.js?tab=readme-ov-file#writing)
+- application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
 
 ### Use with Solid Pods
 
 `<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDF/JS N3 Store, as explained [above](#toRDF), it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod example](https://docs.inrupt.com/sdk/javascript-sdk/tutorial) shows how to merge data from a `<shacl-form>` with a Solid data resource at `readingListDataResourceURI`:
- 
+
 ```js
   // Authentication is assumed, resulting in a fetch able to read and write into the Pod
   try {
@@ -283,10 +309,10 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
 
 `<shacl-form>` comes in 3 different bundles, each providing a specific theme. See the [demo page](https://ulb-darmstadt.github.io/shacl-form/#theming) for an example.
 
-Theme | Import statement
---- | ---
-[Default](./src/themes/default.ts) (slightly customized default browser styles) | `import '@ulb-darmstadt/shacl-form/form-default.js'`
-[Bootstrap](./src/themes/bootstrap.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-bootstrap.js'`
-[Material Design](./src/themes/material.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-material.js'`
+| Theme                                                                           | Import statement                                       |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| [Default](./src/themes/default.ts) (slightly customized default browser styles) | `import '@ulb-darmstadt/shacl-form/form-default.js'`   |
+| [Bootstrap](./src/themes/bootstrap.ts) [alpha status]                           | `import '@ulb-darmstadt/shacl-form/form-bootstrap.js'` |
+| [Material Design](./src/themes/material.ts) [alpha status]                      | `import '@ulb-darmstadt/shacl-form/form-material.js'`  |
 
 Custom themes can be employed by extending class [Theme](./src/theme.ts), then calling function `setTheme()` on the `<shacl-form>` element.
