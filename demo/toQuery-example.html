@@ -136,11 +136,12 @@
                 <legend>How it works</legend>
                 <ul>
                     <li>The shape targets <code>dbo:Person</code> resources on the public DBpedia endpoint.</li>
-                    <li>Fill in one or more fields (name, occupation, nationality, birthplace). Optional
-                        fields become
-                        OPTIONAL blocks automatically.</li>
+                    <li>Enter any combination of name, nationality, or occupation; unfilled fields remain OPTIONAL in
+                        the generated query.</li>
+                    <li>Name and nationality inputs use lenient mode (trimmed, case-insensitive CONTAINS filters) while
+                        occupation stays a controlled list.</li>
                     <li><strong>Generate CONSTRUCT</strong> shows the base query; <strong>Run SELECT</strong> executes
-                        the same WHERE clause against https://dbpedia.org/sparql and lists up to 15 results.</li>
+                        the same WHERE clause against https://dbpedia.org/sparql with a built-in LIMIT 15.</li>
                     <li>DBpedia may throttle rapid requests; if you see an error, wait a moment and try again.</li>
                 </ul>
             </fieldset>
@@ -173,14 +174,14 @@ dbo:PersonSearchShape
     a sh:NodeShape, rdfs:Class ;
     sh:targetClass dbo:Person ;
     sh:property [
-        sh:name "Name (exact match, en)" ;
+        sh:name "Name (partial match, en)" ;
         sh:datatype rdf:langString ;
         sh:path dbp:name ;
         sh:maxCount 1 ;
         sh:languageIn ( "en" ) ;
     ] ;
     sh:property [
-        sh:name "Nationality (exact match, en)" ;
+        sh:name "Nationality (partial match, en)" ;
         sh:path dbp:nationality ;
         sh:datatype rdf:langString ;
         sh:maxCount 1 ;
@@ -204,7 +205,9 @@ dbo:PersonSearchShape
 
         function generateConstructQuery() {
             try {
-                const query = form.toQuery()
+                const query = form.toQuery({
+                    lenient: true
+                })
                 output.textContent = query
             } catch (error) {
                 output.textContent = 'Error: ' + error.message
@@ -215,7 +218,9 @@ dbo:PersonSearchShape
             try {
                 const query = form.toQuery({
                     type: 'select',
-                    distinct: true
+                    distinct: true,
+                    lenient: true,
+                    limit: 15
                 })
                 output.textContent = query
                 results.innerHTML = '<p>Running query against DBpedia…</p>'

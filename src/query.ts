@@ -13,6 +13,8 @@ export interface QueryBuildOptions {
     subjectVariable?: string
     selectVariables?: string[]
     distinct?: boolean
+    lenient?: boolean
+    limit?: number
 }
 
 interface PropertyMetadata {
@@ -43,6 +45,7 @@ const sh = rdf.namespace('http://www.w3.org/ns/shacl#')
 
 export function buildQuery(store: Store, shapeSubject: NamedNode, data: Store, rootNode: NamedNode | BlankNode, options: QueryBuildOptions = {}): string {
     const subjectVariable = options.subjectVariable || 'resource'
+    const lenient = options.lenient === true
     const shapePointer = createShapePointer(store, shapeSubject)
     const propertyMetadata = extractPropertyMetadata(shapePointer)
     const baseQuery = constructQuery(shapePointer, { subjectVariable })
@@ -52,7 +55,7 @@ export function buildQuery(store: Store, shapeSubject: NamedNode, data: Store, r
     }
 
     const resolvedSubjectVariable = resolveSubjectVariableName(parsed.where, subjectVariable)
-    const normalized = collectAndNormalizeData(data, rootNode, resolvedSubjectVariable)
+    const normalized = collectAndNormalizeData(data, rootNode, resolvedSubjectVariable, lenient)
     let wherePatterns: Pattern[] = parsed.where ? [...parsed.where] : []
     if (normalized.patterns.length) {
         wherePatterns = [...wherePatterns, ...normalized.patterns]
@@ -60,9 +63,11 @@ export function buildQuery(store: Store, shapeSubject: NamedNode, data: Store, r
 
     const optionalized = applyOptionalPredicates(wherePatterns, propertyMetadata, normalized.filledPredicates)
     wherePatterns = relocateFilters(optionalized.patterns, optionalized.optionalGroups)
-    wherePatterns = removeDatatypeFilters(wherePatterns)
+    if (lenient) {
+        wherePatterns = removeDatatypeFilters(wherePatterns)
+    }
 
-    const filterPatterns = buildValueFilters(wherePatterns, normalized.literalFilters)
+    const filterPatterns = buildValueFilters(wherePatterns, normalized.literalFilters, lenient)
     if (filterPatterns.length) {
         wherePatterns = [...wherePatterns, ...filterPatterns]
     }
@@ -78,7 +83,8 @@ export function buildQuery(store: Store, shapeSubject: NamedNode, data: Store, r
             variables,
             prefixes: parsed.prefixes,
             where: wherePatterns,
-            distinct: options.distinct ?? true
+            distinct: options.distinct ?? true,
+            limit: options.limit
         })
     }
 
@@ -120,7 +126,7 @@ function extractPropertyMetadata(shapePointer: AnyPointer): Map<string, Property
     return metadata
 }
 
-function collectAndNormalizeData(data: Store, rootNode: NamedNode | BlankNode, subjectVariable: string): NormalizedData {
+function collectAndNormalizeData(data: Store, rootNode: NamedNode | BlankNode, subjectVariable: string, lenient: boolean): NormalizedData {
     const rootVar = rdf.variable(subjectVariable)
     const blankNodeVars = new Map<string, VariableTerm>()
     const seen = new Set<string>()
@@ -129,14 +135,22 @@ function collectAndNormalizeData(data: Store, rootNode: NamedNode | BlankNode, s
     const triples: Triple[] = []
 
     for (const quad of data.getQuads(null, null, null, null)) {
-        const preparedObject = quad.object.termType === 'Literal' ? prepareLiteralValue(quad.object) : quad.object
-        if (!preparedObject) {
+        let sourceObject: Term | null = quad.object
+        if (quad.object.termType === 'Literal') {
+            if (lenient) {
+                sourceObject = prepareLiteralValue(quad.object)
+            } else if (quad.object.value === '') {
+                sourceObject = null
+            }
+        }
+
+        if (!sourceObject) {
             continue
         }
 
         const subjectTerm = toQueryTerm(quad.subject, rootNode, rootVar, blankNodeVars, subjectVariable)
         const predicateTerm = rdf.namedNode(quad.predicate.value)
-        const objectTerm = toQueryTerm(preparedObject, rootNode, rootVar, blankNodeVars, subjectVariable)
+        const objectTerm = toQueryTerm(sourceObject, rootNode, rootVar, blankNodeVars, subjectVariable)
 
         if (isRootVariable(subjectTerm, subjectVariable)) {
             filledPredicates.add(predicateTerm.value)
@@ -435,7 +449,7 @@ function addVariablesFromTerm(term: Term, set: Set<string>): void {
     }
 }
 
-function buildValueFilters(patterns: Pattern[], literalFilters: Map<string, LiteralTerm[]>): FilterPattern[] {
+function buildValueFilters(patterns: Pattern[], literalFilters: Map<string, LiteralTerm[]>, lenient: boolean): FilterPattern[] {
     if (!literalFilters.size) {
         return []
     }
@@ -454,7 +468,7 @@ function buildValueFilters(patterns: Pattern[], literalFilters: Map<string, Lite
             continue
         }
 
-        const expression = uniqueValues.length === 1 ? buildEqualsExpression(variables[0], uniqueValues[0]) : buildInExpression(variables[0], uniqueValues)
+        const expression = lenient ? buildContainsDisjunction(variables[0], uniqueValues) : uniqueValues.length === 1 ? buildEqualsExpression(variables[0], uniqueValues[0]) : buildInExpression(variables[0], uniqueValues)
 
         filters.push({
             type: 'filter',
@@ -479,6 +493,45 @@ function buildInExpression(variable: VariableTerm, values: LiteralTerm[]): Opera
         type: 'operation',
         operator: 'in',
         args: [variable, tuple]
+    }
+}
+
+function buildContainsDisjunction(variable: VariableTerm, values: LiteralTerm[]): OperationExpression {
+    const [first, ...rest] = values.map((value) => buildContainsExpression(variable, value))
+    if (!first) {
+        // Should not happen because caller guards against empty lists
+        return buildContainsExpression(variable, rdf.literal(''))
+    }
+
+    return rest.reduce<OperationExpression>(
+        (acc, expression) => ({
+            type: 'operation',
+            operator: '||',
+            args: [acc, expression]
+        }),
+        first
+    )
+}
+
+function buildContainsExpression(variable: VariableTerm, value: LiteralTerm): OperationExpression {
+    const normalized = value.value.trim().toLowerCase()
+    return {
+        type: 'operation',
+        operator: 'contains',
+        args: [
+            {
+                type: 'operation',
+                operator: 'lcase',
+                args: [
+                    {
+                        type: 'operation',
+                        operator: 'str',
+                        args: [variable]
+                    }
+                ]
+            },
+            rdf.literal(normalized)
+        ]
     }
 }
 

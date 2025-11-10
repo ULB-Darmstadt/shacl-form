@@ -128,14 +128,16 @@ Notice how the focus variable coming from shape-to-query became `?resource1`; `t
        subjectVariable?: string
        selectVariables?: string[]
        distinct?: boolean
+       lenient?: boolean
+        limit?: number
    }
    ```
 
-   `subjectVariable` defaults to `resource`. Blank nodes in the form become fresh variables derived from that name.
 4. **Structural vs value logic** – The builder keeps structural triples intact and adds equality-style filters. Layer your own FILTERs if you need partial matches or advanced conditions.
-5. **Literal behaviour** – Straight equality and `IN` filters are emitted for exact matches. Add your own regex or range filters on top if you need partial search.
-6. **No dev server requirement** – The demos run as standalone HTML pages. `npm run dev` is optional and only needed if you want Vite’s live reload.
-7. **Validation still applies** – `toQuery()` doesn’t bypass SHACL validation. Use `validate()` first if you depend on clean data before fetching.
+5. **Literal behaviour** – Straight equality and `IN` filters are emitted for exact matches by default. Enable `lenient: true` to trim inputs, drop `DATATYPE()` guards from the base query, and generate case-insensitive `CONTAINS` filters instead.
+6. **SELECT limits** – Provide `limit` to cap result sets without client-side slicing (only applied to SELECT queries).
+7. **No dev server requirement** – The demos run as standalone HTML pages. `npm run dev` is optional and only needed if you want Vite’s live reload.
+8. **Validation still applies** – `toQuery()` doesn’t bypass SHACL validation. Use `validate()` first if you depend on clean data before fetching.
 
 ## Use Cases
 

@@ -187,4 +187,36 @@ describe('buildQuery', () => {
             })
         ).toBe(true)
     })
+
+    it('honours SELECT limits when provided', () => {
+        const shapesStore = createShapesStore()
+        const valuesStore = new Store()
+
+        const query = buildQuery(shapesStore, shapeIri, valuesStore, rootInstance, {
+            type: 'select',
+            distinct: false,
+            limit: 5
+        })
+        const parsed = parseQuery(query) as SelectQuery
+
+        expect(parsed.limit).toBe(5)
+    })
+
+    it('applies lenient CONTAINS filters and trims literals when configured', () => {
+        const shapesStore = createShapesStore()
+        const valuesStore = new Store()
+        valuesStore.addQuad(quad(rootInstance, namePredicate, literal('  Mixed Case Value  ')))
+
+        const query = buildQuery(shapesStore, shapeIri, valuesStore, rootInstance, {
+            type: 'select',
+            lenient: true
+        })
+        const parsed = parseQuery(query)
+        const filterExpressions = getFilterExpressions(parsed)
+
+        expect(filterExpressions.some((expression) => expression.operator === 'contains')).toBe(true)
+        expect(filterExpressions.some((expression) => expression.operator === 'datatype')).toBe(false)
+        expect(query).not.toContain('  Mixed Case Value  ')
+        expect(query.toLowerCase()).toContain('mixed case value')
+    })
 })
