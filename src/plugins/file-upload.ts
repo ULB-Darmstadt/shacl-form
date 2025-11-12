@@ -12,7 +12,7 @@ export class FileUploadPlugin extends Plugin {
     }
 
     createEditor(template: ShaclPropertyTemplate): HTMLElement {
-        const required = template.minCount !== undefined && template.minCount > 0
+        const required = template.aggregatedMinCount > 0
         const editor = template.config.theme.createFileEditor(template.label, null, required, template)
       	editor.addEventListener('change', event => {
           event.stopPropagation()

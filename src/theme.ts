@@ -86,7 +86,7 @@ export abstract class Theme {
 
 export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null, editable: boolean): HTMLElement {
     if (editable) {
-        const required = template.minCount !== undefined && template.minCount > 0
+        const required = template.aggregatedMinCount > 0
         // if we have a class, find the instances and display them in a list
         if (template.class && !template.hasValue) {
             return template.config.theme.createListEditor(template.label, value, required, findInstancesOf(template.class, template), template)

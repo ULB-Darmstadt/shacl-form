@@ -30,8 +30,8 @@ export class DefaultTheme extends Theme {
         } else if (value instanceof Literal) {
             editor.shaclDatatype = value.datatype
         }
-        if (template?.minCount !== undefined) {
-            editor.dataset.minCount = String(template.minCount)
+        if (template && template.aggregatedMinCount > 0) {
+            editor.dataset.minCount = String(template.aggregatedMinCount)
         }
         if (template?.class) {
             editor.dataset.class = template.class.value

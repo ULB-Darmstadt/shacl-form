@@ -48,8 +48,8 @@ const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => v
         template.qualifiedValueShape = shape
         template.nodeShapes.add(shape)
     },
-    [`${PREFIX_SHACL}qualifiedMinCount`]:   (template, term) => { template.minCount = parseInt(term.value) },
-    [`${PREFIX_SHACL}qualifiedMaxCount`]:   (template, term) => { template.maxCount = parseInt(term.value) },
+    [`${PREFIX_SHACL}qualifiedMinCount`]:   (template, term) => { template.qualifiedMinCount = parseInt(term.value) },
+    [`${PREFIX_SHACL}qualifiedMaxCount`]:   (template, term) => { template.qualifiedMaxCount = parseInt(term.value) },
     [OWL_PREDICATE_IMPORTS.id]:      (template, term) => { template.owlImports.add(term as NamedNode) },
     [SHACL_PREDICATE_CLASS.id]:      (template, term) => {
         template.class = term as NamedNode
@@ -87,6 +87,10 @@ export class ShaclPropertyTemplate {
     class: NamedNode | undefined
     minCount: number | undefined
     maxCount: number | undefined
+    qualifiedMinCount: number | undefined
+    qualifiedMaxCount: number | undefined
+    aggregatedMinCount: number
+    aggregatedMaxCount: number
     minLength: number | undefined
     maxLength: number | undefined
     minInclusive: number | undefined
@@ -122,6 +126,8 @@ export class ShaclPropertyTemplate {
         // register this template on config before merging quads to prevent recursion
         this.config.registerPropertyTemplate(this)
         mergeQuads(this, this.config.store.getQuads(id, null, null, null))
+        this.aggregatedMinCount = Math.max(this.minCount || 0, this.qualifiedMinCount || 0)
+        this.aggregatedMaxCount = Math.min(this.maxCount || 0, this.qualifiedMaxCount || 0)
     }
 }
 

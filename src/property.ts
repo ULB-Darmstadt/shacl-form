@@ -43,8 +43,8 @@ export class ShaclProperty extends HTMLElement {
         }
 
         (async () => {
-            // bind existing values
-            if (template.path) {
+            // bind existing values. for sh:qualifiedValueShape's without sh:qualifiedMinCount > 0, we don't support value binding.
+            if (template.path && (template.qualifiedValueShape === undefined || (template.qualifiedMinCount && template.qualifiedMinCount > 0))) {
                 let values: Quad[] = []
                 if (valueSubject) {
                     // for linked resource, get values in all graphs, otherwise only from data graph
@@ -109,13 +109,13 @@ export class ShaclProperty extends HTMLElement {
 
     updateControls() {
         let instanceCount = this.instanceCount()
-        if (instanceCount === 0 && (this.template.nodeShapes.size === 0 || (this.template.minCount !== undefined && this.template.minCount > 0))) {
+        if (instanceCount === 0 && (this.template.nodeShapes.size === 0 || this.template.aggregatedMinCount > 0)) {
             this.addPropertyInstance()
             instanceCount = this.instanceCount()
         }
         let mayRemove: boolean
-        if (this.template.minCount !== undefined) {
-            mayRemove = instanceCount > this.template.minCount
+        if (this.template.aggregatedMinCount > 0) {
+            mayRemove = instanceCount > this.template.aggregatedMinCount
         } else {
             mayRemove = this.template.nodeShapes.size > 0 || instanceCount > 1
         }
