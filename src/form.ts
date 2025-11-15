@@ -115,7 +115,7 @@ export class ShaclForm extends HTMLElement {
                         }
                         // property value binding is asynchronous, so delay data graph cleanup
                         setTimeout(() => {
-                            // delete bound values from data graph, otherwise validation would not work
+                            // delete bound values from data graph, otherwise validation would not work correctly
                             if (this.config.attributes.valuesSubject) {
                                 this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
                             }

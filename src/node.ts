@@ -66,25 +66,28 @@ export class ShaclNode extends HTMLElement {
                 div.classList.add('node-id-display')
                 this.appendChild(div)
             }
-            for (const shape of this.template.extendedShapes) {
-                this.prepend(new ShaclNode(shape, valueSubject))
-            }
-            if (this.template.or?.length) {
-                this.tryResolve(this.template.or, valueSubject, template.config)
-            }
-            if (this.template.xone?.length) {
-                this.tryResolve(this.template.xone, valueSubject, template.config)
-            }
-            for (const [_, properties] of Object.entries(this.template.properties)) {
-                for (const property of properties) {
-                    this.addPropertyInstance(property, valueSubject)
+            (async () => {
+                // first output this shape's properties and then create extended shapes. this ensures that the values graph is bound to the most specific property.
+                for (const [_, properties] of Object.entries(template.properties)) {
+                    for (const property of properties) {
+                        await this.addPropertyInstance(property, valueSubject)
+                    }
                 }
-            }
-            if (label) {
-                const header = document.createElement('h1')
-                header.innerText = label
-                this.prepend(header)
-            }
+                for (const shape of template.extendedShapes) {
+                    this.prepend(new ShaclNode(shape, valueSubject))
+                }
+                if (template.or?.length) {
+                    await this.tryResolve(template.or, valueSubject, template.config)
+                }
+                if (template.xone?.length) {
+                    await this.tryResolve(template.xone, valueSubject, template.config)
+                }
+                if (label) {
+                    const header = document.createElement('h1')
+                    header.innerText = label
+                    this.prepend(header)
+                }
+            })()
         }
     }
 
@@ -108,7 +111,7 @@ export class ShaclNode extends HTMLElement {
         return subject
     }
 
-    addPropertyInstance(template: ShaclPropertyTemplate, valueSubject: NamedNode | BlankNode | undefined) {
+    async addPropertyInstance(template: ShaclPropertyTemplate, valueSubject: NamedNode | BlankNode | undefined) {
         let container: HTMLElement = this
         // check if property belongs to a group
         if (template.group) {
@@ -124,23 +127,23 @@ export class ShaclNode extends HTMLElement {
                 console.warn('ignoring unknown group reference', template.group, 'existing groups:', template.config.groups)
             }
         }
-        const property = new ShaclProperty(template, this, valueSubject)
-        // property value binding is asznchronous, so delay instance count check
-        setTimeout(() => {
-            // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
-            if (template.config.editMode || property.instanceCount() > 0) {
-                container.appendChild(property)
-            }
-        })
+        const property = new ShaclProperty(template, this)
+        await property.bindValues(valueSubject)
+
+        // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
+        if (template.config.editMode || property.instanceCount() > 0) {
+            container.appendChild(property)
+            property.updateControls()
+        }
     }
 
-    tryResolve(options: Term[], valueSubject: NamedNode | BlankNode | undefined, config: Config) {
+    async tryResolve(options: Term[], valueSubject: NamedNode | BlankNode | undefined, config: Config) {
         let resolved = false
         if (valueSubject) {
             const resolvedPropertySubjects = resolveShaclOrConstraintOnNode(options, valueSubject, config)
             if (resolvedPropertySubjects.length) {
                 for (const propertySubject of resolvedPropertySubjects) {
-                    this.addPropertyInstance(config.getPropertyTemplate(propertySubject, this.template), valueSubject)
+                   await this.addPropertyInstance(config.getPropertyTemplate(propertySubject, this.template), valueSubject)
                 }
                 resolved = true
             }

@@ -16,7 +16,7 @@ export class ShaclProperty extends HTMLElement {
     container: HTMLElement
     parent: ShaclNode
 
-    constructor(template: ShaclPropertyTemplate, parent: ShaclNode, valueSubject?: NamedNode | BlankNode) {
+    constructor(template: ShaclPropertyTemplate, parent: ShaclNode) {
         super()
         this.template = template
         this.parent = parent
@@ -41,33 +41,34 @@ export class ShaclProperty extends HTMLElement {
             this.container.appendChild(this.addButton)
             this.addEventListener('change', () => { this.updateControls() })
         }
+    }
 
-        (async () => {
-            // bind existing values. for sh:qualifiedValueShape's without sh:qualifiedMinCount > 0, we don't support value binding.
-            if (template.path && (template.qualifiedValueShape === undefined || (template.qualifiedMinCount && template.qualifiedMinCount > 0))) {
-                let values: Quad[] = []
-                if (valueSubject) {
-                    // for linked resource, get values in all graphs, otherwise only from data graph
-                    values = template.config.store.getQuads(valueSubject, template.path, null, parent.linked ? null : DATA_GRAPH)
-                    // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
-                    values = await this.filterValidValues(values, valueSubject)
-                }
-                let valuesContainHasValue = false
+    // binds data graph triples to form fields and (if present) creates missing sh:hasValue form field
+    async bindValues(valueSubject: NamedNode | BlankNode | undefined) {
+        if (this.template.path) {
+            let valuesContainHasValue = false
+            if (valueSubject) {
+                // for linked resource, get values in all graphs, otherwise only from data graph
+                let values = this.template.config.store.getQuads(valueSubject, this.template.path, null, this.parent.linked ? null : DATA_GRAPH)
+                // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
+                values = await this.filterValidValues(values, valueSubject)
                 for (const value of values) {
+                    // remove triple from data graph to prevent double binding
+                    this.template.config.store.delete(value)
                     this.addPropertyInstance(value.object)
-                    if (template.hasValue && value.object.equals(template.hasValue)) {
+                    if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                         valuesContainHasValue = true
                     }
                 }
-                if (template.config.editMode) {
-                    if (template.hasValue && !valuesContainHasValue && !parent.linked) {
-                        // sh:hasValue is defined in shapes graph, but does not exist in data graph, so force it
-                        this.addPropertyInstance(template.hasValue)
-                    }
-                    this.updateControls()
-                }
             }
-        })()
+            if (this.template.config.editMode) {
+                if (this.template.hasValue && !valuesContainHasValue && !this.parent.linked) {
+                    // sh:hasValue is defined in shapes graph, but does not exist in data graph, so force it
+                    this.addPropertyInstance(this.template.hasValue)
+                }
+                this.updateControls()
+            }
+        }
     }
 
     addPropertyInstance(value?: Term): HTMLElement {
@@ -172,7 +173,6 @@ export class ShaclProperty extends HTMLElement {
                 dataSubjectsToValidate.push(value.object as NamedNode)
             }
         }
-        // console.log('--- filtering values for shape=', nodeShapeToValidate.value, 'valueSubjects=', JSON.stringify(dataSubjectsToValidate.map(v => { return v.value })), 'backmapping=', JSON.stringify(backMapping))
         const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [{ terms: [ nodeShapeToValidate ] }])
         const invalidTerms: string[] =  []
         for (const result of report.results) {
