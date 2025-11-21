@@ -1,6 +1,6 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "2.0.0-rc17",
+    "version": "2.0.0",
     "description": "SHACL form generator",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -55,10 +55,10 @@
         "@web/test-runner": "^0.20.2",
         "@web/test-runner-chrome": "^0.18.1",
         "rdf-isomorphic": "^2.0.1",
-        "rimraf": "^6.0.1",
+        "rimraf": "^6.1.2",
         "rollup-plugin-peer-deps-external": "^2.2.4",
         "typescript": "^5.9.3",
-        "vite": "^7.1.12"
+        "vite": "^7.2.4"
     },
     "peerDependencies": {
         "@ro-kit/ui-widgets": "^1.0.16",
