@@ -1,8 +1,7 @@
-import { DataFactory, NamedNode, Prefixes, Store } from 'n3'
+import { DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
 import { ClassInstanceProvider } from './plugin'
-import { Loader } from './loader'
 import { Theme } from './theme'
 import { extractLists } from './util'
 import { DefaultTheme } from './theme.default'
@@ -38,12 +37,9 @@ export class ElementAttributes {
 
 const defaultHierarchyColorPalette = '#4c93d785, #f85e9a85, #00327385, #87001f85'
 
-
 export class Config {
     attributes = new ElementAttributes()
-    loader = new Loader(this)
     classInstanceProvider: ClassInstanceProvider | undefined
-    prefixes: Prefixes = {}
     editMode = true
     languages: string[]
 

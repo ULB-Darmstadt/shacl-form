@@ -4,6 +4,7 @@ import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_OA, PREFIX_SHACL, RDF_OBJECT
 import { Config } from './config'
 import { findLabel, prioritizeByLanguage, removePrefixes } from './util'
 import { ShaclNodeTemplate } from './node-template'
+import { prefixes } from './loader'
 
 const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => void> = {
     [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; template.name = prioritizeByLanguage(template.config.languages, template.name, literal) },
@@ -155,7 +156,7 @@ export function mergeQuads(template: ShaclPropertyTemplate, quads: Quad[]) {
     // provide best fitting label for UI
     template.label = template.name?.value || findLabel(quads, template.config.languages)
     if (!template.label) {
-        template.label = template.path ? removePrefixes(template.path, template.config.prefixes) : 'unknown'
+        template.label = template.path ? removePrefixes(template.path, prefixes) : 'unknown'
     }
     return template
 }

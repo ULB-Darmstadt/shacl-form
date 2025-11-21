@@ -7,6 +7,7 @@ import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
+import { loadGraphs, prefixes } from './loader'
 
 export * from './exports'
 export const initTimeout = 50
@@ -55,7 +56,16 @@ export class ShaclForm extends HTMLElement {
                 // reset cached values in config
                 this.config.reset()
                 // load all data
-                await this.config.loader.loadGraphs()
+                this.config.store = await loadGraphs({
+                    shapes: this.config.attributes.shapes,
+                    shapesUrl: this.config.attributes.shapesUrl,
+                    values: this.config.attributes.values,
+                    valuesUrl: this.config.attributes.valuesUrl,
+                    valuesSubject: this.config.attributes.valuesSubject,
+                    loadOwlImports: this.config.attributes.ignoreOwlImports === null,
+                    classInstanceProvider: this.config.classInstanceProvider,
+                    proxy: this.config.attributes.proxy
+                })
                 // remove loading indicator
                 this.form.replaceChildren()
                 // find root shacl shape
@@ -133,12 +143,13 @@ export class ShaclForm extends HTMLElement {
                 this.form.replaceChildren(errorDisplay)
             }
             this.removeAttribute('loading')
+            this.dispatchEvent(new Event('ready'))
         }, initTimeout)
     }
 
     public serialize(format = 'text/turtle', graph = this.toRDF()): string {
         const quads = graph.getQuads(null, null, null, null)
-        return serialize(quads, format, this.config.prefixes)
+        return serialize(quads, format, prefixes)
     }
 
     public toRDF(graph = new Store()): Store {

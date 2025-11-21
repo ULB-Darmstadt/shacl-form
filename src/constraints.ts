@@ -7,6 +7,7 @@ import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICAT
 import { findLabel, removePrefixes } from './util'
 import { Editor, InputListEntry } from './theme'
 import { cloneProperty, mergeQuads } from './property-template'
+import { prefixes } from './loader'
 
 
 export function createShaclOrConstraint(options: Term[], context: ShaclNode | ShaclProperty, config: Config): HTMLElement {
@@ -67,7 +68,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
             const quads = config.store.getQuads(options[i], null, null, null)
             if (quads.length) {
                 values.push(quads)
-                optionElements.push({ label: findLabel(quads, config.languages) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes)), value: i.toString() })
+                optionElements.push({ label: findLabel(quads, config.languages) || (removePrefixes(quads[0].predicate.value, prefixes) + ' = ' + removePrefixes(quads[0].object.value, prefixes)), value: i.toString() })
             }
         }
         const editor = config.theme.createListEditor(context.template.label + '?', null, false, optionElements, context.template)

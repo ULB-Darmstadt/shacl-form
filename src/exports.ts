@@ -1,6 +1,7 @@
 export type { InputListEntry, Editor } from './theme'
 export { Theme } from './theme'
-export { Loader } from './loader'
+export { DefaultTheme } from './theme.default'
 export { Config } from './config'
 export { Plugin, registerPlugin } from './plugin'
 export { findLabel } from './util'
+export * from './loader'
