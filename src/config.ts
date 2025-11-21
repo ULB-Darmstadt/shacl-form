@@ -1,6 +1,6 @@
 import { DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
+import { DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
 import { ClassInstanceProvider } from './plugin'
 import { Theme } from './theme'
 import { extractLists } from './util'
@@ -30,7 +30,7 @@ export class ElementAttributes {
     collapse: string | null = null
     hierarchyColors: string | null = null
     submitButton: string | null = null
-    generateNodeShapeReference: string | null = null
+    generateNodeShapeReference: string  = DCTERMS_PREDICATE_CONFORMS_TO.value
     showNodeIds: string | null = null
     dense: string = "true"
 }
