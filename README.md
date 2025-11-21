@@ -13,8 +13,8 @@ HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that
 ```html
 <html>
   <head>
-    <!-- load web component -->
-    <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/form-default.js" type="module"></script>
+    <!-- load bundled web component (or when developing your own app, just do "npm i @ulb-darmstadt/shacl-form")  -->
+    <script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/bundle.js" type="module"></script>
   </head>
   <body>
     <!--
@@ -70,9 +70,11 @@ data&#x2011;ignore&#x2011;owl&#x2011;imports | By default, `owl:imports` URLs ar
 data-view | When set, turns the web component into a viewer that displays the given data graph without editing functionality
 data-collapse | When set, `sh:group`s and properties with `sh:node` and `sh:maxCount` != 1 are displayed in a collapsible accordion-like widget to reduce visual complexity of the form. The collapsible element is initially shown closed, except when this attribute's value is `"open"`
 data-submit-button | [Ignored when `data-view` attribute is set] Whether to add a submit button to the form. The value of this attribute is used as the button label. `submit` events get emitted only when the form data validates
-data-generate-node-shape-reference | When generating the RDF data graph, &lt;shacl-form&gt; can create a triple that references the root `sh:NodeShape` of the data. Suggested values for this attribute are `http://www.w3.org/1999/02/22-rdf-syntax-ns#type` or `http://purl.org/dc/terms/conformsTo`. Default is empty, so that no such triple is created
+data-generate-node-shape-reference | When generating the RDF data graph, &lt;shacl-form&gt; by default creates a triple that references the root `sh:NodeShape` of the data. Default value of this attribute is `http://purl.org/dc/terms/conformsTo`. Set this to the empty string to disable generating such a triple.
 data-show-node-ids | When this attribute is set, shacl node shapes will have their subject id shown in the form
-data-proxy | URL of a proxy to use when fetching resources (e.g. `owl:imports`). This can help loading resources from the web that are not [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) enabled. The URL of the resource to fetch will be appended to the value of this attribute. Example value for this attribute: `http://you-proxy.org/?url=`. 
+data-proxy | URL of a proxy to use when fetching resources (e.g. `owl:imports`). This can help loading resources from the web that are not [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) enabled. The URL of the resource to fetch will be appended to the value of this attribute. Example value for this attribute: `http://you-proxy.org/?url=`.
+data-dense | Boolean inidcating to render a compact form with small paddings and margins. Default: true
+data-hierarchy-colors | If set, a colored vertical bar is displayed on the right side of the form for each nested hierarchy level with the intention of  easing orientation in complex nested forms. The value of this attribute can be a list of comma seperated CSS color definitions. If no value is given, a default color palette is used.
 
 ### Element functions
 
@@ -95,7 +97,7 @@ Validates the form data against the SHACL shapes graph and displays validation r
 ```typescript
 registerPlugin(plugin: Plugin)
 ```
-Register a [plugin](./src/plugin.ts) to customize editing/viewing certain property values. Plugins handle specific RDF predicates or `xsd:datatype`s or both. Examples: [Leaflet](./src/plugins/leaflet.ts), [Mapbox](./src/plugins/mapbox.ts), [FixedList](./src/plugins/fixed-list.ts)
+Register a [plugin](./src/plugin.ts) to customize editing/viewing certain property values. Plugins handle specific RDF predicates or `xsd:datatype`s or both. Example: [Leaflet](./src/plugins/leaflet.ts)
 
 ```typescript
 setTheme(theme: Theme)
@@ -281,12 +283,4 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
 
 ### Theming
 
-`<shacl-form>` comes in 3 different bundles, each providing a specific theme. See the [demo page](https://ulb-darmstadt.github.io/shacl-form/#theming) for an example.
-
-Theme | Import statement
---- | ---
-[Default](./src/themes/default.ts) (slightly customized default browser styles) | `import '@ulb-darmstadt/shacl-form/form-default.js'`
-[Bootstrap](./src/themes/bootstrap.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-bootstrap.js'`
-[Material Design](./src/themes/material.ts) [alpha status] | `import '@ulb-darmstadt/shacl-form/form-material.js'`
-
-Custom themes can be employed by extending class [Theme](./src/theme.ts), then calling function `setTheme()` on the `<shacl-form>` element.
+`<shacl-form>` has a built-in abstraction layer for theming, i.e. the look and feel of the form elements. If you would like to employ a different theme like e.g. `bootstrap` or `material design`, then extend class [Theme](./src/theme.ts) and call function `setTheme()` on the `<shacl-form>` element.

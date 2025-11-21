@@ -1,12 +1,16 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
 import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
-import { Store, NamedNode, DataFactory, Quad, BlankNode } from 'n3'
-import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
+import { Store, NamedNode, DataFactory, BlankNode } from 'n3'
+import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
-import { Validator } from 'shacl-engine'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
+import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
+import { loadGraphs, prefixes } from './loader'
+
+export * from './exports'
+export const initTimeout = 50
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.dataAttributes() }
@@ -16,12 +20,12 @@ export class ShaclForm extends HTMLElement {
     form: HTMLFormElement
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 
-    constructor(theme: Theme) {
+    constructor() {
         super()
 
         this.attachShadow({ mode: 'open' })
         this.form = document.createElement('form')
-        this.config = new Config(theme, this.form)
+        this.config = new Config(this.form)
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
             if (this.config.editMode) {
@@ -49,11 +53,21 @@ export class ShaclForm extends HTMLElement {
         this.form.replaceChildren(document.createTextNode(this.config.attributes.loading))
         this.initDebounceTimeout = setTimeout(async () => {
             try {
-                await this.config.loader.loadGraphs()
+                // reset cached values in config
+                this.config.reset()
+                // load all data
+                this.config.store = await loadGraphs({
+                    shapes: this.config.attributes.shapes,
+                    shapesUrl: this.config.attributes.shapesUrl,
+                    values: this.config.attributes.values,
+                    valuesUrl: this.config.attributes.valuesUrl,
+                    valuesSubject: this.config.attributes.valuesSubject,
+                    loadOwlImports: this.config.attributes.ignoreOwlImports === null,
+                    classInstanceProvider: this.config.classInstanceProvider,
+                    proxy: this.config.attributes.proxy
+                })
                 // remove loading indicator
                 this.form.replaceChildren()
-                // reset rendered node references
-                this.config.renderedNodes.clear()
                 // find root shacl shape
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
                 if (rootShapeShaclSubject) {
@@ -61,10 +75,13 @@ export class ShaclForm extends HTMLElement {
                     this.form.classList.forEach(value => { this.form.classList.remove(value) })
                     this.form.classList.toggle('mode-edit', this.config.editMode)
                     this.form.classList.toggle('mode-view', !this.config.editMode)
-                    // let theme add classes to form element
+                    // let theme add css classes to form element
                     this.config.theme.apply(this.form)
                     // adopt stylesheets from theme and plugins
                     const styles: CSSStyleSheet[] = [ this.config.theme.stylesheet ]
+                    if (this.config.hierarchyColorsStyleSheet) {
+                        styles.push(this.config.hierarchyColorsStyleSheet)
+                    }
                     for (const plugin of listPlugins()) {
                         if (plugin.stylesheet) {
                             styles.push(plugin.stylesheet)
@@ -72,7 +89,11 @@ export class ShaclForm extends HTMLElement {
                     }
                     this.shadowRoot!.adoptedStyleSheets = styles
 
-                    this.shape = new ShaclNode(rootShapeShaclSubject, this.config, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
+                    const rootTemplate = new ShaclNodeTemplate(rootShapeShaclSubject, this.config)
+                    for (const nodeTemplate of this.config.nodeTemplates) {
+                        mergeOverriddenProperties(nodeTemplate)
+                    }
+                    this.shape = new ShaclNode(rootTemplate, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
                     this.form.appendChild(this.shape)
 
                     if (this.config.editMode) {
@@ -102,11 +123,14 @@ export class ShaclForm extends HTMLElement {
                             })
                             this.form.appendChild(button)
                         }
-                        // delete bound values from data graph, otherwise validation would be confused
-                        if (this.config.attributes.valuesSubject) {
-                            this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
-                        }
-                        await this.validate(true)
+                        // property value binding is asynchronous, so delay data graph cleanup
+                        setTimeout(() => {
+                            // delete bound values from data graph, otherwise validation would not work correctly
+                            if (this.config.attributes.valuesSubject) {
+                                this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
+                            }
+                            this.validate(true)
+                        })
                     }
                 } else if (this.config.store.countQuads(null, null, null, SHAPES_GRAPH) > 0) {
                     // raise error only when shapes graph is not empty
@@ -119,16 +143,17 @@ export class ShaclForm extends HTMLElement {
                 this.form.replaceChildren(errorDisplay)
             }
             this.removeAttribute('loading')
-        }, 200)
+            this.dispatchEvent(new Event('ready'))
+        }, initTimeout)
     }
 
     public serialize(format = 'text/turtle', graph = this.toRDF()): string {
         const quads = graph.getQuads(null, null, null, null)
-        return serialize(quads, format, this.config.prefixes)
+        return serialize(quads, format, prefixes)
     }
 
     public toRDF(graph = new Store()): Store {
-        this.shape?.toRDF(graph)
+        this.shape?.toRDF(graph, undefined, this.config.attributes.generateNodeShapeReference)
         return graph
     }
 
@@ -162,15 +187,12 @@ export class ShaclForm extends HTMLElement {
         }
 
         this.config.store.deleteGraph(this.config.valuesGraphId || '')
-        if (this.shape) {
-            this.shape.toRDF(this.config.store)
-            // add node target for validation. this is required in case of missing sh:targetClass in root shape
-            this.config.store.add(new Quad(this.shape.shaclSubject, DataFactory.namedNode(PREFIX_SHACL + 'targetNode'), this.shape.nodeId, this.config.valuesGraphId))
+        if (!this.shape) {
+            return { conforms: true }
         }
+        this.shape.toRDF(this.config.store, undefined, this.config.attributes.generateNodeShapeReference)
         try {
-            const dataset = this.config.store
-            const report = await new Validator(dataset, { details: true, factory: DataFactory }).validate({ dataset })
-
+            const report = await this.config.validator.validate({ dataset: this.config.store, terms: [ this.shape.nodeId ] }, [{ terms: [ this.shape.template.id ] }])
             for (const result of report.results) {
                 if (result.focusNode?.ptrs?.length) {
                     for (const ptr of result.focusNode.ptrs) {
@@ -245,16 +267,16 @@ export class ShaclForm extends HTMLElement {
     }
 
     private findRootShaclShapeSubject(): NamedNode | undefined {
-        let rootShapeShaclSubject: NamedNode | null = null
         // if data-shape-subject is set, use that
         if (this.config.attributes.shapeSubject) {
-            rootShapeShaclSubject = DataFactory.namedNode(this.config.attributes.shapeSubject)
+            const rootShapeShaclSubject = DataFactory.namedNode(this.config.attributes.shapeSubject)
             if (this.config.store.getQuads(rootShapeShaclSubject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length === 0) {
-                console.warn(`shapes graph does not contain requested root shape ${this.config.attributes.shapeSubject}`)
+                console.warn(`shapes graph does not contain requested node shape ${this.config.attributes.shapeSubject}`)
                 return
+            } else {
+                return rootShapeShaclSubject
             }
-        }
-        else {
+        } else {
             // if we have a data graph and data-values-subject is set, use shape of that
             if (this.config.attributes.valuesSubject && this.config.store.countQuads(null, null, null, DATA_GRAPH) > 0) {
                 const rootValueSubject = DataFactory.namedNode(this.config.attributes.valuesSubject)
@@ -264,46 +286,34 @@ export class ShaclForm extends HTMLElement {
                 ]
                 if (rootValueSubjectTypes.length === 0) {
                     console.warn(`value subject '${this.config.attributes.valuesSubject}' has neither ${RDF_PREDICATE_TYPE.id} nor ${DCTERMS_PREDICATE_CONFORMS_TO.id} statement`)
-                    return
-                }
-                // if type/conformsTo refers to a node shape, prioritize that over targetClass resolution
-                for (const rootValueSubjectType of rootValueSubjectTypes) {
-                    if (this.config.store.getQuads(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length > 0) {
-                        rootShapeShaclSubject = rootValueSubjectType.object as NamedNode
-                        break
+                } else {
+                    // if type/conformsTo refers to a node shape, prioritize that over targetClass resolution
+                    for (const rootValueSubjectType of rootValueSubjectTypes) {
+                        if (this.config.store.getQuads(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length > 0) {
+                            return rootValueSubjectType.object as NamedNode
+                        }
                     }
                 }
-                if (!rootShapeShaclSubject) {
-                    const rootShapes = this.config.store.getQuads(null, SHACL_PREDICATE_TARGET_CLASS, rootValueSubjectTypes[0].object, null)
-                    if (rootShapes.length === 0) {
-                        console.error(`value subject '${this.config.attributes.valuesSubject}' has no shacl shape definition in the shapes graph`)
-                        return
+                // find root shape via targetClass
+                const classes = this.config.store.getObjects(rootValueSubject, RDF_PREDICATE_TYPE, DATA_GRAPH)
+                for (const clazz of classes) {
+                    for (const rootShapeCandidate of this.config.store.getQuads(null, SHACL_PREDICATE_TARGET_CLASS, clazz, null)) {
+                        return rootShapeCandidate.subject as NamedNode
                     }
-                    if (rootShapes.length > 1) {
-                        console.warn(`value subject '${this.config.attributes.valuesSubject}' has multiple shacl shape definitions in the shapes graph, choosing the first found (${rootShapes[0].subject})`)
-                    }
-                    if (this.config.store.getQuads(rootShapes[0].subject, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length === 0) {
-                        console.error(`value subject '${this.config.attributes.valuesSubject}' references a shape which is not a NodeShape (${rootShapes[0].subject})`)
-                        return
-                    }
-                    rootShapeShaclSubject = rootShapes[0].subject as NamedNode
                 }
             }
-            else {
-                // choose first of all defined root shapes
-                const rootShapes = this.config.store.getQuads(null, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null)
-                if (rootShapes.length == 0) {
-                    console.warn('shapes graph does not contain any root shapes')
-                    return
-                }
-                if (rootShapes.length > 1) {
-                    console.warn('shapes graph contains', rootShapes.length, 'root shapes. choosing first found which is', rootShapes[0].subject.value)
-                    console.info('hint: set the shape to use with attribute "data-shape-subject"')
-                }
-                rootShapeShaclSubject = rootShapes[0].subject as NamedNode
+            // choose first of all defined root shapes
+            const rootShapes = this.config.store.getQuads(null, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null)
+            if (rootShapes.length == 0) {
+                console.warn('shapes graph does not contain any node shapes')
+                return
             }
+            if (rootShapes.length > 1) {
+                console.warn('shapes graph contains', rootShapes.length, 'node shapes. choosing first found which is', rootShapes[0].subject.value)
+                console.info('hint: set the node shape to use with element attribute "data-shape-subject"')
+            }
+            return rootShapes[0].subject as NamedNode
         }
-        return rootShapeShaclSubject
     }
 
     private removeFromDataGraph(subject: NamedNode | BlankNode) {
@@ -317,3 +327,5 @@ export class ShaclForm extends HTMLElement {
         }
     }
 }
+
+window.customElements.define('shacl-form', ShaclForm)

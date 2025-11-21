@@ -6,6 +6,8 @@ import { Config } from './config'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY } from './constants'
 import { findLabel, removePrefixes } from './util'
 import { Editor, InputListEntry } from './theme'
+import { cloneProperty, mergeQuads } from './property-template'
+import { prefixes } from './loader'
 
 
 export function createShaclOrConstraint(options: Term[], context: ShaclNode | ShaclProperty, config: Config): HTMLElement {
@@ -28,14 +30,17 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                 const list: ShaclProperty[] = []
                 let combinedText = ''
                 for (const subject of quads) {
-                    const property = new ShaclProperty(subject as NamedNode | BlankNode, context, config)
+                    const template = config.getPropertyTemplate(subject, context.template)
+                    const property = new ShaclProperty(template, context)
                     list.push(property)
                     combinedText += (combinedText.length > 1 ? ' / ' : '') + property.template.label
                 }
                 properties.push(list)
                 optionElements.push({ label: combinedText, value: i.toString() })
             } else {
-                const property = new ShaclProperty(options[i] as NamedNode | BlankNode, context, config)
+                const subject = options[i] as NamedNode | BlankNode
+                const template = config.getPropertyTemplate(subject, context.template)
+                const property = new ShaclProperty(template, context)
                 properties.push([property])
                 optionElements.push({ label: property.template.label, value: i.toString() })
             }
@@ -63,14 +68,15 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
             const quads = config.store.getQuads(options[i], null, null, null)
             if (quads.length) {
                 values.push(quads)
-                optionElements.push({ label: findLabel(quads, config.languages) || (removePrefixes(quads[0].predicate.value, config.prefixes) + ' = ' + removePrefixes(quads[0].object.value, config.prefixes)), value: i.toString() })
+                optionElements.push({ label: findLabel(quads, config.languages) || (removePrefixes(quads[0].predicate.value, prefixes) + ' = ' + removePrefixes(quads[0].object.value, prefixes)), value: i.toString() })
             }
         }
         const editor = config.theme.createListEditor(context.template.label + '?', null, false, optionElements, context.template)
         const select = editor.querySelector('.editor') as Editor
         select.onchange = () => {
             if (select.value) {
-                constraintElement.replaceWith(createPropertyInstance(context.template.clone().merge(values[parseInt(select.value)]), undefined, true))
+                const merged = mergeQuads(cloneProperty(context.template), values[parseInt(select.value)])
+                constraintElement.replaceWith(createPropertyInstance(merged, undefined, true))
             }
         }
         constraintElement.appendChild(editor)

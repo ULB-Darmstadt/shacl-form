@@ -1,5 +1,5 @@
 import { DataFactory, NamedNode, Writer, Quad, Literal, Prefixes } from 'n3'
-import { PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL } from './constants'
+import { PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL, XSD_DATATYPE_STRING } from './constants'
 import { Editor } from './theme'
 import { NodeObject } from 'jsonld'
 
@@ -47,7 +47,8 @@ function serializeJsonld(quads: Quad[]): string {
 
 export function toRDF(editor: Editor): NamedNode | Literal | undefined {
     let languageOrDatatype: NamedNode<string> | string | undefined = editor.shaclDatatype
-    let value: number | string = editor.value
+    // prefer value from dataset over editor value (this is used by rdfs:label substitution for term values)
+    let value: number | string = editor.dataset.value || editor.value
     if (value) {
         if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
             return DataFactory.namedNode(value.substring(1, value.length - 1))
@@ -70,7 +71,7 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
                 value = new Date(value).toISOString().slice(0, 19)
             }
             // check if value is a typed rdf literal or langString
-            if (!languageOrDatatype && typeof value === 'string') {
+            if ((!languageOrDatatype || (languageOrDatatype instanceof NamedNode && XSD_DATATYPE_STRING.equals(languageOrDatatype))) && typeof value === 'string') {
                 // check for typed rdf literal
                 let tokens = value.split('^^')
                 if (tokens.length === 2 && tokens[0].startsWith('"') && tokens[0].endsWith('"') && tokens[1].split(':').length === 2) {
@@ -82,6 +83,9 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
                     if (tokens.length === 2 && tokens[0].startsWith('"') && tokens[0].endsWith('"')) {
                         value = tokens[0].substring(1, tokens[0].length - 1)
                         languageOrDatatype = tokens[1]
+                    } else if (value.startsWith('"') && value.endsWith('"')) {
+                        // check for simple literal
+                        value = value.substring(1, value.length - 1)
                     }
                 }
             }

@@ -2,18 +2,20 @@ form { display:block; --label-width: 8em; --caret-size: 10px; }
 form.mode-edit { padding-left: 1em;  }
 form, form * { box-sizing: border-box; }
 shacl-node, .collapsible::part(content) { display: flex; flex-direction: column; width: 100%; position: relative; }
-shacl-node .remove-button { margin-left: 4px; margin-top: 1px; }
+shacl-node .remove-button { margin-top: 1px; }
 shacl-node .add-button { color: #555; background-color: transparent; margin: 4px 24px 0 0; border: 0; }
 shacl-node .add-button:hover { color:#222; }
 shacl-node .add-button:focus { box-shadow: none; }
 shacl-node h1 { font-size: 16px; border-bottom: 1px solid #AAA; margin-top: 4px; color: #555; }
 shacl-property:not(:has(>.collapsible)), shacl-property>.collapsible::part(content) { display: flex; flex-direction: column; align-items: end; position: relative; }
-shacl-property:not(.may-add) > .add-button { display: none; }
+shacl-property:not(.may-add) > .add-button, shacl-property:not(.may-add) > .collapsible > .add-button { display: none; }
 shacl-property:not(.may-remove) > .property-instance > .remove-button:not(.persistent) { visibility: hidden; }
+shacl-property:not(.may-remove) > .collapsible > .property-instance > .remove-button:not(.persistent) { visibility: hidden; }
 shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.persistent) { visibility: hidden; }
 .mode-view .shacl-group:not(:has(shacl-property)) { display: none; }
 .property-instance, .shacl-or-constraint { display: flex; align-items: flex-start; padding: 4px 0; width: 100%; position: relative; }
-.shacl-or-constraint > div { display: flex; flex-grow: 1; align-items: flex-start; }
+.shacl-or-constraint > div { display: flex; align-items: flex-start; }
+.shacl-or-constraint > div:first-child { flex-grow: 1 }
 .shacl-or-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
 .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
 .property-instance.linked label:after, label.linked:after { content: '\1F517'; font-size: 0.6em; padding-left: 6px; }
@@ -47,3 +49,14 @@ a, a:visited { color: inherit; }
 .ref-link { cursor: pointer; }
 .ref-link:hover { text-decoration: underline; }
 .node-id-display { color: #999; font-size: 11px; }
+/* hierarchy colors */
+.remove-button-wrapper { padding: 0 1px 0 calc(1px + var(--hierarchy-color-width)); align-self: stretch; position: relative; }
+.remove-button-wrapper.colorize::before {
+    content: '';
+    position: absolute;
+    width: var(--hierarchy-color-width);
+    top: 0; bottom: 0; left: 0;
+    --index: mod(var(--hierarchy-level), var(--hierarchy-colors-length));
+    background: linear-gradient(var(--hierarchy-colors)) no-repeat 0 calc(var(--index) * 100% / (var(--hierarchy-colors-length) - 1)) / 100% calc(1px * infinity);
+ }
+.property-instance:not(:has(shacl-node)) > .remove-button-wrapper.colorize::before { background: 0; }

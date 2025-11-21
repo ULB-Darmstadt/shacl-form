@@ -178,8 +178,8 @@ example:Attribution
                   sh:minCount  1 ;
                   sh:path      prov:agent ;
                   sh:or (
-                    [ sh:node example:Person ; rdfs:label "Person" ]
-                    [ sh:node example:Organisation ; rdfs:label "Organisation" ]
+                    [ sh:class foaf:Person; sh:node example:Person ; rdfs:label "Person" ]
+                    [ sh:class foaf:Organisation ; sh:node example:Organisation ; rdfs:label "Organisation" ]
                   )
                 ] ;
   sh:property   [ sh:name      "Role" ;

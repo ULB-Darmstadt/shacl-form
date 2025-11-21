@@ -3,7 +3,7 @@ import { DATA_GRAPH, PREFIX_FOAF, PREFIX_RDF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
 import { ShaclPropertyTemplate } from './property-template'
-import { ShaclNode } from './node'
+import { ShaclNodeTemplate } from './node-template'
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, languages?: string[]): string {
     let result = ''
@@ -70,7 +70,7 @@ export function removePrefixes(id: string, prefixes: Prefixes): string {
     return id
 }
 
-function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNode | ShaclPropertyTemplate, shapesGraph: Store, instances: Term[], alreadyCheckedImports = new Set<string>()) {
+function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNodeTemplate | ShaclPropertyTemplate, shapesGraph: Store, instances: Term[], alreadyCheckedImports = new Set<string>()) {
     for (const owlImport of context.owlImports) {
         if (!alreadyCheckedImports.has(owlImport.id)) {
             alreadyCheckedImports.add(owlImport.id)
@@ -84,8 +84,8 @@ function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNode |
 
 export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplate): InputListEntry[] {
     // if template has sh:in, then just use that as class instances
-    if (template.shaclIn) {
-        const list = template.config.lists[template.shaclIn]
+    if (template.in) {
+        const list = template.config.lists[template.in]
         return createInputListEntries(list?.length ? list : [], template.config.store, template.config.languages)
     } else {
         // find instances in the shapes graph

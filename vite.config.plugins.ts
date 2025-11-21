@@ -1,22 +1,24 @@
 import { defineConfig } from 'vite'
-import peerDepsExternal from "rollup-plugin-peer-deps-external";
+// @ts-ignore
+import peerDepsExternal from 'rollup-plugin-peer-deps-external'
+import { globSync } from 'glob'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   build: {
     emptyOutDir: false,
-    sourcemap: false,
+    
     rollupOptions: {
-      input: "src/plugins/mapbox.ts",
+      input: globSync("src/plugins/*.ts"),
       preserveEntrySignatures: "allow-extension",
       output: {
         dir: "dist/plugins",
-        entryFileNames: "mapbox.js",
+        entryFileNames: "[name].js",
         format: "es"
       },
     }
   },
-    plugins: [
-      peerDepsExternal()
-    ]
+  plugins: [
+    peerDepsExternal()
+  ]
 })
