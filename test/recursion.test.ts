@@ -9,7 +9,7 @@ const prefixes = '@prefix : <http://example.org/> . @prefix sh: <http://www.w3.o
 describe('test recustion protection', () => {
     let form: ShaclForm
 
-    before(async () => { form = await fixture(html`<shacl-form></shacl-form>`) })
+    before(async () => { form = await fixture(html`<shacl-form data-generate-node-shape-reference=""></shacl-form>`) })
 
     it('parsing self-referencing shapes', async () => {
         await bind(form, `

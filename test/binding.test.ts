@@ -10,7 +10,7 @@ const valuesSubject = 'http://example.org/data'
 describe('test value binding', () => {
     let form: ShaclForm
 
-    before(async () => { form = await fixture(html`<shacl-form></shacl-form>`) })
+    before(async () => { form = await fixture(html`<shacl-form data-generate-node-shape-reference=""></shacl-form>`) })
 
     it('sh:in binding', async () => {
         const listValues = [
