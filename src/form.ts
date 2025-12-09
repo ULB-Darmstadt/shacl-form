@@ -96,6 +96,12 @@ export class ShaclForm extends HTMLElement {
                     this.shape = new ShaclNode(rootTemplate, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
                     this.form.appendChild(this.shape)
 
+                    if (this.config.attributes.showRootShapeLabel !== null && rootTemplate.label) {
+                        const heading = document.createElement('h3')
+                        heading.innerText = rootTemplate.label.value
+                        this.form.prepend(heading)
+                    }
+
                     if (this.config.editMode) {
                         // add submit button
                         if (this.config.attributes.submitButton !== null) {

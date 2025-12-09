@@ -17,6 +17,7 @@
 example:ArchitectureModelDataset
   a               sh:NodeShape, rdfs:Class ;
   sh:node         example:Dataset ;
+  rdfs:label      "Architecture model dataset"@en, "Architekturmodelldatensatz"@de;
 
   sh:property   [ sh:description  "Location of the building" ;
                   sh:name         "Location" ;

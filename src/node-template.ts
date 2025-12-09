@@ -1,8 +1,9 @@
-import type { NamedNode, Quad } from 'n3'
+import type { Literal, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
-import { OWL_PREDICATE_IMPORTS, PREFIX_SHACL } from './constants'
+import { OWL_PREDICATE_IMPORTS, PREFIX_DCTERMS, PREFIX_RDFS, PREFIX_SHACL } from './constants'
 import { Config } from './config'
 import { mergeProperty, ShaclPropertyTemplate } from './property-template'
+import { prioritizeByLanguage } from './util'
 
 const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void> = {
     [`${PREFIX_SHACL}node`]:                (template, term) => { template.extendedShapes.add(new ShaclNodeTemplate(term, template.config, template))},
@@ -37,11 +38,14 @@ const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void>
     [`${PREFIX_SHACL}targetClass`]:         (template, term) => { template.targetClass = term as NamedNode },
     [`${PREFIX_SHACL}or`]:                  (template, term) => { template.or = template.config.lists[term.value] },
     [`${PREFIX_SHACL}xone`]:                (template, term) => { template.xone = template.config.lists[term.value] },
-    [OWL_PREDICATE_IMPORTS.id]:             (template, term) => { template.owlImports.add(term as NamedNode) }
+    [OWL_PREDICATE_IMPORTS.id]:             (template, term) => { template.owlImports.add(term as NamedNode) },
+    [`${PREFIX_DCTERMS}title`]:             (template, term) => { const literal = term as Literal; template.label = prioritizeByLanguage(template.config.languages, template.label, literal) },
+    [`${PREFIX_RDFS}label`]:                (template, term) => { const literal = term as Literal; template.label = prioritizeByLanguage(template.config.languages, template.label, literal) }
 }
 
 export class ShaclNodeTemplate {
     id: Term
+    label?: Literal | undefined
     parent?: ShaclNodeTemplate | ShaclPropertyTemplate // parent is the node shape that extends this node shape or the property that conforms to this node shape
     nodeKind?: NamedNode
     targetClass?: NamedNode

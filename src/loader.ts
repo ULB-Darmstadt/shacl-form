@@ -9,8 +9,8 @@ import { ClassInstanceProvider } from './plugin'
 // cache external data in module scope to avoid requesting/parsing
 // them multiple times, e.g. when more than one shacl-form element is on the page
 // that import the same resources
-const loadedRDF: Record<string, Promise<Quad[]>> = {}
-const loadedClasses: Record<string, Promise<string>> = {}
+export const rdfCache: Record<string, Promise<Quad[]>> = {}
+export const classesCache: Record<string, Promise<string>> = {}
 export const prefixes: Prefixes = {}
 
 export interface LoaderAttributes {
@@ -101,11 +101,11 @@ async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext) {
             if (ctx.importedClasses.indexOf(className) < 0) {
                 let promise: Promise<string>
                 // check if class is in module scope cache
-                if (className in loadedClasses) {
-                    promise = loadedClasses[className]
+                if (className in classesCache) {
+                    promise = classesCache[className]
                 } else {
                     promise = ctx.atts.classInstanceProvider(className)
-                    loadedClasses[className] = promise
+                    classesCache[className] = promise
                 }
                 ctx.importedClasses.push(className)
                 dependencies.push(importRDF(parseRDF(await promise, SHAPES_GRAPH), ctx))
@@ -117,10 +117,10 @@ async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext) {
 
 async function fetchRDF(url: string, ctx: LoaderContext, graph?: NamedNode): Promise<Quad[]> {
     // try to load from cache first
-    if (url in loadedRDF) {
-        return loadedRDF[url]
+    if (url in rdfCache) {
+        return rdfCache[url]
     }
-    loadedRDF[url] = new Promise<Quad[]>(async (resolve, reject) => {
+    rdfCache[url] = new Promise<Quad[]>(async (resolve, reject) => {
         try {
             let proxiedURL = url
             // if we have a proxy configured, then load url via proxy
@@ -137,7 +137,7 @@ async function fetchRDF(url: string, ctx: LoaderContext, graph?: NamedNode): Pro
             reject(e)
         }
     })
-    return loadedRDF[url]
+    return rdfCache[url]
 }
 
 async function parseRDF(rdf: string, graph: NamedNode): Promise<Quad[]> {

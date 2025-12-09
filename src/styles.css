@@ -36,6 +36,7 @@ textarea.editor { resize: vertical; }
 .d-flex { display: flex; }
 .lang { opacity: 0.65; font-size: 0.6em; }
 a, a:visited { color: inherit; }
+h3 { margin-top: 0; }
 
 .fadeIn, .fadeOut { animation: fadeIn 0.2s ease-out; }
 .fadeOut { animation-direction: reverse; animation-timing-function: ease-out;}

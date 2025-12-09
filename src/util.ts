@@ -92,7 +92,7 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
         const instances = template.config.store.getSubjects(RDF_PREDICATE_TYPE, clazz, SHAPES_GRAPH)
         // find instances in the data graph
         instances.push(...template.config.store.getSubjects(RDF_PREDICATE_TYPE, clazz, DATA_GRAPH))
-        // find instances in imported taxonomies
+        // find instances in imported taxonomies and shapes (these are scoped, depending on the location of the owl:imports statement)
         findClassInstancesFromOwlImports(clazz, template, template.config.store, instances)
 
         // initialize structures needed for building a class instance hierarchy

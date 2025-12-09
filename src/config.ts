@@ -32,6 +32,7 @@ export class ElementAttributes {
     submitButton: string | null = null
     generateNodeShapeReference: string  = DCTERMS_PREDICATE_CONFORMS_TO.value
     showNodeIds: string | null = null
+    showRootShapeLabel: string | null = null
     dense: string = "true"
 }
 
