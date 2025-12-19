@@ -70,7 +70,7 @@ export class ShaclNode extends HTMLElement {
                 // first output this shape's properties and then create extended shapes. this ensures that the values graph is bound to the most specific property.
                 for (const [_, properties] of Object.entries(template.properties)) {
                     for (const property of properties) {
-                        await this.addPropertyInstance(property, valueSubject)
+                        await this.addPropertyInstance(property, valueSubject, properties.length > 1)
                     }
                 }
                 for (const shape of template.extendedShapes) {
@@ -111,7 +111,7 @@ export class ShaclNode extends HTMLElement {
         return subject
     }
 
-    async addPropertyInstance(template: ShaclPropertyTemplate, valueSubject: NamedNode | BlankNode | undefined) {
+    async addPropertyInstance(template: ShaclPropertyTemplate, valueSubject: NamedNode | BlankNode | undefined, multiValuedPath?: boolean) {
         let container: HTMLElement = this
         // check if property belongs to a group
         if (template.group) {
@@ -128,7 +128,7 @@ export class ShaclNode extends HTMLElement {
             }
         }
         const property = new ShaclProperty(template, this)
-        await property.bindValues(valueSubject)
+        await property.bindValues(valueSubject, multiValuedPath)
 
         // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
         if (template.config.editMode || property.instanceCount() > 0) {

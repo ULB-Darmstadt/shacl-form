@@ -44,14 +44,16 @@ export class ShaclProperty extends HTMLElement {
     }
 
     // binds data graph triples to form fields and (if present) creates missing sh:hasValue form field
-    async bindValues(valueSubject: NamedNode | BlankNode | undefined) {
+    async bindValues(valueSubject: NamedNode | BlankNode | undefined, multiValuedPath?: boolean) {
         if (this.template.path) {
             let valuesContainHasValue = false
             if (valueSubject) {
                 // for linked resource, get values in all graphs, otherwise only from data graph
                 let values = this.template.config.store.getQuads(valueSubject, this.template.path, null, this.parent.linked ? null : DATA_GRAPH)
-                // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
-                values = await this.filterValidValues(values, valueSubject)
+                if (multiValuedPath) {
+                    // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
+                    values = await this.filterValidValues(values, valueSubject)
+                }
                 for (const value of values) {
                     // remove triple from data graph to prevent double binding
                     this.template.config.store.delete(value)
