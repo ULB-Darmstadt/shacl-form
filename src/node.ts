@@ -74,7 +74,7 @@ export class ShaclNode extends HTMLElement {
                     }
                 }
                 for (const shape of template.extendedShapes) {
-                    this.prepend(new ShaclNode(shape, valueSubject))
+                    this.prepend(new ShaclNode(shape, valueSubject, undefined, undefined, linked))
                 }
                 if (template.or?.length) {
                     await this.tryResolve(template.or, valueSubject, template.config)
