@@ -55,8 +55,10 @@ export class ShaclProperty extends HTMLElement {
                     values = await this.filterValidValues(values, valueSubject)
                 }
                 for (const value of values) {
-                    // remove triple from data graph to prevent double binding
-                    this.template.config.store.delete(value)
+                    // remove quad from data graph to prevent double binding if value is not linked
+                    if (!this.parent.linked) {
+                        this.template.config.store.delete(value)
+                    }
                     this.addPropertyInstance(value.object)
                     if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                         valuesContainHasValue = true
