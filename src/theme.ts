@@ -130,8 +130,7 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
         if (value) {
             return template.config.theme.createViewer(template.label, value, template)
         }
-        const fallback = document.createElement('div')
-        fallback.innerHTML = 'No value'
-        return fallback
+        // return empty div as fallback
+        return document.createElement('div')
     }
 }

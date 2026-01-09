@@ -267,6 +267,9 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         for (const node of template.nodeShapes) {
             instance.appendChild(new ShaclNode(node, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked))
         }
+        if (linked) {
+            forceRemovable = true
+        }
     } else {
         const plugin = findPlugin(template.path, template.datatype?.value)
         if (plugin) {
@@ -278,12 +281,15 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         } else {
             instance = fieldFactory(template, value || null, template.config.editMode && !linked)
         }
-        instance.classList.add('property-instance')
+        // count as property-instance only if not empty
+        if (instance.childNodes.length > 0) {
+            instance.classList.add('property-instance')
+        }
         if (linked) {
             instance.classList.add('linked')
         }
     }
-    if (template.config.editMode) {
+    if (template.config.editMode && (!linked || forceRemovable)) {
         appendRemoveButton(instance, template.label, template.config.theme.dense, template.config.hierarchyColorsStyleSheet !== undefined, forceRemovable)
     }
     instance.dataset.path = template.path
