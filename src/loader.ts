@@ -1,5 +1,5 @@
 import { Store, Quad, NamedNode, DataFactory, StreamParser, Prefixes } from 'n3'
-import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
+import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { isURL } from './util'
 import { RdfXmlParser } from 'rdfxml-streaming-parser'
 import jsonld from 'jsonld'
@@ -41,14 +41,14 @@ export async function loadGraphs(atts: LoaderAttributes) {
 
     const promises: Promise<void>[] = []
     if (atts.shapes) {
-        promises.push(importRDF(parseRDF(atts.shapes, SHAPES_GRAPH), ctx))
+        promises.push(importRDF(parseRDF(atts.shapes), ctx, SHAPES_GRAPH))
     } else if (atts.shapesUrl) {
-        promises.push(importRDF(fetchRDF(atts.shapesUrl, ctx, SHAPES_GRAPH), ctx))
+        promises.push(importRDF(fetchRDF(atts.shapesUrl, ctx.atts.proxy), ctx, SHAPES_GRAPH))
     }
     if (atts.values) {
-        promises.push(importRDF(parseRDF(atts.values, DATA_GRAPH), ctx))
+        promises.push(importRDF(parseRDF(atts.values), ctx, DATA_GRAPH))
     } else if (atts.valuesUrl) {
-        promises.push(importRDF(fetchRDF(atts.valuesUrl, ctx, DATA_GRAPH), ctx))
+        promises.push(importRDF(fetchRDF(atts.valuesUrl, ctx.atts.proxy), ctx, DATA_GRAPH))
     }
     await Promise.all(promises)
 
@@ -56,9 +56,9 @@ export async function loadGraphs(atts: LoaderAttributes) {
     // <valueSubject> a <uri> or <valueSubject> dcterms:conformsTo <uri>
     // or if we have data-shape-subject set on the form,
     // then try to load the referenced object(s) into the shapes graph
-    if (ctx.store.countQuads(null, null, null, SHAPES_GRAPH) === 0 && atts.valuesSubject) {
+    if (atts.valuesSubject && ctx.store.countQuads(null, null, null, SHAPES_GRAPH) === 0) {
         const shapeCandidates = [
-            // ...store.getObjects(this.config.attributes.valuesSubject, RDF_PREDICATE_TYPE, DATA_GRAPH),
+            ...ctx.store.getObjects(atts.valuesSubject, RDF_PREDICATE_TYPE, DATA_GRAPH),
             ...ctx.store.getObjects(atts.valuesSubject, DCTERMS_PREDICATE_CONFORMS_TO, DATA_GRAPH)
         ]
         const promises: Promise<void>[] = []
@@ -66,7 +66,7 @@ export async function loadGraphs(atts: LoaderAttributes) {
             const url = toURL(uri.value)
             if (url && ctx.importedUrls.indexOf(url) < 0) {
                 ctx.importedUrls.push(url)
-                promises.push(importRDF(fetchRDF(url, ctx, SHAPES_GRAPH), ctx))
+                promises.push(importRDF(fetchRDF(url, ctx.atts.proxy), ctx, SHAPES_GRAPH))
             }
         }
         try {
@@ -75,23 +75,29 @@ export async function loadGraphs(atts: LoaderAttributes) {
             console.warn(e)
         }
     }
-
     return ctx.store
 }
 
-async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext) {
+async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedNode) {
     const quads = await rdf
     const dependencies: Promise<void>[] = []
 
     for (const quad of quads) {
-        ctx.store.add(new Quad(quad.subject, quad.predicate, quad.object, quad.graph))
+        // if we have quads (named graphs) in the data graph then keep the graph id if it is not the value subject
+        let targetGraph = graph
+        if (ctx.atts.valuesSubject && DATA_GRAPH.equals(graph)) {
+            if (quad.graph.id && quad.graph.id !== ctx.atts.valuesSubject) {
+                targetGraph = quad.graph as NamedNode
+            }
+        }
+        ctx.store.add(new Quad(quad.subject, quad.predicate, quad.object, targetGraph))
         // check if this is an owl:imports predicate and try to load the url
         if (OWL_PREDICATE_IMPORTS.equals(quad.predicate) && ctx.atts.loadOwlImports) {
             const url = toURL(quad.object.value)
             // import url only once
             if (url && ctx.importedUrls.indexOf(url) < 0) {
                 ctx.importedUrls.push(url)
-                dependencies.push(importRDF(fetchRDF(url, ctx), ctx))
+                dependencies.push(importRDF(fetchRDF(url, ctx.atts.proxy), ctx, DataFactory.namedNode(url)))
             }
         }
         // check if this is an sh:class predicate and invoke class instance provider
@@ -108,14 +114,14 @@ async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext) {
                     classesCache[className] = promise
                 }
                 ctx.importedClasses.push(className)
-                dependencies.push(importRDF(parseRDF(await promise, SHAPES_GRAPH), ctx))
+                dependencies.push(importRDF(parseRDF(await promise), ctx, SHAPES_GRAPH))
             }
         }
     }
     await Promise.allSettled(dependencies)
 }
 
-async function fetchRDF(url: string, ctx: LoaderContext, graph?: NamedNode): Promise<Quad[]> {
+async function fetchRDF(url: string, proxy: string | null | undefined): Promise<Quad[]> {
     // try to load from cache first
     if (url in rdfCache) {
         return rdfCache[url]
@@ -124,15 +130,15 @@ async function fetchRDF(url: string, ctx: LoaderContext, graph?: NamedNode): Pro
         try {
             let proxiedURL = url
             // if we have a proxy configured, then load url via proxy
-            if (ctx.atts.proxy) {
-                proxiedURL = ctx.atts.proxy + encodeURIComponent(url)
+            if (proxy) {
+                proxiedURL = proxy + encodeURIComponent(url)
             }
             const response = await fetch(proxiedURL, {
                 headers: {
                     'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3, application/ld+json'
                 },
             }).then(resp => resp.text())
-            resolve(await parseRDF(response, graph || DataFactory.namedNode(url)))
+            resolve(await parseRDF(response))
         } catch(e) {
             reject(e)
         }
@@ -140,7 +146,7 @@ async function fetchRDF(url: string, ctx: LoaderContext, graph?: NamedNode): Pro
     return rdfCache[url]
 }
 
-async function parseRDF(rdf: string, graph: NamedNode): Promise<Quad[]> {
+async function parseRDF(rdf: string): Promise<Quad[]> {
     if (guessContentType(rdf) === 'json') {
         // convert json to n-quads
         try {
@@ -153,7 +159,7 @@ async function parseRDF(rdf: string, graph: NamedNode): Promise<Quad[]> {
     await new Promise((resolve, reject) => {
         const parser = guessContentType(rdf) === 'xml' ? new RdfXmlParser() : new StreamParser()
         parser.on('data', (quad: Quad) => {
-            quads.push(new Quad(quad.subject, quad.predicate, quad.object, graph))
+            quads.push(new Quad(quad.subject, quad.predicate, quad.object, quad.graph))
         })
         .on('error', (error) => {
             reject(error)
