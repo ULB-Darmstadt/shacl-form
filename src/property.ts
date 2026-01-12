@@ -3,7 +3,7 @@ import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
 import { findInstancesOf, focusFirstInputElement } from './util'
-import { cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
+import { aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
 import { Editor, fieldFactory, InputListEntry } from './theme'
 import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
@@ -114,13 +114,13 @@ export class ShaclProperty extends HTMLElement {
 
     updateControls() {
         let instanceCount = this.instanceCount()
-        if (instanceCount === 0 && (this.template.nodeShapes.size === 0 || this.template.aggregatedMinCount > 0)) {
+        if (instanceCount === 0 && (this.template.nodeShapes.size === 0 || aggregatedMinCount(this.template) > 0)) {
             this.addPropertyInstance()
             instanceCount = this.instanceCount()
         }
         let mayRemove: boolean
-        if (this.template.aggregatedMinCount > 0) {
-            mayRemove = instanceCount > this.template.aggregatedMinCount
+        if (aggregatedMinCount(this.template) > 0) {
+            mayRemove = instanceCount > aggregatedMinCount(this.template)
         } else {
             mayRemove = this.template.nodeShapes.size > 0 || instanceCount > 1
         }

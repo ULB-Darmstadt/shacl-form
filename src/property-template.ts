@@ -90,8 +90,6 @@ export class ShaclPropertyTemplate {
     maxCount: number | undefined
     qualifiedMinCount: number | undefined
     qualifiedMaxCount: number | undefined
-    aggregatedMinCount: number
-    aggregatedMaxCount: number
     minLength: number | undefined
     maxLength: number | undefined
     minInclusive: number | undefined
@@ -127,9 +125,11 @@ export class ShaclPropertyTemplate {
         // register this template on config before merging quads to prevent recursion
         this.config.registerPropertyTemplate(this)
         mergeQuads(this, this.config.store.getQuads(id, null, null, null))
-        this.aggregatedMinCount = Math.max(this.minCount || 0, this.qualifiedMinCount || 0)
-        this.aggregatedMaxCount = Math.min(this.maxCount || 0, this.qualifiedMaxCount || 0)
     }
+}
+
+export function aggregatedMinCount(template: ShaclPropertyTemplate) {
+    return Math.max(template.minCount || 0, template.qualifiedMinCount || 0)
 }
 
 export function cloneProperty(template: ShaclPropertyTemplate) {

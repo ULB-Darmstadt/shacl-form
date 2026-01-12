@@ -2,7 +2,7 @@ import { Literal, NamedNode } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_XSD, RDF_OBJECT_LANG_STRING } from './constants'
 import { createInputListEntries, findInstancesOf, findLabel, isURL } from './util'
-import { ShaclPropertyTemplate } from './property-template'
+import { aggregatedMinCount, ShaclPropertyTemplate } from './property-template'
 import css from './styles.css?raw'
 
 export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, binaryData?: string, checked?: boolean, disabled?: boolean }
@@ -86,7 +86,7 @@ export abstract class Theme {
 
 export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null, editable: boolean): HTMLElement {
     if (editable) {
-        const required = template.aggregatedMinCount > 0
+        const required = aggregatedMinCount(template) > 0
         // if we have a class, find the instances and display them in a list
         if (template.class && !template.hasValue) {
             return template.config.theme.createListEditor(template.label, value, required, findInstancesOf(template.class, template), template)

@@ -1,5 +1,5 @@
 import { Term } from '@rdfjs/types'
-import { ShaclPropertyTemplate } from "./property-template"
+import { aggregatedMinCount, ShaclPropertyTemplate } from "./property-template"
 import { Editor, InputListEntry, Theme } from "./theme"
 import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI } from './constants'
 import { DataFactory, Literal, NamedNode } from 'n3'
@@ -30,8 +30,8 @@ export class DefaultTheme extends Theme {
         } else if (value instanceof Literal) {
             editor.shaclDatatype = value.datatype
         }
-        if (template && template.aggregatedMinCount > 0) {
-            editor.dataset.minCount = String(template.aggregatedMinCount)
+        if (template && aggregatedMinCount(template) > 0) {
+            editor.dataset.minCount = String(aggregatedMinCount(template))
         }
         if (template?.class) {
             editor.dataset.class = template.class.value
