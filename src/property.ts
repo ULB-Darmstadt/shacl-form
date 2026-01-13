@@ -291,17 +291,16 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
     }
     if (template.config.editMode && (!linked || forceRemovable)) {
         appendRemoveButton(instance, template.label, template.config.theme.dense, template.config.hierarchyColorsStyleSheet !== undefined, forceRemovable)
+    } else if (!template.config.editMode && template.config.hierarchyColorsStyleSheet !== undefined) {
+        // in colorized view mode, add remove button wrapper only
+        instance.appendChild(createRemoveButtonWrapper(true))
     }
     instance.dataset.path = template.path
     return instance
 }
 
 function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean, colorize: boolean, forceRemovable = false) {
-    const wrapper = document.createElement('div')
-    wrapper.className = 'remove-button-wrapper'
-    if (colorize) {
-        wrapper.classList.add('colorize')
-    }
+    const wrapper =createRemoveButtonWrapper(colorize)
     const removeButton = new RokitButton()
     removeButton.classList.add('remove-button', 'clear')
     removeButton.title = 'Remove ' + label
@@ -321,6 +320,15 @@ function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean
     }
     wrapper.appendChild(removeButton)
     instance.appendChild(wrapper)
+}
+
+function createRemoveButtonWrapper(colorize: boolean) {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'remove-button-wrapper'
+    if (colorize) {
+        wrapper.classList.add('colorize')
+    }
+    return wrapper
 }
 
 window.customElements.define('shacl-property', ShaclProperty)

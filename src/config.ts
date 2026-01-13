@@ -33,7 +33,7 @@ export class ElementAttributes {
     generateNodeShapeReference: string  = DCTERMS_PREDICATE_CONFORMS_TO.value
     showNodeIds: string | null = null
     showRootShapeLabel: string | null = null
-    dense: string = "true"
+    dense: string = 'true'
 }
 
 const defaultHierarchyColorPalette = '#4c93d785, #f85e9a85, #00327385, #87001f85'
@@ -52,7 +52,7 @@ export class Config {
     hierarchyColorsStyleSheet: CSSStyleSheet | undefined
     private _store = new Store()
     private _theme: Theme
-    // template are stored here to prevent recursion errors
+    // templates are stored here to prevent recursion errors
     private _nodeTemplates: Record<string, ShaclNodeTemplate> = {}
     private _propertyTemplates: Record<string, ShaclPropertyTemplate> = {}
     validator = new Validator(this._store, { details: true, factory: DataFactory })
@@ -86,7 +86,7 @@ export class Config {
             }
         })
         this.editMode = atts.view === null
-        this.theme.setDense(atts.dense === "true")
+        this.theme.setDense(atts.dense === 'true')
         this.attributes = atts
         // for backward compatibility
         if (this.attributes.valueSubject && !this.attributes.valuesSubject) {
@@ -106,7 +106,7 @@ export class Config {
         }
         if (atts.hierarchyColors != null) {
             const palette = atts.hierarchyColors.length ? atts.hierarchyColors : defaultHierarchyColorPalette
-            let css = `:host { --hierarchy-colors: ${palette}; --hierarchy-colors-length: ${palette.split(',').length}; --hierarchy-color-width: 3px }`
+            let css = `:host { --hierarchy-colors: ${palette}; --hierarchy-colors-length: ${palette.split(',').length} }`
             // generate hierarchy level css variables
             for (let level = 8; level >= 0; level--) {
                 let rule = `shacl-property { --hierarchy-level: ${level} }`
@@ -180,7 +180,7 @@ export class Config {
 
     set theme(theme: Theme) {
         this._theme = theme
-        theme.setDense(this.attributes.dense === "true")
+        theme.setDense(this.attributes.dense === 'true')
     }
 
     get store() {

@@ -51,7 +51,7 @@ h3 { margin-top: 0; }
 .ref-link:hover { text-decoration: underline; }
 .node-id-display { color: #999; font-size: 11px; }
 /* hierarchy colors */
-.remove-button-wrapper { padding: 0 1px 0 calc(1px + var(--hierarchy-color-width)); align-self: stretch; position: relative; }
+.remove-button-wrapper { --hierarchy-color-width: 3px; padding: 0 1px 0 calc(1px + var(--hierarchy-color-width)); align-self: stretch; position: relative; }
 .remove-button-wrapper.colorize::before {
     content: '';
     position: absolute;
@@ -60,4 +60,5 @@ h3 { margin-top: 0; }
     --index: mod(var(--hierarchy-level), var(--hierarchy-colors-length));
     background: linear-gradient(var(--hierarchy-colors)) no-repeat 0 calc(var(--index) * 100% / (var(--hierarchy-colors-length) - 1)) / 100% calc(1px * infinity);
  }
+ .remove-button-wrapper:not(:has(.remove-button)) { padding-left: calc(8px + var(--hierarchy-color-width)) }
 .property-instance:not(:has(shacl-node)) > .remove-button-wrapper.colorize::before { background: 0; }
