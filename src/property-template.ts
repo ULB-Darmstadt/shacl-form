@@ -6,7 +6,7 @@ import { findLabel, prioritizeByLanguage, removePrefixes } from './util'
 import { ShaclNodeTemplate } from './node-template'
 import { prefixes } from './loader'
 
-const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => void> = {
+export const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => void> = {
     [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; template.name = prioritizeByLanguage(template.config.languages, template.name, literal) },
     [`${PREFIX_SHACL}description`]:  (template, term) => { const literal = term as Literal; template.description = prioritizeByLanguage(template.config.languages, template.description, literal) },
     [`${PREFIX_SHACL}path`]:         (template, term) => { template.path = term.value },
