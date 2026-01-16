@@ -200,7 +200,7 @@ function toURL(id: string): string | null {
 
 /* Can't rely on HTTP content-type header, since many resources are delivered with text/plain */
 function guessContentType(input: string) {
-    if (/^\s*\{/.test(input)) {
+    if (/^\s*[\[{]/.test(input)) {
         return 'json'
     } else if (/^\s*<\?xml/.test(input)) {
         return 'xml'
