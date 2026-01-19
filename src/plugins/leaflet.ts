@@ -74,7 +74,7 @@ export class LeafletPlugin extends Plugin {
                 link.title = 'Create a new ' + this.options.kind;
                 link.innerHTML = this.options.html;
                 L.DomEvent.on(link, 'click', L.DomEvent.stop).on(link, 'click', () => {
-                    // @ts-ignore
+                    // @ts-expect-error allow to set property on window
                     window.LAYER = this.options.callback.call(map.editTools)
                 }, this)
                 return container

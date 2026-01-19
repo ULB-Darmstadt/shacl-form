@@ -183,8 +183,7 @@ function toURL(id: string): string | null {
     if (splitted.length === 2) {
         const prefix = prefixes[splitted[0]]
         if (prefix) {
-            // need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
-            // @ts-ignore
+            // @ts-expect-error need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
             id = id.replace(`${splitted[0]}:`, prefix)
             if (isURL(id)) {
                 return id

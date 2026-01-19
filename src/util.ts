@@ -63,8 +63,7 @@ export function createInputListEntries(subjects: Term[], shapesGraph: Store, lan
 
 export function removePrefixes(id: string, prefixes: Prefixes): string {
     for (const key in prefixes) {
-        // need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
-        // @ts-ignore
+        // @ts-expect-error need to ignore type check. 'prefix' is a string and not a NamedNode<string> (seems to be a bug in n3 typings)
         const prefix: string = prefixes[key]
         if (id.startsWith(prefix)) {
             id = id.slice(prefix.length)
@@ -267,7 +266,7 @@ export function extractLists(store: Store, { remove = false, ignoreErrors = fals
         remove = false
       // Store the list under the value of its head
       else if (head) {
-        // @ts-ignore
+        // @ts-expect-error using strings to index object
         lists[head[headPos].value] = items
       }
     })
