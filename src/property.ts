@@ -87,7 +87,7 @@ export class ShaclProperty extends HTMLElement {
                     instance = createPropertyInstance(merged, value, true)
                     resolved = true
                 }
-            } 
+            }
             if (!resolved) {
                 instance = createShaclOrConstraint(options, this, this.template.config)
                 appendRemoveButton(instance, '', this.template.config.theme.dense, this.template.config.hierarchyColorsStyleSheet !== undefined)
@@ -178,7 +178,7 @@ export class ShaclProperty extends HTMLElement {
             }
         }
         const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [{ terms: [ nodeShapeToValidate ] }])
-        const invalidTerms: string[] =  []
+        const invalidTerms: string[] = []
         for (const result of report.results) {
             const reportObject = this.template.qualifiedValueShape ? result.focusNode : result.value
             if (reportObject?.ptrs?.length) {
@@ -200,7 +200,7 @@ export class ShaclProperty extends HTMLElement {
 
         // load potential value candidates for linking
         let instances: InputListEntry[] = []
-        let clazz = this.getRdfClassToLinkOrCreate()
+        const clazz = this.getRdfClassToLinkOrCreate()
         if (clazz) {
             instances = findInstancesOf(clazz, this.template)
         }
@@ -208,7 +208,7 @@ export class ShaclProperty extends HTMLElement {
             // no class instances found, so create an add button that creates a new instance
             addButton.emptyMessage = ''
             addButton.inputMinWidth = 0
-            addButton.addEventListener('click', _ => {
+            addButton.addEventListener('click', () => {
                 addButton.blur()
                 const instance = this.addPropertyInstance()
                 instance.classList.add('fadeIn')
@@ -306,7 +306,7 @@ function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean
     removeButton.title = 'Remove ' + label
     removeButton.dense = dense
     removeButton.icon = true
-    removeButton.addEventListener('click', _ => {
+    removeButton.addEventListener('click', () => {
         instance.classList.remove('fadeIn')
         instance.classList.add('fadeOut')
         setTimeout(() => {

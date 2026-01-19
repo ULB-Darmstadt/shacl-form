@@ -30,7 +30,7 @@ export class ElementAttributes {
     collapse: string | null = null
     hierarchyColors: string | null = null
     submitButton: string | null = null
-    generateNodeShapeReference: string  = DCTERMS_PREDICATE_CONFORMS_TO.value
+    generateNodeShapeReference: string = DCTERMS_PREDICATE_CONFORMS_TO.value
     showNodeIds: string | null = null
     showRootShapeLabel: string | null = null
     dense: string = 'true'
@@ -64,7 +64,7 @@ export class Config {
             if (lang.length > 2) {
                 // for each 5 letter lang code (e.g. de-DE) append its corresponding 2 letter code (e.g. de) directly afterwards
                 return [lang.toLocaleLowerCase(), lang.substring(0, 2)]
-            } 
+            }
             return lang
         })), ''] // <-- append empty string to accept RDF literals with no language
     }
@@ -76,7 +76,7 @@ export class Config {
         this._nodeTemplates = {}
         this._propertyTemplates = {}
     }
- 
+
     updateAttributes(elem: HTMLElement) {
         const atts = new ElementAttributes();
         (Object.keys(atts) as Array<keyof ElementAttributes>).forEach(key => {
@@ -145,7 +145,7 @@ export class Config {
     registerNodeTemplate(template: ShaclNodeTemplate) {
         this._nodeTemplates[this.buildTemplateKey(template.id, template.parent)] = template
     }
-    
+
     registerPropertyTemplate(template: ShaclPropertyTemplate) {
         this._propertyTemplates[this.buildTemplateKey(template.id, template.parent)] = template
     }

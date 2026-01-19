@@ -73,7 +73,7 @@ export abstract class Theme {
         viewer.appendChild(valueElem)
         return viewer
     }
-    
+
     abstract createListEditor(label: string, value: Term | null, required: boolean, listEntries: InputListEntry[], template?: ShaclPropertyTemplate): HTMLElement
     abstract createLangStringEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement
     abstract createTextEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement
@@ -105,7 +105,7 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
         }
 
         // check if it is a langstring
-        if  (template.datatype?.equals(RDF_OBJECT_LANG_STRING) || template.languageIn?.length || (template.datatype === undefined && value instanceof Literal && value.language)) {
+        if (template.datatype?.equals(RDF_OBJECT_LANG_STRING) || template.languageIn?.length || (template.datatype === undefined && value instanceof Literal && value.language)) {
             return template.config.theme.createLangStringEditor(template.label, value, required, template)
         }
 

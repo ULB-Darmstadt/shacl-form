@@ -3,7 +3,7 @@ import { aggregatedMinCount, ShaclPropertyTemplate } from "./property-template"
 import { Editor, InputListEntry, Theme } from "./theme"
 import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI } from './constants'
 import { DataFactory, Literal, NamedNode } from 'n3'
-import { Term as N3Term }  from 'n3'
+import { Term as N3Term } from 'n3'
 import { RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
 import { findLabel } from './util'
 
@@ -54,14 +54,14 @@ export class DefaultTheme extends Theme {
             editor.disabled = true
         }
         editor.value = value?.value || template?.defaultValue?.value || ''
-    
+
         const labelElem = document.createElement('label')
         labelElem.htmlFor = editor.id
         labelElem.innerText = label
         if (template?.description) {
             labelElem.setAttribute('title', template.description.value)
         }
-    
+
         const placeholder = template?.description ? template.description.value : template?.pattern ? template.pattern : null
         if (placeholder) {
             editor.setAttribute('placeholder', placeholder)
@@ -70,7 +70,7 @@ export class DefaultTheme extends Theme {
             editor.setAttribute('required', 'true')
             labelElem.classList.add('required')
         }
-    
+
         const result = document.createElement('div')
         result.appendChild(labelElem)
         result.appendChild(editor)
@@ -79,7 +79,7 @@ export class DefaultTheme extends Theme {
 
     createDateEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = new RokitInput()
-        if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
+        if (template.datatype?.value === PREFIX_XSD + 'dateTime') {
             editor.type = 'datetime-local'
             // this enables seconds in dateTime input
             editor.setAttribute('step', '1')
@@ -94,7 +94,7 @@ export class DefaultTheme extends Theme {
         if (value) {
             try {
                 let isoDate = new Date(value.value).toISOString()
-                if (template.datatype?.value  === PREFIX_XSD + 'dateTime') {
+                if (template.datatype?.value === PREFIX_XSD + 'dateTime') {
                     isoDate = isoDate.slice(0, 19)
                 } else {
                     isoDate = isoDate.slice(0, 10)
@@ -169,9 +169,9 @@ export class DefaultTheme extends Theme {
         const editor = document.createElement('input')
         editor.type = 'checkbox'
         editor.classList.add('ml-0')
-    
+
         const result = this.createDefaultTemplate(label, null, required, editor, template)
-    
+
         // 'required' on checkboxes forces the user to tick the checkbox, which is not what we want here
         editor.removeAttribute('required')
         result.querySelector(':scope label')?.classList.remove('required')
@@ -194,7 +194,7 @@ export class DefaultTheme extends Theme {
                     editor.parentElement?.dispatchEvent(new Event('change', { bubbles: true }))
                 }
             } else {
-                (editor as Editor)['binaryData'] = undefined               
+                (editor as Editor)['binaryData'] = undefined
             }
         })
         return this.createDefaultTemplate(label, value, required, editor, template)
@@ -268,9 +268,12 @@ export class DefaultTheme extends Theme {
         return result
     }
 
-    createButton(label: string, _: boolean): HTMLElement {
+    createButton(label: string, primary: boolean): HTMLElement {
         const button = document.createElement('rokit-button')
         button.innerHTML = label
+        if (primary) {
+            button.setAttribute('primary', '')
+        }
         return button
     }
 }

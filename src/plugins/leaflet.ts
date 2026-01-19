@@ -39,7 +39,7 @@ const markerIcon = L.icon({
     iconSize:     [25, 41], // size of the icon
     shadowSize:   [41, 41], // size of the shadow
     iconAnchor:   [12, 41], // point of the icon which will correspond to marker's location
-    shadowAnchor: [14, 41],  // the same for the shadow
+    shadowAnchor: [14, 41], // the same for the shadow
     popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
 })
 
@@ -68,8 +68,8 @@ export class LeafletPlugin extends Plugin {
 
         const EditControl = L.Control.extend({ options: { position: 'topleft', callback: null, kind: '', html: '' },
             onAdd: function (map: L.Map) {
-                let container = L.DomUtil.create('div', 'leaflet-control leaflet-bar')
-                let link = L.DomUtil.create('a', '', container)
+                const container = L.DomUtil.create('div', 'leaflet-control leaflet-bar')
+                const link = L.DomUtil.create('a', '', container)
                 link.href = '#';
                 link.title = 'Create a new ' + this.options.kind;
                 link.innerHTML = this.options.html;
@@ -166,7 +166,7 @@ export class LeafletPlugin extends Plugin {
             map.setView(coords, 15, { animate: false })
         } else if (geometry?.type === 'Polygon') {
             const coords = geometry.coordinates[0].map((pos) => { return { lng: pos[0], lat: pos[1] }})
-            const polygon =  L.polygon(coords).addTo(map)
+            const polygon = L.polygon(coords).addTo(map)
             this.displayedShape = polygon
             map.fitBounds(polygon.getBounds(), { animate: false })
             setTimeout(() => {

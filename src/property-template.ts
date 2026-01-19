@@ -44,7 +44,7 @@ export const mappers: Record<string, (template: ShaclPropertyTemplate, term: Ter
             }
         }
     },
-    [`${PREFIX_SHACL}qualifiedValueShape`]: (template, term) => { 
+    [`${PREFIX_SHACL}qualifiedValueShape`]: (template, term) => {
         const shape = template.config.getNodeTemplate(term, template)
         template.qualifiedValueShape = shape
         template.nodeShapes.add(shape)
@@ -113,7 +113,7 @@ export class ShaclPropertyTemplate {
     qualifiedValueShape: ShaclNodeTemplate | undefined
     nodeShapes: Set<ShaclNodeTemplate> = new Set()
     owlImports: Set<NamedNode> = new Set()
- 
+
     id: Term
     parent: ShaclNodeTemplate
     config: Config

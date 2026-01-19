@@ -24,7 +24,7 @@ function serializeJsonld(quads: Quad[]): string {
     const triples: NodeObject[] = []
     for (const quad of quads) {
         const triple: NodeObject = { '@id': quad.subject.id }
-  
+
         if (quad.predicate === RDF_PREDICATE_TYPE) {
           triple['@type'] = quad.object.id
         } else {

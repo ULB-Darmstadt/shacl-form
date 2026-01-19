@@ -100,7 +100,7 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
         findClassInstancesFromOwlImports(clazz, template, template.config.store, instances)
 
         // initialize structures needed for building a class instance hierarchy
-        const nodes = new Map<string, InputListEntry>()   // URI -> InputListEntry
+        const nodes = new Map<string, InputListEntry>() // URI -> InputListEntry
         const childToParent = new Map<string, string>() // URI -> parentURI
 
         // initialize all instances as InputListEntry's with no children
@@ -180,7 +180,7 @@ export function prioritizeByLanguage(languages: string[], text1?: Literal, text2
  This code is taken from https://github.com/rdfjs/N3.js/blob/main/src/N3Store.js and adapted to allow rdf:type triples in lists.
  Can be removed as soon as https://github.com/rdfjs/N3.js/issues/546 is fixed.
 */
-export function  extractLists(store: Store, { remove = false, ignoreErrors = false } = {}) {
+export function extractLists(store: Store, { remove = false, ignoreErrors = false } = {}) {
     const lists: Record<string, Term[]> = {} // has scalar keys so could be a simple Object
     const onError = ignoreErrors ? (() => true) :
                   ((node: Term, message: string) => { throw new Error(`${node.value} ${message}`) })
@@ -189,10 +189,10 @@ export function  extractLists(store: Store, { remove = false, ignoreErrors = fal
     const tails = store.getQuads(null, PREFIX_RDF + 'rest', PREFIX_RDF + 'nil', null)
     const toRemove = remove ? [...tails] : []
     tails.forEach(tailQuad => {
-      const items = []             // the members found as objects of rdf:first quads
-      let malformed = false        // signals whether the current list is malformed
-      let head                     // the head of the list (_:b1 in above example)
-      let headPos: string                // set to subject or object when head is set
+      const items = [] // the members found as objects of rdf:first quads
+      let malformed = false // signals whether the current list is malformed
+      let head // the head of the list (_:b1 in above example)
+      let headPos: string // set to subject or object when head is set
       const graph = tailQuad.graph // make sure list is in exactly one graph
 
       // Traverse the list from tail to end

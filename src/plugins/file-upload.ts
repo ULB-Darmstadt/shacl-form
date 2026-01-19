@@ -1,20 +1,20 @@
 import { Plugin, PluginOptions } from '../plugin'
 import { aggregatedMinCount, ShaclPropertyTemplate } from '../property-template'
 
-export class FileUploadPlugin extends Plugin {   
-  	onChange: (event: Event) => void
+export class FileUploadPlugin extends Plugin {
+    onChange: (event: Event) => void
     fileType: string | undefined
 
     constructor(options: PluginOptions, onChange: (event: Event) => void, fileType?: string) {
         super(options)
-      	this.onChange = onChange
+        this.onChange = onChange
         this.fileType = fileType
     }
 
     createEditor(template: ShaclPropertyTemplate): HTMLElement {
         const required = aggregatedMinCount(template) > 0
         const editor = template.config.theme.createFileEditor(template.label, null, required, template)
-      	editor.addEventListener('change', event => {
+        editor.addEventListener('change', event => {
           event.stopPropagation()
           this.onChange(event)
         })

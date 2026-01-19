@@ -122,7 +122,7 @@ export class ShaclForm extends HTMLElement {
                                             this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
                                         } else {
                                             // focus first invalid element
-                                            let invalidEditor = this.form.querySelector(':scope .invalid > .editor')
+                                            const invalidEditor = this.form.querySelector(':scope .invalid > .editor')
                                             if (invalidEditor) {
                                                 (invalidEditor as HTMLElement).focus()
                                             } else {
@@ -328,7 +328,6 @@ export class ShaclForm extends HTMLElement {
     }
 
     private removeFromDataGraph(subject: NamedNode | BlankNode) {
-        this.config.attributes.valuesSubject
         for (const quad of this.config.store.getQuads(subject, null, null, DATA_GRAPH)) {
             this.config.store.delete(quad)
             if (quad.object.termType === 'NamedNode' || quad.object.termType === 'BlankNode') {

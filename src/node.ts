@@ -46,7 +46,7 @@ export class ShaclNode extends HTMLElement {
             this.appendChild(labelElem)
 
             const anchor = document.createElement('a')
-            let refId = (valueSubject.termType === 'BlankNode') ? '_:' + valueSubject.value : valueSubject.value
+            const refId = (valueSubject.termType === 'BlankNode') ? '_:' + valueSubject.value : valueSubject.value
             anchor.innerText = refId
             anchor.classList.add('ref-link')
             anchor.onclick = () => {

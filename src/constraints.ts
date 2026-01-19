@@ -14,7 +14,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
     const constraintElement = document.createElement('div')
     constraintElement.classList.add('shacl-or-constraint')
 
-    const optionElements: InputListEntry[] =  []
+    const optionElements: InputListEntry[] = []
 
     if (context instanceof ShaclNode) {
         const properties: ShaclProperty[][] = []
