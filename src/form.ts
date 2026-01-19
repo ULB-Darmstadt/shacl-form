@@ -12,6 +12,11 @@ import { loadGraphs, prefixes } from './loader'
 export * from './exports'
 export const initTimeout = 50
 
+export interface ValidationReport {
+    conforms: boolean
+    results: any[]
+}
+
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() { return Config.dataAttributes() }
 
@@ -179,7 +184,7 @@ export class ShaclForm extends HTMLElement {
     }
 
     /* Returns the validation report */
-    public async validate(ignoreEmptyValues = false): Promise<any> {
+    public async validate(ignoreEmptyValues = false): Promise<ValidationReport> {
         for (const elem of this.form.querySelectorAll(':scope .validation-error')) {
             elem.remove()
         }
@@ -194,7 +199,7 @@ export class ShaclForm extends HTMLElement {
 
         this.config.store.deleteGraph(this.config.valuesGraphId || '')
         if (!this.shape) {
-            return { conforms: true }
+            return { conforms: true, results: [] }
         }
         this.shape.toRDF(this.config.store, undefined, this.config.attributes.generateNodeShapeReference)
         try {
@@ -250,7 +255,7 @@ export class ShaclForm extends HTMLElement {
             return report
         } catch(e) {
             console.error(e)
-            return false
+            return { conforms: false, results: [] }
         }
     }
 
