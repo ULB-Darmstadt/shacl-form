@@ -126,23 +126,19 @@ async function fetchRDF(url: string, proxy: string | null | undefined): Promise<
     if (url in rdfCache) {
         return rdfCache[url]
     }
-    rdfCache[url] = new Promise<Quad[]>(async (resolve, reject) => {
-        try {
-            let proxiedURL = url
-            // if we have a proxy configured, then load url via proxy
-            if (proxy) {
-                proxiedURL = proxy + encodeURIComponent(url)
-            }
-            const response = await fetch(proxiedURL, {
-                headers: {
-                    'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3, application/ld+json'
-                },
-            }).then(resp => resp.text())
-            resolve(await parseRDF(response))
-        } catch(e) {
-            reject(e)
+    rdfCache[url] = (async () => {
+        let proxiedURL = url
+        // if we have a proxy configured, then load url via proxy
+        if (proxy) {
+            proxiedURL = proxy + encodeURIComponent(url)
         }
-    })
+        const response = await fetch(proxiedURL, {
+            headers: {
+                'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3, application/ld+json'
+            },
+        }).then(resp => resp.text())
+        return parseRDF(response)
+    })()
     return rdfCache[url]
 }
 
