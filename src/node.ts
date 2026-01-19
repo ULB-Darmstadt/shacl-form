@@ -112,7 +112,7 @@ export class ShaclNode extends HTMLElement {
     }
 
     async addPropertyInstance(template: ShaclPropertyTemplate, valueSubject: NamedNode | BlankNode | undefined, multiValuedPath?: boolean) {
-        let container: HTMLElement = this
+        let container: HTMLElement | null = null
         // check if property belongs to a group
         if (template.group) {
             if (template.config.groups.indexOf(template.group) > -1) {
@@ -132,7 +132,11 @@ export class ShaclNode extends HTMLElement {
 
         // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
         if (template.config.editMode || property.instanceCount() > 0) {
-            container.appendChild(property)
+            if (container) {
+                container.appendChild(property)
+            } else {
+                this.appendChild(property)
+            }
             property.updateControls()
         }
     }

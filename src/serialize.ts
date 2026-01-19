@@ -28,7 +28,7 @@ function serializeJsonld(quads: Quad[]): string {
         if (quad.predicate === RDF_PREDICATE_TYPE) {
           triple['@type'] = quad.object.id
         } else {
-            let object: string | {} = quad.object.value
+            let object: string | Record<string, string> = quad.object.value
             if (quad.object instanceof Literal) {
                 if (quad.object.language) {
                     object = { '@language': quad.object.language, '@value': quad.object.value }

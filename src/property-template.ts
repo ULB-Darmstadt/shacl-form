@@ -162,17 +162,24 @@ export function mergeQuads(template: ShaclPropertyTemplate, quads: Quad[]) {
 }
 
 export function mergeProperty(target: ShaclPropertyTemplate, source: ShaclPropertyTemplate) {
-    const s = source as Record<string, any>
-    const t = target as Record<string, any>
+    const s = source as unknown as Record<string, unknown>
+    const t = target as unknown as Record<string, unknown>
     for (const key in source) {
         if (key !== 'parent' && key !== 'config' && key !== 'id') {
-            if (s[key] !== undefined && s[key] !== '') {
-                if (Array.isArray(s[key])) {
-                    t[key].push(...s[key])
-                } else if (s[key] instanceof Set && s[key].size) {
-                    t[key] = new Set([...t[key], ...s[key]])
+            const sourceValue = s[key]
+            if (sourceValue !== undefined && sourceValue !== '') {
+                if (Array.isArray(sourceValue)) {
+                    const targetValue = t[key]
+                    if (Array.isArray(targetValue)) {
+                        targetValue.push(...sourceValue)
+                    } else {
+                        t[key] = [...sourceValue]
+                    }
+                } else if (sourceValue instanceof Set && sourceValue.size) {
+                    const targetValue = t[key]
+                    t[key] = new Set([...(targetValue instanceof Set ? targetValue : []), ...sourceValue])
                 } else {
-                    t[key] = s[key]
+                    t[key] = sourceValue
                 }
             }
         }

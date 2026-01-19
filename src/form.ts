@@ -14,7 +14,7 @@ export const initTimeout = 50
 
 export interface ValidationReport {
     conforms: boolean
-    results: any[]
+    results: unknown[]
 }
 
 export class ShaclForm extends HTMLElement {
@@ -259,19 +259,22 @@ export class ShaclForm extends HTMLElement {
         }
     }
 
-    private createValidationErrorDisplay(validatonResult?: any, clazz?: string): HTMLElement {
+    private createValidationErrorDisplay(validatonResult?: unknown, clazz?: string): HTMLElement {
         const messageElement = document.createElement('span')
         messageElement.classList.add('validation-error')
         if (clazz) {
             messageElement.classList.add(clazz)
         }
-        if (validatonResult) {
-            if (validatonResult.message?.length > 0) {
-                for (const message of validatonResult.message) {
+        const result = (typeof validatonResult === 'object' && validatonResult !== null)
+            ? validatonResult as { message?: Array<{ value: string }>; sourceConstraintComponent?: { value?: string } }
+            : null
+        if (result) {
+            if (result.message?.length) {
+                for (const message of result.message) {
                     messageElement.title += message.value + '\n'
                 }
-            } else {
-                messageElement.title = validatonResult.sourceConstraintComponent?.value
+            } else if (result.sourceConstraintComponent?.value) {
+                messageElement.title = result.sourceConstraintComponent.value
             }
         }
         return messageElement
