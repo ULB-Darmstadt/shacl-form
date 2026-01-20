@@ -141,8 +141,16 @@ export class ShaclProperty extends HTMLElement {
                 const shapeSubject = instance.firstChild.toRDF(graph)
                 graph.addQuad(subject, pathNode, shapeSubject, this.template.config.valuesGraphId)
             } else {
-                for (const editor of instance.querySelectorAll<Editor>(':scope > .editor')) {
-                    const value = toRDF(editor)
+                if (this.template.config.editMode) {
+                    for (const editor of instance.querySelectorAll<Editor>(':scope > .editor')) {
+                        const value = toRDF(editor)
+                        if (value) {
+                            graph.addQuad(subject, pathNode, value, this.template.config.valuesGraphId)
+                        }
+                    }
+                }
+                else {
+                    const value = toRDF(instance as Editor)
                     if (value) {
                         graph.addQuad(subject, pathNode, value, this.template.config.valuesGraphId)
                     }
@@ -177,7 +185,7 @@ export class ShaclProperty extends HTMLElement {
                 dataSubjectsToValidate.push(value.object as NamedNode)
             }
         }
-        const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [{ terms: [ nodeShapeToValidate ] }])
+        const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [{ terms: [nodeShapeToValidate] }])
         const invalidTerms: string[] = []
         for (const result of report.results) {
             const reportObject = this.template.qualifiedValueShape ? result.focusNode : result.value
@@ -295,12 +303,28 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         // in colorized view mode, add remove button wrapper only
         instance.appendChild(createRemoveButtonWrapper(true))
     }
+
+    if (value && !template.config.editMode) {
+        // in view mode, still enable RDF serialization of the form
+        if (value instanceof Literal) {
+            instance.dataset.value = value.value
+            if (value.language.length > 0) {
+                instance.dataset.lang = value.language
+            } else {
+                (instance as Editor).shaclDatatype = value.datatype
+            }
+        } else {
+            // assuming NamedNodes here
+            instance.dataset.value = '<' + value.value + '>'
+        }
+    }
+
     instance.dataset.path = template.path
     return instance
 }
 
 function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean, colorize: boolean, forceRemovable = false) {
-    const wrapper =createRemoveButtonWrapper(colorize)
+    const wrapper = createRemoveButtonWrapper(colorize)
     const removeButton = new RokitButton()
     removeButton.classList.add('remove-button', 'clear')
     removeButton.title = 'Remove ' + label
