@@ -308,7 +308,11 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         // in view mode, still enable RDF serialization of the form
         if (value instanceof Literal) {
             instance.dataset.value = value.value
-            instance.dataset.lang = value.language.length > 0 ? value.language : value.datatype.value
+            if (value.language.length > 0) {
+                instance.dataset.lang = value.language
+            } else {
+                (instance as Editor).shaclDatatype = value.datatype
+            }
         } else {
             // assuming NamedNodes here
             instance.dataset.value = '<' + value.value + '>'
