@@ -185,7 +185,7 @@ export class ShaclProperty extends HTMLElement {
                 dataSubjectsToValidate.push(value.object as NamedNode)
             }
         }
-        const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [{ terms: [ nodeShapeToValidate ] }])
+        const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [{ terms: [nodeShapeToValidate] }])
         const invalidTerms: string[] = []
         for (const result of report.results) {
             const reportObject = this.template.qualifiedValueShape ? result.focusNode : result.value
@@ -304,10 +304,15 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         instance.appendChild(createRemoveButtonWrapper(true))
     }
 
-    if (value?.termType == "Literal") {
-        instance.dataset.value = value.value
-        if (value.language) instance.dataset.lang = value.language
-        if (value.datatype) instance.dataset.datatype = value.datatype.value
+    if (value && !template.config.editMode) {
+        // in view mode, still enable RDF serialization of the form
+        if (value instanceof Literal) {
+            instance.dataset.value = value.value
+            instance.dataset.lang = value.language.length > 0 ? value.language : value.datatype.value
+        } else {
+            // assuming NamedNodes here
+            instance.dataset.value = '<' + value.value + '>'
+        }
     }
 
     instance.dataset.path = template.path
@@ -315,7 +320,7 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
 }
 
 function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean, colorize: boolean, forceRemovable = false) {
-    const wrapper =createRemoveButtonWrapper(colorize)
+    const wrapper = createRemoveButtonWrapper(colorize)
     const removeButton = new RokitButton()
     removeButton.classList.add('remove-button', 'clear')
     removeButton.title = 'Remove ' + label
