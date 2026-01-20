@@ -141,7 +141,7 @@ export class ShaclForm extends HTMLElement {
                                 this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
                             }
                             this.validate(true)
-                        })
+                                                    })
                     }
                 } else if (this.config.store.countQuads(null, null, null, SHAPES_GRAPH) > 0) {
                     // raise error only when shapes graph is not empty
@@ -154,7 +154,7 @@ export class ShaclForm extends HTMLElement {
                 this.form.replaceChildren(errorDisplay)
             }
             this.removeAttribute('loading')
-            this.dispatchEvent(new Event('ready'))
+            setTimeout(() => { this.dispatchEvent(new Event('ready')); });
         }, initTimeout)
     }
 

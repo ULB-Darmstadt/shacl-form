@@ -141,8 +141,16 @@ export class ShaclProperty extends HTMLElement {
                 const shapeSubject = instance.firstChild.toRDF(graph)
                 graph.addQuad(subject, pathNode, shapeSubject, this.template.config.valuesGraphId)
             } else {
-                for (const editor of instance.querySelectorAll<Editor>(':scope > .editor')) {
-                    const value = toRDF(editor)
+                if (this.template.config.editMode) {
+                    for (const editor of instance.querySelectorAll<Editor>(':scope > .editor')) {
+                        const value = toRDF(editor)
+                        if (value) {
+                            graph.addQuad(subject, pathNode, value, this.template.config.valuesGraphId)
+                        }
+                    }
+                }
+                else {
+                    const value = toRDF(instance as Editor)
                     if (value) {
                         graph.addQuad(subject, pathNode, value, this.template.config.valuesGraphId)
                     }
@@ -295,6 +303,13 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         // in colorized view mode, add remove button wrapper only
         instance.appendChild(createRemoveButtonWrapper(true))
     }
+
+    if (value?.termType == "Literal") {
+        instance.dataset.value = value.value
+        if (value.language) instance.dataset.lang = value.language
+        if (value.datatype) instance.dataset.datatype = value.datatype.value
+    }
+
     instance.dataset.path = template.path
     return instance
 }
