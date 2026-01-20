@@ -151,7 +151,7 @@ export class DefaultTheme extends Theme {
         langChooser.slot = 'suffix'
         // if lang chooser changes, fire a change event on the text input instead. this is for shacl validation handling.
         langChooser.addEventListener('change', (ev) => {
-            ev.stopPropagation();
+            ev.stopPropagation()
             if (editor) {
                 editor.dataset.lang = langChooser.value
                 editor.dispatchEvent(new Event('change', { bubbles: true }))
