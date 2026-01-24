@@ -84,7 +84,7 @@ export class ShaclProperty extends HTMLElement {
                 const resolvedOptions = resolveShaclOrConstraintOnProperty(options, value, this.template.config)
                 if (resolvedOptions.length) {
                     const merged = mergeQuads(cloneProperty(this.template), resolvedOptions)
-                    instance = createPropertyInstance(merged, value, true)
+                    instance = createPropertyInstance(merged, value, !this.parent.linked, this.parent.linked)
                     resolved = true
                 }
             }
@@ -95,14 +95,14 @@ export class ShaclProperty extends HTMLElement {
         } else {
             // check if value is part of the data graph. if not, create a linked resource
             let linked = false
-            if (value && !(value instanceof Literal)) {
+            if (value && !(value.termType !== 'Literal')) {
                 const clazz = this.getRdfClassToLinkOrCreate()
                 if (clazz && this.template.config.store.countQuads(value, RDF_PREDICATE_TYPE, clazz, DATA_GRAPH) === 0) {
                     // value is not in data graph, so must be a link in the shapes graph
                     linked = true
                 }
             }
-            instance = createPropertyInstance(this.template, value, undefined, linked || this.parent.linked)
+            instance = createPropertyInstance(this.template, value, false, linked || this.parent.linked)
         }
         if (this.addButton) {
             this.container.insertBefore(instance!, this.addButton)
@@ -274,9 +274,6 @@ export function createPropertyInstance(template: ShaclPropertyTemplate, value?: 
         instance.classList.add('property-instance')
         for (const node of template.nodeShapes) {
             instance.appendChild(new ShaclNode(node, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked))
-        }
-        if (linked) {
-            forceRemovable = true
         }
     } else {
         const plugin = findPlugin(template.path, template.datatype?.value)

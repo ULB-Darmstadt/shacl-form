@@ -17,7 +17,7 @@ export class ShaclNode extends HTMLElement {
     constructor(template: ShaclNodeTemplate, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string, linked?: boolean) {
         super()
         this.template = template
-        this.linked = linked || false
+        this.linked = linked ?? false
         let nodeId: NamedNode | BlankNode | undefined = valueSubject
         if (!nodeId) {
             // if no value subject given, create new node id with a type depending on own nodeKind or given parent property nodeKind
