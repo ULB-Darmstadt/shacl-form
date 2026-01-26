@@ -151,6 +151,14 @@ export class Config {
         this._propertyTemplates[this.buildTemplateKey(template.id, template.parent)] = template
     }
 
+    getNodeTemplateIds() {
+        const templateIds = new Set<string>()
+        for (const template of Object.values(this._nodeTemplates)) {
+            templateIds.add(template.id.value)
+        }
+        return templateIds
+    }
+
     getNodeTemplate(id: Term, parent: ShaclNodeTemplate | ShaclPropertyTemplate) {
         const key = this.buildTemplateKey(id, parent)
         let shape = this._nodeTemplates[key]

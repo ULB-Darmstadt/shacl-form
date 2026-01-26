@@ -77,59 +77,61 @@ export async function loadGraphs(atts: LoaderAttributes) {
     // if non-lazy data provider is set, load class instances now
     const provider = (atts.dataProvider && !atts.dataProvider.lazyLoad) ? atts.dataProvider : atts.classInstanceProvider
     if (provider) {
-        const classesToLoad = new Set<string>()
+        const classes = new Set<string>()
         for (const clazz of ctx.store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
-            classesToLoad.add(clazz.value)
+            classes.add(clazz.value)
         }
         for (const clazz of ctx.store.getObjects(null, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH)) {
-            classesToLoad.add(clazz.value)
+            classes.add(clazz.value)
         }
-        if (classesToLoad.size > 0) {
-            await loadClassInstances(Array.from(classesToLoad.values()), ctx, provider)
-        }
+        await loadClassInstances(classes, ctx, provider)
     }
     return ctx.store
 }
 
-export async function loadClassInstances(classes: string[], target: Store | LoaderContext, provider: DataProvider | ClassInstanceProvider) {
-    let ctx: LoaderContext
-    if (target instanceof Store) {
-        ctx = {
-            store: target,
-            importedUrls: [],
-            atts: { loadOwlImports: false }
+export async function loadClassInstances(classes: Set<string>, target: Store | LoaderContext, provider: DataProvider | ClassInstanceProvider) {
+    if (classes.size > 0) {
+        let ctx: LoaderContext
+        if (target instanceof Store) {
+            ctx = {
+                store: target,
+                importedUrls: [],
+                atts: { loadOwlImports: false }
+            }
+        } else {
+            ctx = target
         }
-    } else {
-        ctx = target
-    }
 
-    let rdf: string
-    if (typeof provider === 'object') {
-        rdf = await provider.classInstances(Array.from(classes))
-    } else {
-        rdf = ''
-        for (const clazz of classes) {
-            const instances = await provider(clazz)
-            if (instances) {
-                rdf += instances + '\n'
+        let rdf: string
+        if (typeof provider === 'object') {
+            rdf = await provider.classInstances(classes)
+        } else {
+            rdf = ''
+            for (const clazz of classes) {
+                const instances = await provider(clazz)
+                if (instances) {
+                    rdf += instances + '\n'
+                }
             }
         }
-    }
-    if (rdf) {
-        await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+        if (rdf) {
+            await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+        }
     }
 }
 
-export async function loadShapeInstances(shapes: string[], store: Store, provider: DataProvider) {
-    const ctx: LoaderContext = {
-        store: store,
-        importedUrls: [],
-        atts: { loadOwlImports: false }
-    }
+export async function loadShapeInstances(shapes: Set<string>, store: Store, provider: DataProvider) {
+    if (shapes.size > 0) {
+        const ctx: LoaderContext = {
+            store: store,
+            importedUrls: [],
+            atts: { loadOwlImports: false }
+        }
 
-    const rdf = await provider.shapeInstances(shapes)
-    if (rdf) {
-        await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+        const rdf = await provider.shapeInstances(shapes)
+        if (rdf) {
+            await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+        }
     }
 }
 
