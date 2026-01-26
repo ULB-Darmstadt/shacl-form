@@ -75,7 +75,8 @@ export async function loadGraphs(atts: LoaderAttributes) {
     }
 
     // if non-lazy data provider is set, load class instances now
-    if ((atts.dataProvider !== undefined && !atts.dataProvider.lazyLoad) || atts.classInstanceProvider !== undefined) {
+    const provider = (atts.dataProvider && !atts.dataProvider.lazyLoad) ? atts.dataProvider : atts.classInstanceProvider
+    if (provider) {
         const classesToLoad = new Set<string>()
         for (const clazz of ctx.store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
             classesToLoad.add(clazz.value)
@@ -84,7 +85,7 @@ export async function loadGraphs(atts: LoaderAttributes) {
             classesToLoad.add(clazz.value)
         }
         if (classesToLoad.size > 0) {
-            await loadClassInstances(Array.from(classesToLoad.values()), ctx, atts.dataProvider || atts.classInstanceProvider)
+            await loadClassInstances(Array.from(classesToLoad.values()), ctx, provider)
         }
     }
     return ctx.store
@@ -144,7 +145,7 @@ async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedN
                 targetGraph = quad.graph as NamedNode
             }
         }
-        ctx.store.add(new Quad(quad.subject, quad.predicate, quad.object, targetGraph))
+        ctx.store.add(DataFactory.quad(quad.subject, quad.predicate, quad.object, targetGraph))
         // check if this is an owl:imports predicate and try to load the url
         if (OWL_PREDICATE_IMPORTS.equals(quad.predicate) && ctx.atts.loadOwlImports) {
             const url = toURL(quad.object.value)
@@ -202,7 +203,7 @@ async function parseRDF(rdf: string): Promise<Quad[]> {
     await new Promise((resolve, reject) => {
         const parser = contentType === 'xml' ? new RdfXmlParser() : new StreamParser()
         parser.on('data', (quad: Quad) => {
-            quads.push(new Quad(quad.subject, quad.predicate, quad.object, quad.graph))
+            quads.push(DataFactory.quad(quad.subject, quad.predicate, quad.object, quad.graph))
         })
         .on('error', (error) => {
             reject(error)
