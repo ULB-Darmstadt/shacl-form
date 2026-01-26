@@ -59,6 +59,7 @@ export abstract class Plugin {
 
 export type ClassInstanceProvider = (clazz: string) => Promise<string>
 export type DataProvider = {
-    classInstances?: (clazz: string) => Promise<string>
-    shapeInstances?: (shape: string) => Promise<string>
+    lazyLoad: boolean
+    classInstances: (classes: string[]) => Promise<string>
+    shapeInstances: (shapes: string[]) => Promise<string>
 }

@@ -10,7 +10,6 @@ import { ClassInstanceProvider, DataProvider } from './plugin'
 // them multiple times, e.g. when more than one shacl-form element is on the page
 // that import the same resources
 export const rdfCache: Record<string, Promise<Quad[]>> = {}
-export const classesCache: Record<string, Promise<string>> = {}
 export const prefixes: Prefixes = {}
 
 export interface LoaderAttributes {
@@ -28,7 +27,6 @@ export interface LoaderAttributes {
 interface LoaderContext {
     store: Store
     importedUrls: string[]
-    importedClasses: string[]
     atts: LoaderAttributes
 }
 
@@ -36,7 +34,6 @@ export async function loadGraphs(atts: LoaderAttributes) {
     const ctx: LoaderContext = {
         store: new Store(),
         importedUrls: [],
-        importedClasses: [],
         atts: atts
     }
 
@@ -76,13 +73,80 @@ export async function loadGraphs(atts: LoaderAttributes) {
             console.warn(e)
         }
     }
+
+    // if non-lazy data provider is set, load class instances now
+    if ((atts.dataProvider !== undefined && !atts.dataProvider.lazyLoad) || atts.classInstanceProvider !== undefined) {
+        const classesToLoad = new Set<string>()
+        for (const clazz of ctx.store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
+            classesToLoad.add(clazz.value)
+        }
+        for (const clazz of ctx.store.getObjects(null, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH)) {
+            classesToLoad.add(clazz.value)
+        }
+        if (classesToLoad.size > 0) {
+            if (atts.dataProvider) {
+                await loadClassInstances(Array.from(classesToLoad.values()), ctx, atts.dataProvider)
+            } else if (atts.classInstanceProvider) {
+                await loadClassInstances(Array.from(classesToLoad.values()), ctx, atts.classInstanceProvider)
+            }
+        }
+    }
     return ctx.store
+}
+
+export async function loadClassInstances(classes: string[], target: Store | LoaderContext, provider: DataProvider | ClassInstanceProvider) {
+    let ctx: LoaderContext
+    if (target instanceof Store) {
+        ctx = {
+        store: target,
+        importedUrls: [],
+        atts: { loadOwlImports: false }
+    }
+    } else {
+        ctx = target
+    }
+
+    let rdf: string
+    if (typeof provider === 'object') {
+        rdf = await provider.classInstances(Array.from(classes))
+    } else {
+        rdf = ''
+        for (const clazz of classes) {
+            const instances = await provider(clazz)
+            if (instances) {
+                rdf += instances + '\n'
+            }
+        }
+    }
+    if (rdf) {
+        await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+    }
+}
+
+export async function loadShapeInstances(store: Store, provider: DataProvider) {
+    const shapesToLoad = new Set<string>()
+    for (const clazz of store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
+        shapesToLoad.add(clazz.value)
+    }
+    for (const clazz of store.getObjects(null, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH)) {
+        shapesToLoad.add(clazz.value)
+    }
+
+    const ctx: LoaderContext = {
+        store: new Store(),
+        importedUrls: [],
+        atts: { loadOwlImports: false }
+    }
+
+    const rdf = await provider.classInstances(Array.from(shapesToLoad.values()))
+    if (rdf) {
+        await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+    }
 }
 
 async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedNode) {
     const quads = await rdf
     const dependencies: Promise<void>[] = []
-    const classInstanceProvider = ctx.atts.dataProvider?.classInstances ?? ctx.atts.classInstanceProvider
 
     for (const quad of quads) {
         // if we have quads (named graphs) in the data graph then keep the graph id if it is not the value subject
@@ -100,23 +164,6 @@ async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedN
             if (url && ctx.importedUrls.indexOf(url) < 0) {
                 ctx.importedUrls.push(url)
                 dependencies.push(importRDF(fetchRDF(url, ctx.atts.proxy), ctx, DataFactory.namedNode(url)))
-            }
-        }
-        // check if this is an sh:class predicate and invoke data provider (or deprecated class instance provider)
-        if (classInstanceProvider && SHACL_PREDICATE_CLASS.equals(quad.predicate) || SHACL_PREDICATE_TARGET_CLASS.equals(quad.predicate)) {
-            const className = quad.object.value
-            // import class definitions only once
-            if (ctx.importedClasses.indexOf(className) < 0) {
-                let promise: Promise<string>
-                // check if class is in module scope cache
-                if (className in classesCache) {
-                    promise = classesCache[className]
-                } else {
-                    promise = classInstanceProvider!(className)
-                    classesCache[className] = promise
-                }
-                ctx.importedClasses.push(className)
-                dependencies.push(importRDF(parseRDF(await promise), ctx, SHAPES_GRAPH))
             }
         }
     }
