@@ -3,7 +3,7 @@ import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_P
 import { isURL } from './util'
 import { RdfXmlParser } from 'rdfxml-streaming-parser'
 import jsonld from 'jsonld'
-import { ClassInstanceProvider } from './plugin'
+import { ClassInstanceProvider, DataProvider } from './plugin'
 
 
 // cache external data in module scope to avoid requesting/parsing
@@ -22,6 +22,7 @@ export interface LoaderAttributes {
     valuesUrl?: string | null
     valuesSubject?: string | null
     classInstanceProvider?: ClassInstanceProvider
+    dataProvider?: DataProvider
 }
 
 interface LoaderContext {
@@ -81,6 +82,7 @@ export async function loadGraphs(atts: LoaderAttributes) {
 async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedNode) {
     const quads = await rdf
     const dependencies: Promise<void>[] = []
+    const classInstanceProvider = ctx.atts.dataProvider?.classInstances ?? ctx.atts.classInstanceProvider
 
     for (const quad of quads) {
         // if we have quads (named graphs) in the data graph then keep the graph id if it is not the value subject
@@ -100,8 +102,8 @@ async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedN
                 dependencies.push(importRDF(fetchRDF(url, ctx.atts.proxy), ctx, DataFactory.namedNode(url)))
             }
         }
-        // check if this is an sh:class predicate and invoke class instance provider
-        if (ctx.atts.classInstanceProvider && (SHACL_PREDICATE_CLASS.equals(quad.predicate) || SHACL_PREDICATE_TARGET_CLASS.equals(quad.predicate))) {
+        // check if this is an sh:class predicate and invoke data provider (or deprecated class instance provider)
+        if (classInstanceProvider && SHACL_PREDICATE_CLASS.equals(quad.predicate) || SHACL_PREDICATE_TARGET_CLASS.equals(quad.predicate)) {
             const className = quad.object.value
             // import class definitions only once
             if (ctx.importedClasses.indexOf(className) < 0) {
@@ -110,7 +112,7 @@ async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedN
                 if (className in classesCache) {
                     promise = classesCache[className]
                 } else {
-                    promise = ctx.atts.classInstanceProvider(className)
+                    promise = classInstanceProvider!(className)
                     classesCache[className] = promise
                 }
                 ctx.importedClasses.push(className)

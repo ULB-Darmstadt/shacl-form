@@ -1,4 +1,5 @@
 export type { InputListEntry, Editor } from './theme'
+export type { ClassInstanceProvider, DataProvider } from './plugin'
 export { Theme } from './theme'
 export { DefaultTheme } from './theme.default'
 export { Config } from './config'

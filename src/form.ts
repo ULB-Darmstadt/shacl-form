@@ -1,6 +1,6 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
-import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
+import { ClassInstanceProvider, DataProvider, Plugin, listPlugins, registerPlugin } from './plugin'
 import { Store, NamedNode, DataFactory, BlankNode } from 'n3'
 import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
@@ -69,6 +69,7 @@ export class ShaclForm extends HTMLElement {
                     valuesSubject: this.config.attributes.valuesSubject,
                     loadOwlImports: this.config.attributes.ignoreOwlImports === null,
                     classInstanceProvider: this.config.classInstanceProvider,
+                    dataProvider: this.config.dataProvider,
                     proxy: this.config.attributes.proxy
                 })
                 // remove loading indicator
@@ -179,8 +180,16 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
+    /**
+    * @deprecated Use setDataProvider() instead
+    */
     public setClassInstanceProvider(provider: ClassInstanceProvider) {
         this.config.classInstanceProvider = provider
+        this.initialize()
+    }
+
+    public setDataProvider(provider: DataProvider) {
+        this.config.dataProvider = provider
         this.initialize()
     }
 
