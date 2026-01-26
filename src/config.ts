@@ -57,6 +57,7 @@ export class Config {
     private _nodeTemplates: Record<string, ShaclNodeTemplate> = {}
     private _propertyTemplates: Record<string, ShaclPropertyTemplate> = {}
     validator = new Validator(this._store, { details: true, factory: DataFactory })
+    shapeInstances?: Record<string, string[]>
 
     constructor(form: HTMLElement) {
         this.form = form

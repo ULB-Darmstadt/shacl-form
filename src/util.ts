@@ -1,4 +1,4 @@
-import { Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
+import { DataFactory, Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
 import { DATA_GRAPH, PREFIX_FOAF, PREFIX_RDF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER, SKOS_PREDICATE_NARROWER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
@@ -53,10 +53,10 @@ export function findLabel(quads: Quad[], languages: string[]): string {
     findObjectValueByPredicate(quads, 'name', PREFIX_FOAF, languages)
 }
 
-export function createInputListEntries(subjects: Term[], shapesGraph: Store, languages: string[]): InputListEntry[] {
+export function createInputListEntries(subjects: Term[], store: Store, languages: string[]): InputListEntry[] {
     const entries: InputListEntry[] = []
     for (const subject of subjects) {
-        entries.push({ value: subject, label: findLabel(shapesGraph.getQuads(subject, null, null, null), languages), children: [] })
+        entries.push({ value: subject, label: findLabel(store.getQuads(subject, null, null, null), languages), children: [] })
     }
     return entries
 }
@@ -73,15 +73,15 @@ export function removePrefixes(id: string, prefixes: Prefixes): string {
     return id
 }
 
-function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNodeTemplate | ShaclPropertyTemplate, shapesGraph: Store, instances: Term[], alreadyCheckedImports = new Set<string>()) {
+function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNodeTemplate | ShaclPropertyTemplate, store: Store, instances: Term[], alreadyCheckedImports = new Set<string>()) {
     for (const owlImport of context.owlImports) {
         if (!alreadyCheckedImports.has(owlImport.id)) {
             alreadyCheckedImports.add(owlImport.id)
-            instances.push(...shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, owlImport))
+            instances.push(...store.getSubjects(RDF_PREDICATE_TYPE, clazz, owlImport))
         }
     }
     if (context.parent) {
-        findClassInstancesFromOwlImports(clazz, context.parent, shapesGraph, instances, alreadyCheckedImports)
+        findClassInstancesFromOwlImports(clazz, context.parent, store, instances, alreadyCheckedImports)
     }
 }
 
@@ -146,6 +146,39 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
         return roots
     }
 }
+
+export function findLinkCandidates(template: ShaclPropertyTemplate): InputListEntry[] {
+    let clazz: NamedNode | undefined
+    let result: InputListEntry[] = []
+
+    if (template.class && template.nodeShapes.size) {
+        clazz = template.class
+    } else {
+        for (const node of template.nodeShapes) {
+            // if this property has no sh:class but sh:node, then use the node shape's sh:targetClass to find protiential instances
+            if (node.targetClass) {
+                clazz = node.targetClass
+                break
+            }
+        }
+    }
+    if (clazz) {
+        result = findInstancesOf(clazz, template)
+    }
+    if (template.config.shapeInstances) {
+        for (const node of template.nodeShapes) {
+            if (template.config.shapeInstances[node.id.value]) {
+                for (const instance of template.config.shapeInstances[node.id.value]) {
+                    const subject = DataFactory.namedNode(instance)
+                    console.log('--- found instance', instance)
+                    result.push({ value: subject, label: findLabel(template.config.store.getQuads(subject, null, null, null), template.config.languages), children: [] })
+                }
+            }
+        }
+    }
+    return result
+}
+
 
 export function isURL(input: string): boolean {
     let url: URL

@@ -120,19 +120,31 @@ export async function loadClassInstances(classes: Set<string>, target: Store | L
     }
 }
 
-export async function loadShapeInstances(shapes: Set<string>, store: Store, provider: DataProvider) {
+// return a record that maps from shape ID to IDs of instances that conform to that shape
+export async function loadShapeInstances(shapes: Set<string>, store: Store, provider: DataProvider): Promise<Record<string, string[]>> {
+    const result: Record<string, string[]> = {}
     if (shapes.size > 0) {
         const ctx: LoaderContext = {
             store: store,
             importedUrls: [],
             atts: { loadOwlImports: false }
         }
-
-        const rdf = await provider.shapeInstances(shapes)
-        if (rdf) {
-            await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+        for (const shape of shapes) {
+            const instances = await provider.shapeInstances(shape)
+            if (instances) {
+                for (const id in instances) {
+                    const rdf = instances[id]
+                    await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+                    if (result[shape]) {
+                        result[shape].push(id)
+                    } else {
+                        result[shape] = [id]
+                    }
+                }
+            }
         }
     }
+    return result
 }
 
 async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedNode) {

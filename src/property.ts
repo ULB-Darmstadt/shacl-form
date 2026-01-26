@@ -2,12 +2,12 @@ import { BlankNode, DataFactory, Literal, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
-import { findInstancesOf, focusFirstInputElement } from './util'
+import { findLinkCandidates, focusFirstInputElement } from './util'
 import { aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
-import { Editor, fieldFactory, InputListEntry } from './theme'
+import { Editor, fieldFactory } from './theme'
 import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
-import { DATA_GRAPH, RDF_PREDICATE_TYPE } from './constants'
+import { DATA_GRAPH } from './constants'
 import { RokitButton, RokitCollapsible, RokitSelect } from '@ro-kit/ui-widgets'
 
 export class ShaclProperty extends HTMLElement {
@@ -59,7 +59,8 @@ export class ShaclProperty extends HTMLElement {
                     if (!this.parent.linked) {
                         this.template.config.store.delete(value)
                     }
-                    this.addPropertyInstance(value.object)
+                    // if value is not in data graph, then it is a linked resource
+                    this.addPropertyInstance(value.object, !DATA_GRAPH.equals(value.graph))
                     if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                         valuesContainHasValue = true
                     }
@@ -75,7 +76,7 @@ export class ShaclProperty extends HTMLElement {
         }
     }
 
-    addPropertyInstance(value?: Term): HTMLElement {
+    addPropertyInstance(value?: Term, linked?: boolean): HTMLElement {
         let instance: HTMLElement
         if (this.template.or?.length || this.template.xone?.length) {
             const options = this.template.or?.length ? this.template.or : this.template.xone as Term[]
@@ -93,15 +94,6 @@ export class ShaclProperty extends HTMLElement {
                 appendRemoveButton(instance, '', this.template.config.theme.dense, this.template.config.hierarchyColorsStyleSheet !== undefined)
             }
         } else {
-            // check if value is part of the data graph. if not, create a linked resource
-            let linked = false
-            if (value && !(value.termType !== 'Literal')) {
-                const clazz = this.getRdfClassToLinkOrCreate()
-                if (clazz && this.template.config.store.countQuads(value, RDF_PREDICATE_TYPE, clazz, DATA_GRAPH) === 0) {
-                    // value is not in data graph, so must be a link in the shapes graph
-                    linked = true
-                }
-            }
             instance = createPropertyInstance(this.template, value, false, linked || this.parent.linked)
         }
         if (this.addButton) {
@@ -159,21 +151,6 @@ export class ShaclProperty extends HTMLElement {
         }
     }
 
-    getRdfClassToLinkOrCreate() {
-        if (this.template.class && this.template.nodeShapes.size) {
-            return this.template.class
-        }
-        else {
-            for (const node of this.template.nodeShapes) {
-                // if this property has no sh:class but sh:node, then use the node shape's sh:targetClass to find protiential instances
-                if (node.targetClass) {
-                    return node.targetClass
-                }
-            }
-        }
-        return undefined
-    }
-
     async filterValidValues(values: Quad[], valueSubject: NamedNode | BlankNode) {
         // if this property is a sh:qualifiedValueShape, then filter values by validating against this shape
         let nodeShapeToValidate = this.template.id
@@ -207,11 +184,7 @@ export class ShaclProperty extends HTMLElement {
         addButton.classList.add('add-button')
 
         // load potential value candidates for linking
-        let instances: InputListEntry[] = []
-        const clazz = this.getRdfClassToLinkOrCreate()
-        if (clazz) {
-            instances = findInstancesOf(clazz, this.template)
-        }
+        const instances = findLinkCandidates(this.template)
         if (instances.length === 0) {
             // no class instances found, so create an add button that creates a new instance
             addButton.emptyMessage = ''

@@ -62,5 +62,6 @@ export type ClassInstanceProvider = (clazz: string) => Promise<string>
 export type DataProvider = {
     lazyLoad: boolean
     classInstances: (classes: Set<string>) => Promise<string>
-    shapeInstances: (shapes: Set<string>) => Promise<string>
+    // result is expected to be a record that maps from instance id to its turtle RDF
+    shapeInstances: (shape: string) => Promise<Record<string, string>>
 }

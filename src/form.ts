@@ -101,7 +101,7 @@ export class ShaclForm extends HTMLElement {
                     }
                     // if data provider is set, load shape instances for linking
                     if (this.config.dataProvider && !this.config.dataProvider.lazyLoad) {
-                        loadShapeInstances(this.config.getNodeTemplateIds(), this.config.store, this.config.dataProvider)
+                        this.config.shapeInstances = await loadShapeInstances(this.config.getNodeTemplateIds(), this.config.store, this.config.dataProvider)
                     }
 
                     this.shape = new ShaclNode(rootTemplate, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
