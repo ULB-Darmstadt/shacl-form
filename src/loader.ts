@@ -84,11 +84,7 @@ export async function loadGraphs(atts: LoaderAttributes) {
             classesToLoad.add(clazz.value)
         }
         if (classesToLoad.size > 0) {
-            if (atts.dataProvider) {
-                await loadClassInstances(Array.from(classesToLoad.values()), ctx, atts.dataProvider)
-            } else if (atts.classInstanceProvider) {
-                await loadClassInstances(Array.from(classesToLoad.values()), ctx, atts.classInstanceProvider)
-            }
+            await loadClassInstances(Array.from(classesToLoad.values()), ctx, atts.dataProvider || atts.classInstanceProvider)
         }
     }
     return ctx.store
