@@ -133,12 +133,15 @@ export async function loadShapeInstances(shapes: Set<string>, store: Store, prov
             const instances = await provider.shapeInstances(shape)
             if (instances) {
                 for (const id in instances) {
-                    const rdf = instances[id]
-                    await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
-                    if (result[shape]) {
-                        result[shape].push(id)
-                    } else {
-                        result[shape] = [id]
+                    // import instance RDF only when it is new
+                    if (store.countQuads(DataFactory.namedNode(id), null, null, null) === 0) {
+                        const rdf = instances[id]
+                        await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+                        if (result[shape]) {
+                            result[shape].push(id)
+                        } else {
+                            result[shape] = [id]
+                        }
                     }
                 }
             }
