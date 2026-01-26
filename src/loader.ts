@@ -98,10 +98,10 @@ export async function loadClassInstances(classes: string[], target: Store | Load
     let ctx: LoaderContext
     if (target instanceof Store) {
         ctx = {
-        store: target,
-        importedUrls: [],
-        atts: { loadOwlImports: false }
-    }
+            store: target,
+            importedUrls: [],
+            atts: { loadOwlImports: false }
+        }
     } else {
         ctx = target
     }
@@ -123,22 +123,14 @@ export async function loadClassInstances(classes: string[], target: Store | Load
     }
 }
 
-export async function loadShapeInstances(store: Store, provider: DataProvider) {
-    const shapesToLoad = new Set<string>()
-    for (const clazz of store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
-        shapesToLoad.add(clazz.value)
-    }
-    for (const clazz of store.getObjects(null, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH)) {
-        shapesToLoad.add(clazz.value)
-    }
-
+export async function loadShapeInstances(shapes: string[], store: Store, provider: DataProvider) {
     const ctx: LoaderContext = {
-        store: new Store(),
+        store: store,
         importedUrls: [],
         atts: { loadOwlImports: false }
     }
 
-    const rdf = await provider.classInstances(Array.from(shapesToLoad.values()))
+    const rdf = await provider.shapeInstances(shapes)
     if (rdf) {
         await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
     }
@@ -185,14 +177,24 @@ async function fetchRDF(url: string, proxy: string | null | undefined): Promise<
             headers: {
                 'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3, application/ld+json'
             },
-        }).then(resp => resp.text())
-        return parseRDF(response)
+        })
+        if (response.ok) {
+            const content = await response.text()
+            return parseRDF(content)
+        } else {
+            console.warn('failed fetching RDF from', url)
+            return []
+        }
     })()
     return rdfCache[url]
 }
 
 async function parseRDF(rdf: string): Promise<Quad[]> {
-    if (guessContentType(rdf) === 'json') {
+    if (!rdf.trim()) {
+        return []
+    }
+    const contentType = guessContentType(rdf)
+    if (contentType === 'json') {
         // convert json to n-quads
         try {
             rdf = await jsonld.toRDF(JSON.parse(rdf), { format: 'application/n-quads' }) as string
@@ -202,7 +204,7 @@ async function parseRDF(rdf: string): Promise<Quad[]> {
     }
     const quads: Quad[] = []
     await new Promise((resolve, reject) => {
-        const parser = guessContentType(rdf) === 'xml' ? new RdfXmlParser() : new StreamParser()
+        const parser = contentType === 'xml' ? new RdfXmlParser() : new StreamParser()
         parser.on('data', (quad: Quad) => {
             quads.push(new Quad(quad.subject, quad.predicate, quad.object, quad.graph))
         })
