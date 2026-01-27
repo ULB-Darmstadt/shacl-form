@@ -170,7 +170,6 @@ export function findLinkCandidates(template: ShaclPropertyTemplate): InputListEn
             if (template.config.shapeInstances[node.id.value]) {
                 for (const instance of template.config.shapeInstances[node.id.value]) {
                     const subject = DataFactory.namedNode(instance)
-                    console.log('--- found instance', instance)
                     result.push({ value: subject, label: findLabel(template.config.store.getQuads(subject, null, null, null), template.config.languages), children: [] })
                 }
             }
