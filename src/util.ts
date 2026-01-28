@@ -148,8 +148,8 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
 }
 
 export function findLinkCandidates(template: ShaclPropertyTemplate): InputListEntry[] {
-    let clazz: NamedNode | undefined
     let result: InputListEntry[] = []
+    let clazz: NamedNode | undefined
 
     if (template.class && template.nodeShapes.size) {
         clazz = template.class
@@ -165,10 +165,11 @@ export function findLinkCandidates(template: ShaclPropertyTemplate): InputListEn
     if (clazz) {
         result = findInstancesOf(clazz, template)
     }
-    if (template.config.shapeInstances) {
+
+    if (template.config.loadedShapeInstances) {
         for (const node of template.nodeShapes) {
-            if (template.config.shapeInstances[node.id.value]) {
-                for (const instance of template.config.shapeInstances[node.id.value]) {
+            if (template.config.loadedShapeInstances[node.id.value]) {
+                for (const instance of template.config.loadedShapeInstances[node.id.value]) {
                     const subject = DataFactory.namedNode(instance)
                     result.push({ value: subject, label: findLabel(template.config.store.getQuads(subject, null, null, null), template.config.languages), children: [] })
                 }

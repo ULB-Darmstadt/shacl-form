@@ -4,6 +4,7 @@ import { isURL } from './util'
 import { RdfXmlParser } from 'rdfxml-streaming-parser'
 import jsonld from 'jsonld'
 import { ClassInstanceProvider, DataProvider } from './plugin'
+import { Config } from './config'
 
 
 // cache external data in module scope to avoid requesting/parsing
@@ -102,52 +103,61 @@ export async function loadClassInstances(classes: Set<string>, target: Store | L
             ctx = target
         }
 
-        let rdf: string
-        if (typeof provider === 'object') {
-            rdf = await provider.classInstances(classes)
-        } else {
-            rdf = ''
-            for (const clazz of classes) {
-                const instances = await provider(clazz)
-                if (instances) {
-                    rdf += instances + '\n'
+        try {
+            let rdf: string
+            if (typeof provider === 'object') {
+                rdf = await provider.classInstances(classes)
+            } else {
+                rdf = ''
+                for (const clazz of classes) {
+                    const instances = await provider(clazz)
+                    if (instances) {
+                        rdf += instances + '\n'
+                    }
                 }
             }
-        }
-        if (rdf) {
-            await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+            if (rdf) {
+                await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+            }
+        } catch (e) {
+            console.log('failed loading class instances', e)
         }
     }
 }
 
 // return a record that maps from shape ID to IDs of instances that conform to that shape
-export async function loadShapeInstances(shapes: Set<string>, store: Store, provider: DataProvider): Promise<Record<string, string[]>> {
-    const result: Record<string, string[]> = {}
+export async function loadShapeInstances(shapes: Set<string>, config: Config) {
+    if (!config.dataProvider?.shapeInstances) {
+        return
+    }
+    const loadedShapes = Object.keys(config.loadedShapeInstances)
+    shapes = new Set([...shapes].filter(shape => !loadedShapes.includes(shape)))
     if (shapes.size > 0) {
         const ctx: LoaderContext = {
-            store: store,
+            store: config.store,
             importedUrls: [],
             atts: { loadOwlImports: false }
         }
-        for (const shape of shapes) {
-            const instances = await provider.shapeInstances(shape)
-            if (instances) {
-                for (const id in instances) {
-                    // import instance RDF only when it is new
-                    if (store.countQuads(DataFactory.namedNode(id), null, null, null) === 0) {
-                        const rdf = instances[id]
-                        await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
-                        if (result[shape]) {
-                            result[shape].push(id)
-                        } else {
-                            result[shape] = [id]
+        try {
+            for (const shape of shapes) {
+                const instances = await config.dataProvider.shapeInstances(shape)
+                if (instances) {
+                    for (const id in instances) {
+                        // register shape as loaded
+                        config.loadedShapeInstances[shape] = []
+                        // import instance RDF only when it is new, otherwise validation will fail
+                        if (config.store.countQuads(DataFactory.namedNode(id), null, null, null) === 0) {
+                            const rdf = instances[id]
+                            await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+                            config.loadedShapeInstances[shape].push(id)
                         }
                     }
                 }
             }
+        } catch (e) {
+            console.error('failed loading shape instances', e)
         }
     }
-    return result
 }
 
 async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedNode) {

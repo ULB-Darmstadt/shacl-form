@@ -9,10 +9,10 @@ import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
 import { DATA_GRAPH } from './constants'
 import { RokitButton, RokitCollapsible, RokitSelect } from '@ro-kit/ui-widgets'
+import { loadClassInstances, loadShapeInstances } from './loader'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
-    addButton: RokitSelect | undefined
     container: HTMLElement
     parent: ShaclNode
 
@@ -37,8 +37,7 @@ export class ShaclProperty extends HTMLElement {
             this.classList.add(this.template.cssClass)
         }
         if (template.config.editMode && !parent.linked) {
-            this.addButton = this.createAddButton()
-            this.container.appendChild(this.addButton)
+            this.container.appendChild(this.createAddButton())
             this.addEventListener('change', () => { this.updateControls() })
         }
     }
@@ -96,8 +95,9 @@ export class ShaclProperty extends HTMLElement {
         } else {
             instance = createPropertyInstance(this.template, value, false, linked || this.parent.linked)
         }
-        if (this.addButton) {
-            this.container.insertBefore(instance!, this.addButton)
+        const addButton = this.querySelector(':scope > .add-button')
+        if (addButton) {
+            this.container.insertBefore(instance!, addButton)
         } else {
             this.container.appendChild(instance!)
         }
@@ -176,67 +176,121 @@ export class ShaclProperty extends HTMLElement {
     }
 
     createAddButton() {
-        const addButton = new RokitSelect()
-        addButton.dense = this.template.config.theme.dense
-        addButton.label = "+ " + this.template.label
-        addButton.title = 'Add ' + this.template.label
-        addButton.autoGrowLabelWidth = true
-        addButton.classList.add('add-button')
+        // 1. check if we have a lazy data provider.
+        //      if yes, check if we have already called it.
+        //          if not, create normal button that uses the data provider.
+        //              afterwards, replace the button following the logic below
+        // 2. get link candidates and exclude the ones already bound to form
+        // 3. if we have link candidates
 
-        // load potential value candidates for linking
-        const instances = findLinkCandidates(this.template)
-        if (instances.length === 0) {
-            // no class instances found, so create an add button that creates a new instance
-            addButton.emptyMessage = ''
-            addButton.inputMinWidth = 0
-            addButton.addEventListener('click', () => {
-                addButton.blur()
-                const instance = this.addPropertyInstance()
-                instance.classList.add('fadeIn')
-                this.updateControls()
-                setTimeout(() => {
-                    focusFirstInputElement(instance)
-                    instance.classList.remove('fadeIn')
-                }, 200)
-            })
-        } else {
-            // some instances found, so create an add button that can create a new instance or link existing ones
-            const ul = document.createElement('ul')
-            const newItem = document.createElement('li')
-            newItem.innerHTML = '&#xFF0B; Create new ' + this.template.label + '...'
-            newItem.dataset.value = 'new'
-            newItem.classList.add('large')
-            ul.appendChild(newItem)
-            const divider = document.createElement('li')
-            divider.classList.add('divider')
-            ul.appendChild(divider)
-            const header = document.createElement('li')
-            header.classList.add('header')
-            header.innerText = 'Or link existing:'
-            ul.appendChild(header)
-            for (const instance of instances) {
-                const li = document.createElement('li')
-                const itemValue = (typeof instance.value === 'string') ? instance.value : instance.value.value
-                li.innerText = instance.label ? instance.label : itemValue
-                li.dataset.value = JSON.stringify(instance.value)
-                ul.appendChild(li)
-            }
-            addButton.appendChild(ul)
-            addButton.collapsibleWidth = '250px'
-            addButton.collapsibleOrientationLeft = ''
-            addButton.addEventListener('change', () => {
-                if (addButton.value === 'new') {
-                    // user wants to create a new instance
-                    this.addPropertyInstance()
-                } else {
-                    // user wants to link existing instance
-                    const value = JSON.parse(addButton.value) as Term
-                    this.container.insertBefore(createPropertyInstance(this.template, value, true, true), addButton)
+        const applyButtonLogic = () => {
+            // load potential value candidates for linking
+            const instances = findLinkCandidates(this.template)
+            if (instances.length === 0) {
+                // no class instances found, so create an add button that creates a new instance
+                const addButton = new RokitButton()
+                addButton.dense = this.template.config.theme.dense
+                addButton.innerText = "+ " + this.template.label
+                addButton.title = 'Add ' + this.template.label
+                addButton.classList.add('add-button')
+                addButton.setAttribute('text', '')
+                addButton.addEventListener('click', () => {
+                    const instance = this.addPropertyInstance()
+                    instance.classList.add('fadeIn')
+                    this.updateControls()
+                    setTimeout(() => {
+                        focusFirstInputElement(instance)
+                        instance.classList.remove('fadeIn')
+                    }, 200)
+                })
+                return addButton
+            } else {
+                const addButton = new RokitSelect()
+                addButton.dense = this.template.config.theme.dense
+                addButton.label = "+ " + this.template.label
+                addButton.title = 'Add ' + this.template.label
+                addButton.autoGrowLabelWidth = true
+                addButton.classList.add('add-button')
+
+                // some instances found, so create an add button that can create a new instance or link existing ones
+                const ul = document.createElement('ul')
+                const newItem = document.createElement('li')
+                newItem.innerHTML = '&#xFF0B; Create new ' + this.template.label + '...'
+                newItem.dataset.value = 'new'
+                newItem.classList.add('large')
+                ul.appendChild(newItem)
+                const divider = document.createElement('li')
+                divider.classList.add('divider')
+                ul.appendChild(divider)
+                const header = document.createElement('li')
+                header.classList.add('header')
+                header.innerText = 'Or link existing:'
+                ul.appendChild(header)
+                for (const instance of instances) {
+                    const li = document.createElement('li')
+                    const itemValue = (typeof instance.value === 'string') ? instance.value : instance.value.value
+                    li.innerText = instance.label ? instance.label : itemValue
+                    li.dataset.value = JSON.stringify(instance.value)
+                    ul.appendChild(li)
                 }
-                addButton.value = ''
-            })
+                addButton.appendChild(ul)
+                addButton.collapsibleWidth = '250px'
+                addButton.collapsibleOrientationLeft = ''
+                addButton.addEventListener('change', () => {
+                    if (addButton.value === 'new') {
+                        // user wants to create a new instance
+                        this.addPropertyInstance()
+                    } else {
+                        // user wants to link existing instance
+                        const value = JSON.parse(addButton.value) as Term
+                        this.container.insertBefore(createPropertyInstance(this.template, value, true, true), addButton)
+                    }
+                    addButton.value = ''
+                })
+                return addButton
+            }
         }
-        return addButton
+
+        const shapeInstancesToLoad = () => {
+            if (this.template.nodeShapes.size === 0 || !this.template.config.dataProvider?.shapeInstances || !this.template.config.dataProvider.lazyLoad) {
+                return new Set<string>()
+            }
+            const alreadyLoaded = Object.keys(this.template.config.loadedShapeInstances)
+            return new Set([...this.template.nodeShapes].filter(shape => !alreadyLoaded.includes(shape.id.value)).map(shape => shape.id.value))
+        }
+
+        const classInstancesToLoad = () => {
+            const result = new Set<string>()
+            if (this.template.class && this.template.config.dataProvider?.lazyLoad && !this.template.config.loadedClassInstances.has(this.template.class.id)) {
+                result.add(this.template.class.id)
+            }
+            return result
+        }
+
+        const shapeInstances = shapeInstancesToLoad()
+        const classInstances = classInstancesToLoad()
+        if (shapeInstances.size > 0 || classInstances.size > 0) {
+            const btn = new RokitButton()
+            btn.dense = this.template.config.theme.dense
+            btn.innerText = "+ " + this.template.label
+            btn.title = 'Add ' + this.template.label
+            btn.classList.add('add-button')
+            btn.setAttribute('text', '')
+            btn.addEventListener('click', async () => {
+                btn.classList.add('loading')
+                btn.title = 'Loading...'
+                setTimeout(async () => {
+                    await loadClassInstances(classInstances, this.template.config.store, this.template.config.dataProvider!)
+                    await loadShapeInstances(shapeInstances, this.template.config)
+                    const addButton = applyButtonLogic()
+                    btn.replaceWith(addButton)
+                    addButton.click()
+                }, 100)
+            })
+            return btn
+        } else {
+            return applyButtonLogic()
+        }
     }
 }
 
