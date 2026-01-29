@@ -145,14 +145,15 @@ export class ShaclForm extends HTMLElement {
                             })
                             this.form.appendChild(button)
                         }
-                        // property value binding is asynchronous, so delay data graph cleanup
-                        setTimeout(() => {
+                        ;(async () => {
+                            // property value binding is asynchronous, so wait for node rendering to finish before cleanup
+                            await this.shape?.ready
                             // delete bound values from data graph, otherwise validation would not work correctly
                             if (this.config.attributes.valuesSubject) {
                                 this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
                             }
                             this.validate(true)
-                        })
+                        })()
                     }
                 } else if (this.config.store.countQuads(null, null, null, SHAPES_GRAPH) > 0) {
                     // raise error only when shapes graph is not empty
@@ -166,7 +167,8 @@ export class ShaclForm extends HTMLElement {
             }
             this.removeAttribute('loading')
             // dispatch 'ready' event on macro task queue to be sure to have all property values bound to the form
-            setTimeout(() => { this.dispatchEvent(new Event('ready')) })
+            await this.shape?.ready
+            this.dispatchEvent(new Event('ready'))
         }, initTimeout)
     }
 

@@ -73,10 +73,11 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         }
         const editor = config.theme.createListEditor(context.template.label + '?', null, false, optionElements, context.template)
         const select = editor.querySelector('.editor') as Editor
-        select.onchange = () => {
+        select.onchange = async () => {
             if (select.value) {
                 const merged = mergeQuads(cloneProperty(context.template), values[parseInt(select.value)])
-                constraintElement.replaceWith(createPropertyInstance(merged, undefined, true))
+                const instance = await createPropertyInstance(merged, undefined, true)
+                constraintElement.replaceWith(instance)
             }
         }
         constraintElement.appendChild(editor)

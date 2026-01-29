@@ -65,7 +65,7 @@ export class ShaclProperty extends HTMLElement {
                         this.template.config.store.delete(value)
                     }
                     // if value is not in data graph, then it is a linked resource
-                    this.addPropertyInstance(value.object, !DATA_GRAPH.equals(value.graph))
+                    await this.addPropertyInstance(value.object, !DATA_GRAPH.equals(value.graph))
                     if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                         valuesContainHasValue = true
                     }
@@ -74,14 +74,14 @@ export class ShaclProperty extends HTMLElement {
             if (this.template.config.editMode) {
                 if (this.template.hasValue && !valuesContainHasValue && !this.parent.linked) {
                     // sh:hasValue is defined in shapes graph, but does not exist in data graph, so force it
-                    this.addPropertyInstance(this.template.hasValue)
+                    await this.addPropertyInstance(this.template.hasValue)
                 }
                 this.updateControls()
             }
         }
     }
 
-    addPropertyInstance(value?: Term, linked?: boolean): HTMLElement {
+    async addPropertyInstance(value?: Term, linked?: boolean): Promise<HTMLElement> {
         let instance: HTMLElement
         if (this.template.or?.length || this.template.xone?.length) {
             const options = this.template.or?.length ? this.template.or : this.template.xone as Term[]
@@ -90,7 +90,7 @@ export class ShaclProperty extends HTMLElement {
                 const resolvedOptions = resolveShaclOrConstraintOnProperty(options, value, this.template.config)
                 if (resolvedOptions.length) {
                     const merged = mergeQuads(cloneProperty(this.template), resolvedOptions)
-                    instance = createPropertyInstance(merged, value, !this.parent.linked, this.parent.linked)
+                    instance = await createPropertyInstance(merged, value, !this.parent.linked, this.parent.linked)
                     resolved = true
                 }
             }
@@ -99,7 +99,7 @@ export class ShaclProperty extends HTMLElement {
                 appendRemoveButton(instance, '', this.template.config.theme.dense, this.template.config.hierarchyColorsStyleSheet !== undefined)
             }
         } else {
-            instance = createPropertyInstance(this.template, value, false, linked || this.parent.linked)
+            instance = await createPropertyInstance(this.template, value, false, linked || this.parent.linked)
         }
         const addButton = this.querySelector(':scope > .add-button')
         if (addButton) {
@@ -203,8 +203,8 @@ export class ShaclProperty extends HTMLElement {
                 addButton.dense = this.template.config.theme.dense
                 addButton.classList.add('add-button')
                 addButton.setAttribute('text', '')
-                addButton.addEventListener('click', () => {
-                    const instance = this.addPropertyInstance()
+                addButton.addEventListener('click', async () => {
+                    const instance = await this.addPropertyInstance()
                     instance.classList.add('fadeIn')
                     this.updateControls()
                     setTimeout(() => {
@@ -245,14 +245,15 @@ export class ShaclProperty extends HTMLElement {
                 addButton.appendChild(ul)
                 addButton.collapsibleWidth = '250px'
                 addButton.collapsibleOrientationLeft = ''
-                addButton.addEventListener('change', () => {
+                addButton.addEventListener('change', async () => {
                     if (addButton.value === 'new') {
                         // user wants to create a new instance
                         this.addPropertyInstance()
                     } else {
                         // user wants to link existing instance
                         const value = JSON.parse(addButton.value) as Term
-                        this.container.insertBefore(createPropertyInstance(this.template, value, true, true), addButton)
+                        const instance = await createPropertyInstance(this.template, value, true, true)
+                        this.container.insertBefore(instance, addButton)
                     }
                     addButton.value = ''
                 })
@@ -312,13 +313,15 @@ export class ShaclProperty extends HTMLElement {
 
 }
 
-export function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false): HTMLElement {
+export async function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false): Promise<HTMLElement> {
     let instance: HTMLElement
     if (template.nodeShapes.size) {
         instance = document.createElement('div')
         instance.classList.add('property-instance')
-        for (const node of template.nodeShapes) {
-            instance.appendChild(new ShaclNode(node, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked))
+        for (const shape of template.nodeShapes) {
+            const node = new ShaclNode(shape, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked)
+            instance.appendChild(node)
+            await node.ready
         }
     } else {
         const plugin = findPlugin(template.path, template.datatype?.value)
