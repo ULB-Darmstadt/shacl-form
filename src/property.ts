@@ -49,11 +49,9 @@ export class ShaclProperty extends HTMLElement {
             if (valueSubject) {
                 // for linked resource, get values in all graphs, otherwise only from data graph
                 let values = this.template.config.store.getQuads(valueSubject, this.template.path, null, this.parent.linked ? null : DATA_GRAPH)
-                console.log('--- values', values)
                 // if we have values, conditionally invoke data provider to load class and/or shape instances
                 if (values.length > 0) {
                     await this.loadInstances(this.getInstancesToLoad())
-                    console.log('--- loaded')
                 }
                 if (multiValuedPath) {
                     // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
@@ -111,21 +109,30 @@ export class ShaclProperty extends HTMLElement {
     }
 
     updateControls() {
-        let instanceCount = this.instanceCount()
-        if (instanceCount === 0 && (this.template.nodeShapes.size === 0 || aggregatedMinCount(this.template) > 0)) {
-            this.addPropertyInstance()
-            instanceCount = this.instanceCount()
-        }
-        let mayRemove: boolean
-        if (aggregatedMinCount(this.template) > 0) {
-            mayRemove = instanceCount > aggregatedMinCount(this.template)
-        } else {
-            mayRemove = this.template.nodeShapes.size > 0 || instanceCount > 1
-        }
+        // setTimeout() is needed to let a newly added instance to arrive in the DOM first
+        setTimeout(() => {
+            const minCount = aggregatedMinCount(this.template)
+            const literal = this.template.nodeShapes.size === 0
+            let instanceCount = this.instanceCount()
+            if (instanceCount === 0 && literal) {
+                    this.addPropertyInstance()
+                    instanceCount = 1
+            }
+            if (!literal) {
+                this.querySelector(':scope > .add-button')?.classList.toggle('required', instanceCount < minCount)
+            }
+            
+            let mayRemove: boolean
+            if (minCount > 0) {
+                mayRemove = instanceCount > minCount
+            } else {
+                mayRemove = this.template.nodeShapes.size > 0 || instanceCount > 1
+            }
 
-        const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
-        this.classList.toggle('may-remove', mayRemove)
-        this.classList.toggle('may-add', mayAdd)
+            const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
+            this.classList.toggle('may-remove', mayRemove)
+            this.classList.toggle('may-add', mayAdd)
+        })
     }
 
     instanceCount() {
@@ -182,13 +189,6 @@ export class ShaclProperty extends HTMLElement {
     }
 
     createAddButton() {
-        // 1. check if we have a lazy data provider.
-        //      if yes, check if we have already called it.
-        //          if not, create normal button that uses the data provider.
-        //              afterwards, replace the button following the logic below
-        // 2. get link candidates and exclude the ones already bound to form
-        // 3. if we have link candidates
-
         const applyButtonLogic = () => {
             // load potential value candidates for linking and filter out already bound ones
             const instances = findLinkCandidates(this.template).filter(instance => {
@@ -279,6 +279,7 @@ export class ShaclProperty extends HTMLElement {
                     setTimeout(() => {
                         addButton.focus()
                         addButton.click()
+                        this.updateControls()
                     })
                 })
             })
