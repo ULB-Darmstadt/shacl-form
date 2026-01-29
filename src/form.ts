@@ -7,7 +7,8 @@ import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
-import { loadGraphs, loadShapeInstances, prefixes } from './loader'
+import { loadClassInstances, loadGraphs, loadShapeInstances, prefixes } from './loader'
+import { findAllClasses } from './util'
 
 export * from './exports'
 export const initTimeout = 50
@@ -99,9 +100,13 @@ export class ShaclForm extends HTMLElement {
                     for (const nodeTemplate of this.config.nodeTemplates) {
                         mergeOverriddenProperties(nodeTemplate)
                     }
-                    // if data provider is set, load shape instances for linking
+                    // if non lazy loading data provider is set, load shape instances for linking
                     if (this.config.dataProvider?.shapeInstances && !this.config.dataProvider.lazyLoad) {
                         await loadShapeInstances(this.config.getNodeTemplateIds(), this.config)
+                    }
+                    // if non lazy loading data provider or classInstanceProvider is set, load class instances
+                    if ((this.config.dataProvider && !this.config.dataProvider.lazyLoad) || this.config.classInstanceProvider) {
+                        await loadClassInstances(findAllClasses(this.config.store), this.config)
                     }
 
                     this.shape = new ShaclNode(rootTemplate, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)

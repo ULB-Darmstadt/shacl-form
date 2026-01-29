@@ -1,5 +1,5 @@
 import { DataFactory, Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
-import { DATA_GRAPH, PREFIX_FOAF, PREFIX_RDF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER, SKOS_PREDICATE_NARROWER } from './constants'
+import { DATA_GRAPH, PREFIX_FOAF, PREFIX_RDF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH, SKOS_PREDICATE_BROADER, SKOS_PREDICATE_NARROWER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
 import { ShaclPropertyTemplate } from './property-template'
@@ -206,6 +206,25 @@ export function prioritizeByLanguage(languages: string[], text1?: Literal, text2
         return text1
     }
     return index2 > index1 ? text1 : text2
+}
+
+export function findAllClasses(store: Store) {
+    const classes = new Set<string>()
+    for (const clazz of store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
+        classes.add(clazz.value)
+    }
+    for (const clazz of store.getObjects(null, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH)) {
+        classes.add(clazz.value)
+    }
+    return classes
+}
+
+export function filterOutExistingItems(existing: Set<string> | string[], items: Set<string>) {
+    if (existing instanceof Set) {
+        return new Set<string>([...items].filter(item => !existing.has(item)))
+    } else {
+        return new Set<string>([...items].filter(item => !existing.includes(item)))
+    }
 }
 
 /*

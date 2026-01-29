@@ -1,6 +1,6 @@
 import { Store, Quad, NamedNode, DataFactory, StreamParser, Prefixes } from 'n3'
-import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
-import { isURL } from './util'
+import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
+import { filterOutExistingItems, isURL } from './util'
 import { RdfXmlParser } from 'rdfxml-streaming-parser'
 import jsonld from 'jsonld'
 import { ClassInstanceProvider, DataProvider } from './plugin'
@@ -74,54 +74,46 @@ export async function loadGraphs(atts: LoaderAttributes) {
             console.warn(e)
         }
     }
-
-    // if non-lazy data provider is set, load class instances now
-    const provider = (atts.dataProvider && !atts.dataProvider.lazyLoad) ? atts.dataProvider : atts.classInstanceProvider
-    if (provider) {
-        const classes = new Set<string>()
-        for (const clazz of ctx.store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
-            classes.add(clazz.value)
-        }
-        for (const clazz of ctx.store.getObjects(null, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH)) {
-            classes.add(clazz.value)
-        }
-        await loadClassInstances(classes, ctx, provider)
-    }
     return ctx.store
 }
 
-export async function loadClassInstances(classes: Set<string>, target: Store | LoaderContext, provider: DataProvider | ClassInstanceProvider) {
-    if (classes.size > 0) {
-        let ctx: LoaderContext
-        if (target instanceof Store) {
-            ctx = {
-                store: target,
-                importedUrls: [],
-                atts: { loadOwlImports: false }
+export async function loadClassInstances(classes: Set<string>, config: Config) {
+    classes = filterOutExistingItems(config.loadedClassInstances, classes)
+    if (classes.size === 0) {
+        return
+    }
+    const provider = config.dataProvider ?? config.classInstanceProvider
+    if (!provider) {
+        return
+    }
+    const ctx: LoaderContext = {
+        store: config.store,
+        importedUrls: [],
+        atts: { loadOwlImports: false }
+    }
+
+    try {
+        let rdf: string
+        if (typeof provider === 'object') {
+            rdf = await provider.classInstances(classes)
+            for (const clazz of classes) {
+                config.loadedClassInstances.add(clazz)
             }
         } else {
-            ctx = target
-        }
-
-        try {
-            let rdf: string
-            if (typeof provider === 'object') {
-                rdf = await provider.classInstances(classes)
-            } else {
-                rdf = ''
-                for (const clazz of classes) {
-                    const instances = await provider(clazz)
-                    if (instances) {
-                        rdf += instances + '\n'
-                    }
+            rdf = ''
+            for (const clazz of classes) {
+                const instances = await provider(clazz)
+                config.loadedClassInstances.add(clazz)
+                if (instances) {
+                    rdf += instances + '\n'
                 }
             }
-            if (rdf) {
-                await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
-            }
-        } catch (e) {
-            console.log('failed loading class instances', e)
         }
+        if (rdf) {
+            await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+        }
+    } catch (e) {
+        console.error('failed loading class instances', e)
     }
 }
 
@@ -130,33 +122,33 @@ export async function loadShapeInstances(shapes: Set<string>, config: Config) {
     if (!config.dataProvider?.shapeInstances) {
         return
     }
-    const loadedShapes = Object.keys(config.loadedShapeInstances)
-    shapes = new Set([...shapes].filter(shape => !loadedShapes.includes(shape)))
-    if (shapes.size > 0) {
-        const ctx: LoaderContext = {
-            store: config.store,
-            importedUrls: [],
-            atts: { loadOwlImports: false }
-        }
-        try {
-            for (const shape of shapes) {
-                const instances = await config.dataProvider.shapeInstances(shape)
-                if (instances) {
-                    for (const id in instances) {
+    shapes = filterOutExistingItems(Object.keys(config.loadedShapeInstances), shapes)
+    if (shapes.size === 0) {
+        return
+    }
+    const ctx: LoaderContext = {
+        store: config.store,
+        importedUrls: [],
+        atts: { loadOwlImports: false }
+    }
+    try {
+        for (const shape of shapes) {
+            const instances = await config.dataProvider.shapeInstances(shape)
+            if (instances) {
+                for (const id in instances) {
+                    config.loadedShapeInstances[shape] = []
+                    // import instance RDF only when it is new, otherwise validation will fail
+                    if (config.store.countQuads(DataFactory.namedNode(id), null, null, null) === 0) {
+                        const rdf = instances[id]
+                        await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
                         // register shape as loaded
-                        config.loadedShapeInstances[shape] = []
-                        // import instance RDF only when it is new, otherwise validation will fail
-                        if (config.store.countQuads(DataFactory.namedNode(id), null, null, null) === 0) {
-                            const rdf = instances[id]
-                            await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
-                            config.loadedShapeInstances[shape].push(id)
-                        }
+                        config.loadedShapeInstances[shape].push(id)
                     }
                 }
             }
-        } catch (e) {
-            console.error('failed loading shape instances', e)
         }
+    } catch (e) {
+        console.error('failed loading shape instances', e)
     }
 }
 

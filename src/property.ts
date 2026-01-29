@@ -2,7 +2,7 @@ import { BlankNode, DataFactory, Literal, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
-import { findLinkCandidates, focusFirstInputElement } from './util'
+import { filterOutExistingItems, findLinkCandidates, focusFirstInputElement } from './util'
 import { aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
 import { Editor, fieldFactory } from './theme'
 import { toRDF } from './serialize'
@@ -49,6 +49,12 @@ export class ShaclProperty extends HTMLElement {
             if (valueSubject) {
                 // for linked resource, get values in all graphs, otherwise only from data graph
                 let values = this.template.config.store.getQuads(valueSubject, this.template.path, null, this.parent.linked ? null : DATA_GRAPH)
+                console.log('--- values', values)
+                // if we have values, conditionally invoke data provider to load class and/or shape instances
+                if (values.length > 0) {
+                    await this.loadInstances(this.getInstancesToLoad())
+                    console.log('--- loaded')
+                }
                 if (multiValuedPath) {
                     // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
                     values = await this.filterValidValues(values, valueSubject)
@@ -184,14 +190,17 @@ export class ShaclProperty extends HTMLElement {
         // 3. if we have link candidates
 
         const applyButtonLogic = () => {
-            // load potential value candidates for linking
-            const instances = findLinkCandidates(this.template)
+            // load potential value candidates for linking and filter out already bound ones
+            const instances = findLinkCandidates(this.template).filter(instance => {
+                const id = (instance.value as NamedNode | BlankNode).id
+                return this.querySelector(`:scope > .property-instance > shacl-node[data-node-id='${id}'], :scope > .collapsible > .property-instance > shacl-node[data-node-id='${id}']`) === null
+            })
             if (instances.length === 0) {
                 // no class instances found, so create an add button that creates a new instance
                 const addButton = new RokitButton()
-                addButton.dense = this.template.config.theme.dense
                 addButton.innerText = "+ " + this.template.label
                 addButton.title = 'Add ' + this.template.label
+                addButton.dense = this.template.config.theme.dense
                 addButton.classList.add('add-button')
                 addButton.setAttribute('text', '')
                 addButton.addEventListener('click', () => {
@@ -206,9 +215,9 @@ export class ShaclProperty extends HTMLElement {
                 return addButton
             } else {
                 const addButton = new RokitSelect()
-                addButton.dense = this.template.config.theme.dense
                 addButton.label = "+ " + this.template.label
                 addButton.title = 'Add ' + this.template.label
+                addButton.dense = this.template.config.theme.dense
                 addButton.autoGrowLabelWidth = true
                 addButton.classList.add('add-button')
 
@@ -251,47 +260,56 @@ export class ShaclProperty extends HTMLElement {
             }
         }
 
-        const shapeInstancesToLoad = () => {
-            if (this.template.nodeShapes.size === 0 || !this.template.config.dataProvider?.shapeInstances || !this.template.config.dataProvider.lazyLoad) {
-                return new Set<string>()
-            }
-            const alreadyLoaded = Object.keys(this.template.config.loadedShapeInstances)
-            return new Set([...this.template.nodeShapes].filter(shape => !alreadyLoaded.includes(shape.id.value)).map(shape => shape.id.value))
-        }
-
-        const classInstancesToLoad = () => {
-            const result = new Set<string>()
-            if (this.template.class && this.template.config.dataProvider?.lazyLoad && !this.template.config.loadedClassInstances.has(this.template.class.id)) {
-                result.add(this.template.class.id)
-            }
-            return result
-        }
-
-        const shapeInstances = shapeInstancesToLoad()
-        const classInstances = classInstancesToLoad()
-        if (shapeInstances.size > 0 || classInstances.size > 0) {
+        const instancesToLoad = this.getInstancesToLoad()
+        if (instancesToLoad) {
             const btn = new RokitButton()
-            btn.dense = this.template.config.theme.dense
             btn.innerText = "+ " + this.template.label
             btn.title = 'Add ' + this.template.label
+            btn.dense = this.template.config.theme.dense
             btn.classList.add('add-button')
             btn.setAttribute('text', '')
             btn.addEventListener('click', async () => {
                 btn.classList.add('loading')
                 btn.title = 'Loading...'
                 setTimeout(async () => {
-                    await loadClassInstances(classInstances, this.template.config.store, this.template.config.dataProvider!)
-                    await loadShapeInstances(shapeInstances, this.template.config)
+                    await this.loadInstances(instancesToLoad)
                     const addButton = applyButtonLogic()
                     btn.replaceWith(addButton)
-                    addButton.click()
-                }, 100)
+                    setTimeout(() => {
+                        addButton.focus()
+                        addButton.click()
+                    })
+                })
             })
             return btn
         } else {
             return applyButtonLogic()
         }
     }
+
+    getInstancesToLoad() {
+        if (!this.template.config.dataProvider?.lazyLoad) {
+            return
+        }
+        let shapeInstancesToLoad = new Set<string>()
+        if (this.template.nodeShapes.size > 0 && this.template.config.dataProvider?.shapeInstances !== undefined) {
+            shapeInstancesToLoad = filterOutExistingItems(Object.keys(this.template.config.loadedShapeInstances), new Set([...this.template.nodeShapes].map(shape => shape.id.value)))
+        }
+
+        let classInstancesToLoad = new Set<string>()
+        if (this.template.class) {
+            classInstancesToLoad = filterOutExistingItems(this.template.config.loadedClassInstances, new Set([this.template.class.id]))
+        }
+        return { shapes: shapeInstancesToLoad, classes: classInstancesToLoad }
+    }
+
+    async loadInstances(instances: {shapes: Set<string>, classes: Set<string>} | undefined) {
+        if (instances) {
+            await loadClassInstances(instances.classes, this.template.config)
+            await loadShapeInstances(instances.shapes, this.template.config)
+        }
+    }
+
 }
 
 export function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false): HTMLElement {
