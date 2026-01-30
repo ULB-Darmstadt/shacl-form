@@ -4,7 +4,7 @@ import { Editor, InputListEntry, Theme } from "./theme"
 import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI } from './constants'
 import { DataFactory, Literal, NamedNode } from 'n3'
 import { Term as N3Term } from 'n3'
-import { RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
+import { RokitButton, RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
 import { findLabel } from './util'
 
 const css = `
@@ -269,7 +269,8 @@ export class DefaultTheme extends Theme {
     }
 
     createButton(label: string, primary: boolean): HTMLElement {
-        const button = document.createElement('rokit-button')
+        const button = new RokitButton()
+        button.dense = this.dense
         button.innerHTML = label
         if (primary) {
             button.setAttribute('primary', '')
