@@ -145,7 +145,7 @@ export class ShaclForm extends HTMLElement {
                             })
                             this.form.appendChild(button)
                         }
-                        ;(async () => {
+                        (async () => {
                             // property value binding is asynchronous, so wait for node rendering to finish before cleanup
                             await this.shape?.ready
                             // delete bound values from data graph, otherwise validation would not work correctly
@@ -307,7 +307,7 @@ export class ShaclForm extends HTMLElement {
         if (clazz) {
             messageElement.classList.add(clazz)
         }
-        let result = (typeof validatonResult === 'object' && validatonResult !== null)
+        const result = (typeof validatonResult === 'object' && validatonResult !== null)
             ? validatonResult as { message?: Array<{ value: string }>; sourceConstraintComponent?: { value?: string } }
             : null
         if (result) {

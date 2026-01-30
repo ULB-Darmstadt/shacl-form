@@ -121,7 +121,7 @@ export class ShaclProperty extends HTMLElement {
             if (!literal) {
                 this.querySelector(':scope > .add-button')?.classList.toggle('required', instanceCount < minCount)
             }
-            
+
             let mayRemove: boolean
             if (minCount > 0) {
                 mayRemove = instanceCount > minCount
