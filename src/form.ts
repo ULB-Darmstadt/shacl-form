@@ -218,10 +218,25 @@ export class ShaclForm extends HTMLElement {
                 elem.classList.remove('valid')
             }
         }
+        for (const btn of this.form.querySelectorAll('.add-button')) {
+            btn.classList.remove('invalid', 'validation-error')
+        }
 
         if (!this.shape) {
             return { conforms: true, results: [] }
         }
+        // if a add-button is required, then mark it as invalid and early out
+        if (!ignoreEmptyValues) {
+            const requiredAddButtons = this.form.querySelectorAll('.add-button.required')
+            for (const btn of requiredAddButtons) {
+                btn.classList.add('invalid')
+                btn.after(this.createValidationErrorDisplay('Value is required', 'node'))
+            }
+            if (requiredAddButtons.length > 0) {
+                return { conforms: false, results: [] }
+            }
+        }
+
         const rootShape = this.shape
         const promise = new Promise<ValidationReport>((resolve) => {
             this.config.store.deleteGraph(this.config.valuesGraphId || '').on('end', async () => {
@@ -292,7 +307,7 @@ export class ShaclForm extends HTMLElement {
         if (clazz) {
             messageElement.classList.add(clazz)
         }
-        const result = (typeof validatonResult === 'object' && validatonResult !== null)
+        let result = (typeof validatonResult === 'object' && validatonResult !== null)
             ? validatonResult as { message?: Array<{ value: string }>; sourceConstraintComponent?: { value?: string } }
             : null
         if (result) {
@@ -303,6 +318,9 @@ export class ShaclForm extends HTMLElement {
             } else if (result.sourceConstraintComponent?.value) {
                 messageElement.title = result.sourceConstraintComponent.value
             }
+        }
+        else if (typeof(validatonResult) === 'string') {
+            messageElement.title = validatonResult
         }
         return messageElement
     }

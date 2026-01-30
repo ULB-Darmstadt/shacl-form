@@ -197,10 +197,8 @@ export class ShaclProperty extends HTMLElement {
             })
             if (instances.length === 0) {
                 // no class instances found, so create an add button that creates a new instance
-                const addButton = new RokitButton()
-                addButton.innerText = "+ " + this.template.label
+                const addButton = this.template.config.theme.createButton('+ ' + this.template.label, false)
                 addButton.title = 'Add ' + this.template.label
-                addButton.dense = this.template.config.theme.dense
                 addButton.classList.add('add-button')
                 addButton.setAttribute('text', '')
                 addButton.addEventListener('click', async () => {
@@ -263,10 +261,8 @@ export class ShaclProperty extends HTMLElement {
 
         const instancesToLoad = this.getInstancesToLoad()
         if (instancesToLoad) {
-            const btn = new RokitButton()
-            btn.innerText = "+ " + this.template.label
+            const btn = this.template.config.theme.createButton('+ ' + this.template.label, false)
             btn.title = 'Add ' + this.template.label
-            btn.dense = this.template.config.theme.dense
             btn.classList.add('add-button')
             btn.setAttribute('text', '')
             btn.addEventListener('click', async () => {
