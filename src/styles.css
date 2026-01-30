@@ -18,7 +18,7 @@ shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.per
 .shacl-or-constraint > div:first-child { flex-grow: 1 }
 .shacl-or-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
 .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
-.property-instance.linked label:after, label.linked:after { content: '\1F517'; font-size: 0.6em; padding-left: 6px; }
+.property-instance.linked label:after, label.linked:after { content: '\1F517'; font-size: 0.6em; position: absolute; top: 3px; right: 3px; }
 .mode-edit .property-instance label.required::before, .add-button.required::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; }
 .mode-edit .property-instance label.required::before { top: 0.15rem; }
 .property-instance.valid::before { content: ''; position: absolute; left: calc(var(--label-width) - 1em); top:0.5em; width: 0.9em; height: 0.9em; background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1024 1024" fill="green" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M866.133333 258.133333L362.666667 761.6l-204.8-204.8L98.133333 618.666667 362.666667 881.066667l563.2-563.2z"/></svg>'); }
