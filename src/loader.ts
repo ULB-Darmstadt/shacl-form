@@ -1,11 +1,9 @@
 import { Store, Quad, NamedNode, DataFactory, StreamParser, Prefixes } from 'n3'
 import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
-import { filterOutExistingItems, isURL } from './util'
+import { findAllClasses, isURL } from './util'
 import { RdfXmlParser } from 'rdfxml-streaming-parser'
 import jsonld from 'jsonld'
-import { ClassInstanceProvider, DataProvider } from './plugin'
-import { Config } from './config'
-
+import { ClassInstanceProvider } from './plugin'
 
 // cache external data in module scope to avoid requesting/parsing
 // them multiple times, e.g. when more than one shacl-form element is on the page
@@ -22,10 +20,9 @@ export interface LoaderAttributes {
     valuesUrl?: string | null
     valuesSubject?: string | null
     classInstanceProvider?: ClassInstanceProvider
-    dataProvider?: DataProvider
 }
 
-interface LoaderContext {
+export interface LoaderContext {
     store: Store
     importedUrls: string[]
     atts: LoaderAttributes
@@ -50,6 +47,19 @@ export async function loadGraphs(atts: LoaderAttributes) {
         promises.push(importRDF(fetchRDF(atts.valuesUrl, ctx.atts.proxy), ctx, DATA_GRAPH))
     }
     await Promise.all(promises)
+
+    // conditionally load class instances
+    if (atts.classInstanceProvider) {
+        try {
+            const classes = findAllClasses(ctx.store)
+            const rdf = await atts.classInstanceProvider(classes)
+            if (rdf) {
+                await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
+            }
+        } catch (e) {
+            console.error('failed loading class instances', e)
+        }
+    }
 
     // if shapes graph is empty, but we have the following triples:
     // <valueSubject> a <uri> or <valueSubject> dcterms:conformsTo <uri>
@@ -77,82 +87,7 @@ export async function loadGraphs(atts: LoaderAttributes) {
     return ctx.store
 }
 
-export async function loadClassInstances(classes: Set<string>, config: Config) {
-    classes = filterOutExistingItems(config.loadedClassInstances, classes)
-    if (classes.size === 0) {
-        return
-    }
-    const provider = config.dataProvider ?? config.classInstanceProvider
-    if (!provider) {
-        return
-    }
-    const ctx: LoaderContext = {
-        store: config.store,
-        importedUrls: [],
-        atts: { loadOwlImports: false }
-    }
-
-    try {
-        let rdf: string
-        if (typeof provider === 'object') {
-            rdf = await provider.classInstances(classes)
-            for (const clazz of classes) {
-                config.loadedClassInstances.add(clazz)
-            }
-        } else {
-            rdf = ''
-            for (const clazz of classes) {
-                const instances = await provider(clazz)
-                config.loadedClassInstances.add(clazz)
-                if (instances) {
-                    rdf += instances + '\n'
-                }
-            }
-        }
-        if (rdf) {
-            await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
-        }
-    } catch (e) {
-        console.error('failed loading class instances', e)
-    }
-}
-
-// return a record that maps from shape ID to IDs of instances that conform to that shape
-export async function loadShapeInstances(shapes: Set<string>, config: Config) {
-    if (!config.dataProvider?.shapeInstances) {
-        return
-    }
-    shapes = filterOutExistingItems(Object.keys(config.loadedShapeInstances), shapes)
-    if (shapes.size === 0) {
-        return
-    }
-    const ctx: LoaderContext = {
-        store: config.store,
-        importedUrls: [],
-        atts: { loadOwlImports: false }
-    }
-    try {
-        for (const shape of shapes) {
-            const instances = await config.dataProvider.shapeInstances(shape)
-            if (instances) {
-                for (const id in instances) {
-                    config.loadedShapeInstances[shape] = []
-                    // import instance RDF only when it is new, otherwise validation will fail
-                    if (config.store.countQuads(DataFactory.namedNode(id), null, null, null) === 0) {
-                        const rdf = instances[id]
-                        await importRDF(parseRDF(rdf), ctx, SHAPES_GRAPH)
-                        // register shape as loaded
-                        config.loadedShapeInstances[shape].push(id)
-                    }
-                }
-            }
-        }
-    } catch (e) {
-        console.error('failed loading shape instances', e)
-    }
-}
-
-async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedNode) {
+export async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedNode) {
     const quads = await rdf
     const dependencies: Promise<void>[] = []
 
@@ -166,7 +101,7 @@ async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedN
         }
         ctx.store.add(DataFactory.quad(quad.subject, quad.predicate, quad.object, targetGraph))
         // check if this is an owl:imports predicate and try to load the url
-        if (OWL_PREDICATE_IMPORTS.equals(quad.predicate) && ctx.atts.loadOwlImports) {
+        if (ctx.atts.loadOwlImports && OWL_PREDICATE_IMPORTS.equals(quad.predicate)) {
             const url = toURL(quad.object.value)
             // import url only once
             if (url && ctx.importedUrls.indexOf(url) < 0) {
@@ -178,7 +113,7 @@ async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedN
     await Promise.allSettled(dependencies)
 }
 
-async function fetchRDF(url: string, proxy: string | null | undefined): Promise<Quad[]> {
+export async function fetchRDF(url: string, proxy: string | null | undefined): Promise<Quad[]> {
     // try to load from cache first
     if (url in rdfCache) {
         return rdfCache[url]
@@ -205,7 +140,7 @@ async function fetchRDF(url: string, proxy: string | null | undefined): Promise<
     return rdfCache[url]
 }
 
-async function parseRDF(rdf: string): Promise<Quad[]> {
+export async function parseRDF(rdf: string): Promise<Quad[]> {
     if (!rdf.trim()) {
         return []
     }

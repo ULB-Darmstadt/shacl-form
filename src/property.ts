@@ -2,14 +2,14 @@ import { BlankNode, DataFactory, Literal, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
-import { filterOutExistingItems, findLinkCandidates, focusFirstInputElement } from './util'
+import { focusFirstInputElement } from './util'
 import { aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
 import { Editor, fieldFactory } from './theme'
 import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
 import { DATA_GRAPH } from './constants'
-import { RokitButton, RokitCollapsible, RokitSelect } from '@ro-kit/ui-widgets'
-import { loadClassInstances, loadShapeInstances } from './loader'
+import { RokitButton, RokitCollapsible } from '@ro-kit/ui-widgets'
+import { createLinker } from './linker'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
@@ -37,8 +37,7 @@ export class ShaclProperty extends HTMLElement {
             this.classList.add(this.template.cssClass)
         }
         if (template.config.editMode && !parent.linked) {
-            this.container.appendChild(this.createAddButton())
-            this.addEventListener('change', () => { this.updateControls() })
+            this.addEventListener('change', async () => { await this.updateControls() })
         }
     }
 
@@ -49,10 +48,6 @@ export class ShaclProperty extends HTMLElement {
             if (valueSubject) {
                 // for linked resource, get values in all graphs, otherwise only from data graph
                 let values = this.template.config.store.getQuads(valueSubject, this.template.path, null, this.parent.linked ? null : DATA_GRAPH)
-                // if we have values, conditionally invoke data provider to load class and/or shape instances
-                if (values.length > 0) {
-                    await this.loadInstances(this.getInstancesToLoad())
-                }
                 if (multiValuedPath) {
                     // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
                     values = await this.filterValidValues(values, valueSubject)
@@ -62,8 +57,8 @@ export class ShaclProperty extends HTMLElement {
                     if (!this.parent.linked) {
                         this.template.config.store.delete(value)
                     }
-                    // if value is not in data graph, then it is a linked resource
-                    await this.addPropertyInstance(value.object, !DATA_GRAPH.equals(value.graph))
+                    // if value is not in data graph or has loaded via ResourceLinkProvider, then it is a linked resource
+                    await this.addPropertyInstance(value.object, !DATA_GRAPH.equals(value.graph) || this.template.config.providedResources[value.object.value] !== undefined, this.template.config.providedResources[value.object.value] !== undefined)
                     if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                         valuesContainHasValue = true
                     }
@@ -74,12 +69,11 @@ export class ShaclProperty extends HTMLElement {
                     // sh:hasValue is defined in shapes graph, but does not exist in data graph, so force it
                     await this.addPropertyInstance(this.template.hasValue)
                 }
-                this.updateControls()
             }
         }
     }
 
-    async addPropertyInstance(value?: Term, linked?: boolean): Promise<HTMLElement> {
+    async addPropertyInstance(value?: Term, linked?: boolean, forceRemovable = false): Promise<HTMLElement> {
         let instance: HTMLElement
         if (this.template.or?.length || this.template.xone?.length) {
             const options = this.template.or?.length ? this.template.or : this.template.xone as Term[]
@@ -97,42 +91,38 @@ export class ShaclProperty extends HTMLElement {
                 appendRemoveButton(instance, '', this.template.config.theme.dense, this.template.config.hierarchyColorsStyleSheet !== undefined)
             }
         } else {
-            instance = await createPropertyInstance(this.template, value, false, linked || this.parent.linked)
+            instance = await createPropertyInstance(this.template, value, forceRemovable, linked || this.parent.linked)
         }
-        const addButton = this.querySelector(':scope > .add-button')
-        if (addButton) {
-            this.container.insertBefore(instance!, addButton)
-        } else {
-            this.container.appendChild(instance!)
-        }
+        this.container.insertBefore(instance!, this.querySelector(':scope > .add-button-wrapper'))
         return instance!
     }
 
-    updateControls() {
-        // setTimeout() is needed to let a newly added instance to arrive in the DOM first
-        setTimeout(() => {
-            const minCount = aggregatedMinCount(this.template)
-            const literal = this.template.nodeShapes.size === 0
-            let instanceCount = this.instanceCount()
-            if (instanceCount === 0 && literal) {
-                    this.addPropertyInstance()
-                    instanceCount = 1
-            }
-            if (!literal) {
-                this.querySelector(':scope > .add-button')?.classList.toggle('required', instanceCount < minCount)
-            }
+    async updateControls() {
+        if (this.template.config.editMode && !this.parent.linked && !this.querySelector(':scope > .add-button-wrapper')) {
+            this.container.appendChild(await this.createAddControls())
+        }
+        const minCount = aggregatedMinCount(this.template)
+        const literal = this.template.nodeShapes.size === 0
+        const noLinkableResources = this.querySelector(':scope > .add-button-wrapper > .link-button') === null
+        let instanceCount = this.instanceCount()
+        if (instanceCount === 0 && (literal || (noLinkableResources && minCount > 0))) {
+                this.addPropertyInstance()
+                instanceCount = 1
+        }
+        if (!literal) {
+            this.querySelector(':scope > .add-button-wrapper')?.classList.toggle('required', instanceCount < minCount)
+        }
 
-            let mayRemove: boolean
-            if (minCount > 0) {
-                mayRemove = instanceCount > minCount
-            } else {
-                mayRemove = this.template.nodeShapes.size > 0 || instanceCount > 1
-            }
+        let mayRemove: boolean
+        if (minCount > 0) {
+            mayRemove = instanceCount > minCount
+        } else {
+            mayRemove = this.template.nodeShapes.size > 0 || instanceCount > 1
+        }
 
-            const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
-            this.classList.toggle('may-remove', mayRemove)
-            this.classList.toggle('may-add', mayAdd)
-        })
+        const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
+        this.classList.toggle('may-remove', mayRemove)
+        this.classList.toggle('may-add', mayAdd)
     }
 
     instanceCount() {
@@ -188,126 +178,31 @@ export class ShaclProperty extends HTMLElement {
         })
     }
 
-    createAddButton() {
-        const applyButtonLogic = () => {
-            // load potential value candidates for linking and filter out already bound ones
-            const instances = findLinkCandidates(this.template).filter(instance => {
-                const id = (instance.value as NamedNode | BlankNode).id
-                return this.querySelector(`:scope > .property-instance > shacl-node[data-node-id='${id}'], :scope > .collapsible > .property-instance > shacl-node[data-node-id='${id}']`) === null
-            })
-            if (instances.length === 0) {
-                // no class instances found, so create an add button that creates a new instance
-                const addButton = this.template.config.theme.createButton('+ ' + this.template.label, false)
-                addButton.title = 'Add ' + this.template.label
-                addButton.classList.add('add-button')
-                addButton.setAttribute('text', '')
-                addButton.addEventListener('click', async () => {
-                    const instance = await this.addPropertyInstance()
-                    instance.classList.add('fadeIn')
-                    this.updateControls()
-                    setTimeout(() => {
-                        focusFirstInputElement(instance)
-                        instance.classList.remove('fadeIn')
-                    }, 200)
-                })
-                return addButton
-            } else {
-                const addButton = new RokitSelect()
-                addButton.label = "+ " + this.template.label
-                addButton.title = 'Add ' + this.template.label
-                addButton.dense = this.template.config.theme.dense
-                addButton.autoGrowLabelWidth = true
-                addButton.classList.add('add-button')
+    async createAddControls() {
+        const wrapper = document.createElement('div')
+        wrapper.classList.add('add-button-wrapper')
 
-                // some instances found, so create an add button that can create a new instance or link existing ones
-                const ul = document.createElement('ul')
-                const newItem = document.createElement('li')
-                newItem.innerHTML = '&#xFF0B; Create new ' + this.template.label + '...'
-                newItem.dataset.value = 'new'
-                newItem.classList.add('large')
-                ul.appendChild(newItem)
-                const divider = document.createElement('li')
-                divider.classList.add('divider')
-                ul.appendChild(divider)
-                const header = document.createElement('li')
-                header.classList.add('header')
-                header.innerText = 'Or link existing:'
-                ul.appendChild(header)
-                for (const instance of instances) {
-                    const li = document.createElement('li')
-                    const itemValue = (typeof instance.value === 'string') ? instance.value : instance.value.value
-                    li.innerText = instance.label ? instance.label : itemValue
-                    li.dataset.value = JSON.stringify(instance.value)
-                    ul.appendChild(li)
-                }
-                addButton.appendChild(ul)
-                addButton.collapsibleWidth = '250px'
-                addButton.collapsibleOrientationLeft = ''
-                addButton.addEventListener('change', async () => {
-                    if (addButton.value === 'new') {
-                        // user wants to create a new instance
-                        this.addPropertyInstance()
-                    } else {
-                        // user wants to link existing instance
-                        const value = JSON.parse(addButton.value) as Term
-                        const instance = await createPropertyInstance(this.template, value, true, true)
-                        this.container.insertBefore(instance, addButton)
-                    }
-                    addButton.value = ''
-                })
-                return addButton
-            }
+        const linker = await createLinker(this)
+        if (linker) {
+            wrapper.appendChild(linker)
         }
 
-        const instancesToLoad = this.getInstancesToLoad()
-        if (instancesToLoad) {
-            const btn = this.template.config.theme.createButton('+ ' + this.template.label, false)
-            btn.title = 'Add ' + this.template.label
-            btn.classList.add('add-button')
-            btn.setAttribute('text', '')
-            btn.addEventListener('click', async () => {
-                btn.classList.add('loading')
-                btn.title = 'Loading...'
-                setTimeout(async () => {
-                    await this.loadInstances(instancesToLoad)
-                    const addButton = applyButtonLogic()
-                    btn.replaceWith(addButton)
-                    setTimeout(() => {
-                        addButton.focus()
-                        addButton.click()
-                        this.updateControls()
-                    })
-                })
-            })
-            return btn
-        } else {
-            return applyButtonLogic()
-        }
+        const addButton = this.template.config.theme.createButton(this.template.label, false)
+        addButton.title = 'Add ' + this.template.label
+        addButton.classList.add('add-button')
+        addButton.setAttribute('text', '')
+        addButton.addEventListener('click', async () => {
+            const instance = await this.addPropertyInstance()
+            instance.classList.add('fadeIn')
+            await this.updateControls()
+            setTimeout(() => {
+                focusFirstInputElement(instance)
+                instance.classList.remove('fadeIn')
+            }, 200)
+        })
+        wrapper.appendChild(addButton)
+        return wrapper
     }
-
-    getInstancesToLoad() {
-        if (!this.template.config.dataProvider?.lazyLoad) {
-            return
-        }
-        let shapeInstancesToLoad = new Set<string>()
-        if (this.template.nodeShapes.size > 0 && this.template.config.dataProvider?.shapeInstances !== undefined) {
-            shapeInstancesToLoad = filterOutExistingItems(Object.keys(this.template.config.loadedShapeInstances), new Set([...this.template.nodeShapes].map(shape => shape.id.value)))
-        }
-
-        let classInstancesToLoad = new Set<string>()
-        if (this.template.class) {
-            classInstancesToLoad = filterOutExistingItems(this.template.config.loadedClassInstances, new Set([this.template.class.id]))
-        }
-        return { shapes: shapeInstancesToLoad, classes: classInstancesToLoad }
-    }
-
-    async loadInstances(instances: {shapes: Set<string>, classes: Set<string>} | undefined) {
-        if (instances) {
-            await loadClassInstances(instances.classes, this.template.config)
-            await loadShapeInstances(instances.shapes, this.template.config)
-        }
-    }
-
 }
 
 export async function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false): Promise<HTMLElement> {

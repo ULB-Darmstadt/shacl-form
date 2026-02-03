@@ -1,4 +1,4 @@
-import { DataFactory, Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
+import { Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
 import { DATA_GRAPH, PREFIX_FOAF, PREFIX_RDF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH, SKOS_PREDICATE_BROADER, SKOS_PREDICATE_NARROWER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
@@ -147,39 +147,6 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
     }
 }
 
-export function findLinkCandidates(template: ShaclPropertyTemplate): InputListEntry[] {
-    let result: InputListEntry[] = []
-    let clazz: NamedNode | undefined
-
-    if (template.class && template.nodeShapes.size) {
-        clazz = template.class
-    } else {
-        for (const node of template.nodeShapes) {
-            // if this property has no sh:class but sh:node, then use the node shape's sh:targetClass to find protiential instances
-            if (node.targetClass) {
-                clazz = node.targetClass
-                break
-            }
-        }
-    }
-    if (clazz) {
-        result = findInstancesOf(clazz, template)
-    }
-
-    if (template.config.loadedShapeInstances) {
-        for (const node of template.nodeShapes) {
-            if (template.config.loadedShapeInstances[node.id.value]) {
-                for (const instance of template.config.loadedShapeInstances[node.id.value]) {
-                    const subject = DataFactory.namedNode(instance)
-                    result.push({ value: subject, label: findLabel(template.config.store.getQuads(subject, null, null, null), template.config.languages), children: [] })
-                }
-            }
-        }
-    }
-    return result
-}
-
-
 export function isURL(input: string): boolean {
     let url: URL
     try {
@@ -221,9 +188,9 @@ export function findAllClasses(store: Store) {
 
 export function filterOutExistingItems(existing: Set<string> | string[], items: Set<string>) {
     if (existing instanceof Set) {
-        return new Set<string>([...items].filter(item => !existing.has(item)))
+        return [...items].filter(item => !existing.has(item))
     } else {
-        return new Set<string>([...items].filter(item => !existing.includes(item)))
+        return [...items].filter(item => !existing.includes(item))
     }
 }
 

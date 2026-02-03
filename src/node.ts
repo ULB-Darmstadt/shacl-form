@@ -141,7 +141,7 @@ export class ShaclNode extends HTMLElement {
             } else {
                 this.appendChild(property)
             }
-            property.updateControls()
+            await property.updateControls()
         }
     }
 

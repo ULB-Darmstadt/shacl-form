@@ -57,14 +57,12 @@ export abstract class Plugin {
     }
 }
 
-/**
-* @deprecated Use DataProvider instead
-*/
-export type ClassInstanceProvider = (clazz: string) => Promise<string>
+export type ClassInstanceProvider = (classes: Set<string>) => Promise<string>
 
-export type DataProvider = {
+export type ResourceLinkProvider = {
     lazyLoad: boolean
-    classInstances: (classes: Set<string>) => Promise<string>
-    // result is expected to be a record that maps from instance id to its turtle RDF
-    shapeInstances?: (shape: string) => Promise<Record<string, string>>
+    // shape id -> conforming resource ids
+    listConformingResources: (shapeIds: string[], property: ShaclPropertyTemplate) => Promise<Record<string, string[]>>
+    // resource id -> resource RDF
+    loadResources: (resourceIds: string[]) => Promise<{resourceId: string, resourceRDF: string}[]>
 }

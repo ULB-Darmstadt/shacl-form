@@ -1,14 +1,14 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
-import { ClassInstanceProvider, DataProvider, Plugin, listPlugins, registerPlugin } from './plugin'
+import { ClassInstanceProvider, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin'
 import { Store, NamedNode, DataFactory, BlankNode } from 'n3'
 import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
-import { loadClassInstances, loadGraphs, loadShapeInstances, prefixes } from './loader'
-import { findAllClasses } from './util'
+import { loadGraphs, prefixes } from './loader'
+import { loadUnresolvedValues } from './linker'
 
 export * from './exports'
 export const initTimeout = 50
@@ -70,9 +70,13 @@ export class ShaclForm extends HTMLElement {
                     valuesSubject: this.config.attributes.valuesSubject,
                     loadOwlImports: this.config.attributes.ignoreOwlImports === null,
                     classInstanceProvider: this.config.classInstanceProvider,
-                    dataProvider: this.config.dataProvider,
                     proxy: this.config.attributes.proxy
                 })
+                // if we a resource link provider, let it resolve linked resources in the data graph
+                if (this.config.resourceLinkProvider) {
+                    await loadUnresolvedValues(this.config)
+                }
+
                 // remove loading indicator
                 this.form.replaceChildren()
                 // find root shacl shape
@@ -100,15 +104,6 @@ export class ShaclForm extends HTMLElement {
                     for (const nodeTemplate of this.config.nodeTemplates) {
                         mergeOverriddenProperties(nodeTemplate)
                     }
-                    // if non lazy loading data provider is set, load shape instances for linking
-                    if (this.config.dataProvider?.shapeInstances && !this.config.dataProvider.lazyLoad) {
-                        await loadShapeInstances(this.config.getNodeTemplateIds(), this.config)
-                    }
-                    // if non lazy loading data provider or classInstanceProvider is set, load class instances
-                    if ((this.config.dataProvider && !this.config.dataProvider.lazyLoad) || this.config.classInstanceProvider) {
-                        await loadClassInstances(findAllClasses(this.config.store), this.config)
-                    }
-
                     this.shape = new ShaclNode(rootTemplate, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
                     this.form.appendChild(this.shape)
 
@@ -166,7 +161,7 @@ export class ShaclForm extends HTMLElement {
                 this.form.replaceChildren(errorDisplay)
             }
             this.removeAttribute('loading')
-            // dispatch 'ready' event on macro task queue to be sure to have all property values bound to the form
+            // drain micro task queue before dispatching 'ready' event
             await this.shape?.ready
             this.dispatchEvent(new Event('ready'))
         }, initTimeout)
@@ -200,8 +195,8 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
-    public setDataProvider(provider: DataProvider) {
-        this.config.dataProvider = provider
+    public setResourceLinkProvider(provider: ResourceLinkProvider) {
+        this.config.resourceLinkProvider = provider
         this.initialize()
     }
 
@@ -218,7 +213,7 @@ export class ShaclForm extends HTMLElement {
                 elem.classList.remove('valid')
             }
         }
-        for (const btn of this.form.querySelectorAll('.add-button')) {
+        for (const btn of this.form.querySelectorAll('.add-button-wrapper')) {
             btn.classList.remove('invalid', 'validation-error')
         }
 
@@ -227,7 +222,7 @@ export class ShaclForm extends HTMLElement {
         }
         // if a add-button is required, then mark it as invalid and early out
         if (!ignoreEmptyValues) {
-            const requiredAddButtons = this.form.querySelectorAll('.add-button.required')
+            const requiredAddButtons = this.form.querySelectorAll('.add-button-wrapper.required')
             for (const btn of requiredAddButtons) {
                 btn.classList.add('invalid')
                 btn.after(this.createValidationErrorDisplay('Value is required', 'node'))

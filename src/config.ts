@@ -1,7 +1,7 @@
 import { DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
-import { ClassInstanceProvider, DataProvider } from './plugin'
+import { ClassInstanceProvider, ResourceLinkProvider } from './plugin'
 import { Theme } from './theme'
 import { extractLists } from './util'
 import { DefaultTheme } from './theme.default'
@@ -41,7 +41,7 @@ const defaultHierarchyColorPalette = '#4c93d785, #f85e9a85, #00327385, #87001f85
 export class Config {
     attributes = new ElementAttributes()
     classInstanceProvider: ClassInstanceProvider | undefined
-    dataProvider: DataProvider | undefined
+    resourceLinkProvider: ResourceLinkProvider | undefined
     editMode = true
     languages: string[]
 
@@ -57,8 +57,10 @@ export class Config {
     private _nodeTemplates: Record<string, ShaclNodeTemplate> = {}
     private _propertyTemplates: Record<string, ShaclPropertyTemplate> = {}
     validator = new Validator(this._store, { details: true, factory: DataFactory })
-    loadedShapeInstances: Record<string, string[]> = {}
-    loadedClassInstances = new Set<string>()
+    // shape id -> conforming resource ids
+    providedConformingResourceIds: Record<string, Set<string>> = {}
+    // resource id -> resource RDF
+    providedResources: Record<string, string> = {}
 
     constructor(form: HTMLElement) {
         this.form = form
@@ -76,8 +78,8 @@ export class Config {
         this.lists = {}
         this.groups = []
         this.renderedNodes.clear()
-        this.loadedShapeInstances = {}
-        this.loadedClassInstances.clear()
+        this.providedConformingResourceIds = {}
+        this.providedResources = {}
         this._nodeTemplates = {}
         this._propertyTemplates = {}
     }
