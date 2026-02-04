@@ -117,16 +117,17 @@ export async function loadConformingResources(property: ShaclPropertyTemplate) {
         return
     }
     try {
-        const result: Record<string, { resourceId: string, resourceRDF: string}[]> = {}
         const conformingResources = await provider.listConformingResources(filteredShapes, property)
         if (conformingResources) {
             for (const shapeId of Object.keys(conformingResources)) {
                 const resourceIds = new Set(conformingResources[shapeId])
                 property.config.providedConformingResourceIds[shapeId] = resourceIds
-                if (!result[shapeId]) {
-                    result[shapeId] = []
+                await loadResources(resourceIds, false, property.config)
+            }
+            for (const shapeId of filteredShapes) {
+                if (!property.config.providedConformingResourceIds[shapeId]) {
+                    property.config.providedConformingResourceIds[shapeId] = new Set()
                 }
-                result[shapeId].push(...await loadResources(resourceIds, false, property.config))
             }
         }
     } catch(e) {
@@ -141,6 +142,9 @@ export async function loadResources(ids: Set<string>, addToStore: boolean, confi
             if (!config.providedResources[id]) {
                 filteredIds.push(id)
             }
+        }
+        if (filteredIds.length === 0) {
+            return []
         }
         try {
             const resources = await config.resourceLinkProvider.loadResources(filteredIds)
