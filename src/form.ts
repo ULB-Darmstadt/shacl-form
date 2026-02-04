@@ -11,7 +11,7 @@ import { loadGraphs, prefixes } from './loader'
 import { loadUnresolvedValues } from './linker'
 
 export * from './exports'
-export const initTimeout = 50
+export const initTimeout = 200
 
 export interface ValidationReport {
     conforms: boolean
