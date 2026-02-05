@@ -72,7 +72,11 @@ export async function loadGraphs(atts: LoaderAttributes) {
         ]
         const promises: Promise<void>[] = []
         for (const uri of shapeCandidates) {
-            const url = toURL(uri.value)
+            let url = toURL(uri.value)
+            if (!url && uri.value.startsWith('urn:') && ctx.atts.proxy) {
+                // if we have a proxy set, try to resolve <urn:...> uris anyway
+                url = uri.value
+            }
             if (url && ctx.importedUrls.indexOf(url) < 0) {
                 ctx.importedUrls.push(url)
                 promises.push(importRDF(fetchRDF(url, ctx.atts.proxy), ctx, SHAPES_GRAPH))
