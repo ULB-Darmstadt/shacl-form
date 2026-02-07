@@ -3,7 +3,7 @@ import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
 import { focusFirstInputElement } from './util'
-import { aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
+import { aggregatedMaxCount, aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
 import { Editor, fieldFactory } from './theme'
 import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
@@ -120,7 +120,7 @@ export class ShaclProperty extends HTMLElement {
             mayRemove = this.template.nodeShapes.size > 0 || instanceCount > 1
         }
 
-        const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
+        const mayAdd = instanceCount < aggregatedMaxCount(this.template)
         this.classList.toggle('may-remove', mayRemove)
         this.classList.toggle('may-add', mayAdd)
     }
