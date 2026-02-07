@@ -76,6 +76,8 @@ data-show-root-shape-label | If this is set and the root SHACL shape has `rdfs:l
 data-proxy | URL of a proxy to use when fetching resources (e.g. `owl:imports`). This can help loading resources from the web that are not [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) enabled. The URL of the resource to fetch will be appended to the value of this attribute. Example value for this attribute: `http://you-proxy.org/?url=`.
 data-dense | Boolean indicating to render a compact form with small paddings and margins. Default: true
 data-hierarchy-colors | If set, a colored vertical bar is displayed on the right side of the form for each nested hierarchy level with the intention of easing orientation in complex nested forms. The value of this attribute can be a list of comma separated CSS color definitions. If no value is given, a default color palette is used.
+data-use-shadow-root | Boolean string indicating whether `<shacl-form>` renders its contents inside a shadow root. Default: 'true'. Set to 'false' to render into the light DOM.
+
 
 ### Element functions
 

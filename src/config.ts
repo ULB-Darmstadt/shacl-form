@@ -34,6 +34,7 @@ export class ElementAttributes {
     showNodeIds: string | null = null
     showRootShapeLabel: string | null = null
     dense: string = 'true'
+    useShadowRoot: string = 'true'
 }
 
 const defaultHierarchyColorPalette = '#4c93d785, #f85e9a85, #00327385, #87001f85'

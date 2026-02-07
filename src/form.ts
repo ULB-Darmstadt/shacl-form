@@ -25,11 +25,11 @@ export class ShaclForm extends HTMLElement {
     shape: ShaclNode | null = null
     form: HTMLFormElement
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
+    private styleElement: HTMLStyleElement | null = null
 
     constructor() {
         super()
 
-        this.attachShadow({ mode: 'open' })
         this.form = document.createElement('form')
         this.config = new Config(this.form)
         this.form.addEventListener('change', ev => {
@@ -43,11 +43,14 @@ export class ShaclForm extends HTMLElement {
     }
 
     connectedCallback() {
-        this.shadowRoot!.prepend(this.form)
+        this.config.updateAttributes(this)
+        this.ensureRenderRoot()
+        this.initialize()
     }
 
     attributeChangedCallback() {
         this.config.updateAttributes(this)
+        this.ensureRenderRoot()
         this.initialize()
     }
 
@@ -98,7 +101,7 @@ export class ShaclForm extends HTMLElement {
                             styles.push(plugin.stylesheet)
                         }
                     }
-                    this.shadowRoot!.adoptedStyleSheets = styles
+                    this.applyStyles(styles)
 
                     const rootTemplate = new ShaclNodeTemplate(rootShapeShaclSubject, this.config)
                     for (const nodeTemplate of this.config.nodeTemplates) {
@@ -165,6 +168,48 @@ export class ShaclForm extends HTMLElement {
             await this.shape?.ready
             this.dispatchEvent(new Event('ready'))
         }, initTimeout)
+    }
+
+    private ensureRenderRoot() {
+        const useShadowRoot = this.config.attributes.useShadowRoot !== 'false'
+        if (useShadowRoot) {
+            if (!this.shadowRoot) {
+                this.attachShadow({ mode: 'open' })
+            }
+            if (!this.shadowRoot!.contains(this.form)) {
+                this.shadowRoot!.prepend(this.form)
+            }
+        } else {
+            if (this.shadowRoot?.contains(this.form)) {
+                this.shadowRoot.removeChild(this.form)
+            }
+            if (!this.contains(this.form)) {
+                this.prepend(this.form)
+            }
+        }
+    }
+
+    private applyStyles(styles: CSSStyleSheet[]) {
+        const useShadowRoot = this.config.attributes.useShadowRoot !== 'false'
+        if (useShadowRoot && this.shadowRoot) {
+            this.shadowRoot.adoptedStyleSheets = styles
+            if (this.styleElement) {
+                this.styleElement.remove()
+                this.styleElement = null
+            }
+            return
+        }
+
+        const cssText = styles.map(styleSheet => {
+            const rules = Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n')
+            return rules.replace(/:host\b/g, 'shacl-form')
+        }).join('\n')
+
+        if (!this.styleElement) {
+            this.styleElement = document.createElement('style')
+            this.prepend(this.styleElement)
+        }
+        this.styleElement.textContent = cssText
     }
 
     public serialize(format = 'text/turtle', graph = this.toRDF()): string {
