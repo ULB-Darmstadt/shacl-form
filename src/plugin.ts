@@ -61,8 +61,8 @@ export type ClassInstanceProvider = (classes: Set<string>) => Promise<string>
 
 export type ResourceLinkProvider = {
     lazyLoad: boolean
-    // shape id -> conforming resource ids
+    // returns map of shape id -> array of conforming resource ids
     listConformingResources: (shapeIds: string[], property: ShaclPropertyTemplate) => Promise<Record<string, string[]>>
-    // resource id -> resource RDF
+    // returns array of { resource id -> resource RDF }
     loadResources: (resourceIds: string[]) => Promise<{resourceId: string, resourceRDF: string}[]>
 }

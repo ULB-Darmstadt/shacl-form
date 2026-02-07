@@ -110,6 +110,11 @@ setClassInstanceProvider((className: string) => Promise<string>)
 ```
 Sets a callback function that is invoked when a SHACL property has an `sh:class` definition to retrieve class instances. See [below](#classInstanceProvider) for more information.
 
+```typescript
+setResourceLinkProvider(provider: ResourceLinkProvider)
+```
+Registers a callback provider that supplies existing resources for linking. The provider is used to list resources that conform to the node shapes of a property and to load RDF data for selected resources. See [below](#resourceLinkProvider) for details.
+
 ## Features
 
 ### Validation
@@ -201,6 +206,14 @@ In case a node shape has a `sh:targetClass` and any graph, i.e.
 - triples provided by [classInstanceProvider](#classInstanceProvider)
 
 contains instances of that class, those can be linked in the respective SHACL property. The generated data graph will then just contain a reference to the instance, but not the triples that the instance consists of.
+
+<a id="resourceLinkProvider"></a>
+If your graphs only contain the resource identifiers (IRIs) and not the full triples for linked resources, you can use `setResourceLinkProvider` to supply them on demand. The `ResourceLinkProvider` lets you:
+
+* List resources that conform to a node shape so they can appear in the "Link existing ..." dialog.
+* Load RDF data for selected resource IRIs so the `shacl-form` can resolve, display and validate linked resources.
+
+The provider supports eager loading (resolve resources during initialization) or lazy loading (resolve when the user opens the link dialog).
 
 ### SHACL shape inheritance
 
