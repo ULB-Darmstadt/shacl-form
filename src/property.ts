@@ -95,25 +95,25 @@ export class ShaclProperty extends HTMLElement {
             instance = await createPropertyInstance(this.template, value, forceRemovable, linked || this.parent.linked)
         }
         if (instance) {
-            this.container.insertBefore(instance, this.querySelector(':scope > .add-button-wrapper'))
+            this.container.insertBefore(instance, this.querySelector(':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper'))
         }
         return instance
     }
 
     async updateControls() {
-        if (this.template.config.editMode && !this.parent.linked && !this.querySelector(':scope > .add-button-wrapper')) {
+        if (this.template.config.editMode && !this.parent.linked && !this.querySelector(':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper')) {
             this.container.appendChild(await this.createAddControls())
         }
         const minCount = aggregatedMinCount(this.template)
         const literal = this.template.nodeShapes.size === 0
-        const noLinkableResources = this.querySelector(':scope > .add-button-wrapper > .link-button') === null
+        const noLinkableResources = this.querySelector(':scope > .add-button-wrapper > .link-button, :scope > .collapsible > .add-button-wrapper > .link-button') === null
         let instanceCount = this.instanceCount()
         if (instanceCount === 0 && (literal || (noLinkableResources && minCount > 0))) {
                 this.addPropertyInstance()
                 instanceCount = 1
         }
         if (!literal) {
-            this.querySelector(':scope > .add-button-wrapper')?.classList.toggle('required', instanceCount < minCount)
+            this.querySelector(':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper')?.classList.toggle('required', instanceCount < minCount)
         }
 
         let mayRemove: boolean
