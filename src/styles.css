@@ -9,8 +9,8 @@ shacl-node .link-button::part(button)::before { content: '🔗 '; font-size: 10p
 shacl-node h1 { font-size: 16px; border-bottom: 1px solid #AAA; margin-top: 4px; color: #555; }
 shacl-property:not(:has(>.collapsible)), shacl-property>.collapsible::part(content) { display: flex; flex-direction: column; align-items: end; position: relative; }
 shacl-property:not(.may-add) > .add-button-wrapper, shacl-property:not(.may-add) > .collapsible > .add-button-wrapper { display: none; }
-shacl-property:not(.may-remove) > .property-instance > .remove-button:not(.persistent) { visibility: hidden; }
-shacl-property:not(.may-remove) > .collapsible > .property-instance > .remove-button:not(.persistent) { visibility: hidden; }
+shacl-property:not(.may-remove) > .property-instance > .remove-button-wrapper > .remove-button:not(.persistent) { visibility: hidden; }
+shacl-property:not(.may-remove) > .collapsible > .property-instance > .remove-button-wrapper > .remove-button:not(.persistent) { visibility: hidden; }
 shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button:not(.persistent) { visibility: hidden; }
 .mode-view .shacl-group:not(:has(shacl-property)) { display: none; }
 .property-instance, .shacl-or-constraint { display: flex; align-items: flex-start; padding: 4px 0; width: 100%; position: relative; }

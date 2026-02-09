@@ -120,7 +120,7 @@ export class ShaclProperty extends HTMLElement {
         if (minCount > 0) {
             mayRemove = instanceCount > minCount
         } else {
-            mayRemove = this.template.nodeShapes.size > 0 || instanceCount > 1
+            mayRemove = !literal || instanceCount > 1
         }
 
         const mayAdd = instanceCount < aggregatedMaxCount(this.template)
