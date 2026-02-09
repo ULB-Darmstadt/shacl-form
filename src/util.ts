@@ -1,5 +1,5 @@
 import { Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
-import { DATA_GRAPH, PREFIX_FOAF, PREFIX_RDF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH, SKOS_PREDICATE_BROADER, SKOS_PREDICATE_NARROWER } from './constants'
+import { DATA_GRAPH, PREFIX_DCTERMS, PREFIX_FOAF, PREFIX_RDF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH, SKOS_PREDICATE_BROADER, SKOS_PREDICATE_NARROWER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
 import { ShaclPropertyTemplate } from './property-template'
@@ -50,6 +50,7 @@ export function focusFirstInputElement(context: HTMLElement) {
 export function findLabel(quads: Quad[], languages: string[]): string {
     return findObjectValueByPredicate(quads, 'prefLabel', PREFIX_SKOS, languages) ||
     findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, languages) ||
+    findObjectValueByPredicate(quads, 'title', PREFIX_DCTERMS, languages) ||
     findObjectValueByPredicate(quads, 'name', PREFIX_FOAF, languages)
 }
 
