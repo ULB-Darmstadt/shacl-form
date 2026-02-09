@@ -73,8 +73,8 @@ export class ShaclProperty extends HTMLElement {
         }
     }
 
-    async addPropertyInstance(value?: Term, linked?: boolean, forceRemovable = false): Promise<HTMLElement> {
-        let instance: HTMLElement
+    async addPropertyInstance(value?: Term, linked?: boolean, forceRemovable = false): Promise<HTMLElement | undefined> {
+        let instance: HTMLElement | undefined
         if (this.template.or?.length || this.template.xone?.length) {
             const options = this.template.or?.length ? this.template.or : this.template.xone as Term[]
             let resolved = false
@@ -86,15 +86,18 @@ export class ShaclProperty extends HTMLElement {
                     resolved = true
                 }
             }
-            if (!resolved) {
+            // prevent creating constraint chooser in view mode
+            if (!resolved && this.template.config.editMode) {
                 instance = createShaclOrConstraint(options, this, this.template.config)
                 appendRemoveButton(instance, '', this.template.config.theme.dense, this.template.config.hierarchyColorsStyleSheet !== undefined)
             }
         } else {
             instance = await createPropertyInstance(this.template, value, forceRemovable, linked || this.parent.linked)
         }
-        this.container.insertBefore(instance!, this.querySelector(':scope > .add-button-wrapper'))
-        return instance!
+        if (instance) {
+            this.container.insertBefore(instance, this.querySelector(':scope > .add-button-wrapper'))
+        }
+        return instance
     }
 
     async updateControls() {
@@ -193,12 +196,14 @@ export class ShaclProperty extends HTMLElement {
         addButton.setAttribute('text', '')
         addButton.addEventListener('click', async () => {
             const instance = await this.addPropertyInstance()
-            instance.classList.add('fadeIn')
-            await this.updateControls()
-            setTimeout(() => {
-                focusFirstInputElement(instance)
-                instance.classList.remove('fadeIn')
-            }, 200)
+            if (instance) {
+                instance.classList.add('fadeIn')
+                await this.updateControls()
+                setTimeout(() => {
+                    focusFirstInputElement(instance)
+                    instance.classList.remove('fadeIn')
+                }, 200)
+            }
         })
         wrapper.appendChild(addButton)
         return wrapper
