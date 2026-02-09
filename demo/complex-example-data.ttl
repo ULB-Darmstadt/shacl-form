@@ -18,16 +18,7 @@ example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
   dcterms:license <http://creativecommons.org/licenses/by/4.0/> ;
   schema:artworkSurface example:plaster ;
   schema:width 200 ;
-  dcterms:spatial [
-    a dcterms:Location ;
-    geo:asWKT "POLYGON((13.06382134836241 52.37900504575066,13.063796707503286 52.37896794299019,13.063798350228126 52.37875635638159,13.063926482692182 52.37875435081642,13.0639281254158 52.378964934657034,13.063905127281544 52.37900404297392,13.06382134836241 52.37900504575066))"^^geo:wktLiteral ;
-    dcterms:description "Building has been realized here" ;
-  ] ;
-  dcterms:spatial [
-    a dcterms:Location ;
-    geo:asWKT "POINT(8.681927539753275 50.09895428462539)"^^geo:wktLiteral ;
-    dcterms:description "Model is stored here" ;
-  ] ;
+
   prov:qualifiedAttribution [
     a prov:Attribution ;
     prov:agent [

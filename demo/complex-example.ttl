@@ -22,7 +22,8 @@ example:ArchitectureModelDataset
   sh:property   [ sh:description  "Location of the building" ;
                   sh:name         "Location" ;
                   sh:node         example:Location ;
-                  sh:path         dcterms:spatial
+                  sh:path         dcterms:spatial ;
+                  sh:minCount     1
                 ] ;
   sh:property   [ sh:datatype     xsd:integer ;
                   sh:description  "Width [mm] of the model" ;

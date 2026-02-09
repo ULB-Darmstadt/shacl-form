@@ -11,6 +11,9 @@ import { DATA_GRAPH } from './constants'
 import { RokitButton, RokitCollapsible } from '@ro-kit/ui-widgets'
 import { createLinker } from './linker'
 
+const ADD_BUTTON_SELECTOR = ':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper'
+const PROPERTY_INSTANCE_SELECTOR = ':scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance'
+
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
     container: HTMLElement
@@ -95,13 +98,13 @@ export class ShaclProperty extends HTMLElement {
             instance = await createPropertyInstance(this.template, value, forceRemovable, linked || this.parent.linked)
         }
         if (instance) {
-            this.container.insertBefore(instance, this.querySelector(':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper'))
+            this.container.insertBefore(instance, this.querySelector(ADD_BUTTON_SELECTOR))
         }
         return instance
     }
 
     async updateControls() {
-        if (this.template.config.editMode && !this.parent.linked && !this.querySelector(':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper')) {
+        if (this.template.config.editMode && !this.parent.linked && !this.querySelector(ADD_BUTTON_SELECTOR)) {
             this.container.appendChild(await this.createAddControls())
         }
         const minCount = aggregatedMinCount(this.template)
@@ -109,11 +112,11 @@ export class ShaclProperty extends HTMLElement {
         const noLinkableResources = this.querySelector(':scope > .add-button-wrapper > .link-button, :scope > .collapsible > .add-button-wrapper > .link-button') === null
         let instanceCount = this.instanceCount()
         if (instanceCount === 0 && (literal || (noLinkableResources && minCount > 0))) {
-                this.addPropertyInstance()
-                instanceCount = 1
+            await this.addPropertyInstance()
+            instanceCount = 1
         }
         if (!literal) {
-            this.querySelector(':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper')?.classList.toggle('required', instanceCount < minCount)
+            this.querySelector(ADD_BUTTON_SELECTOR)?.classList.toggle('required', instanceCount < minCount)
         }
 
         let mayRemove: boolean
@@ -129,7 +132,7 @@ export class ShaclProperty extends HTMLElement {
     }
 
     instanceCount() {
-        return this.querySelectorAll(":scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance").length
+        return this.querySelectorAll(PROPERTY_INSTANCE_SELECTOR).length
     }
 
     toRDF(graph: Store, subject: NamedNode | BlankNode) {
@@ -169,16 +172,14 @@ export class ShaclProperty extends HTMLElement {
             }
         }
         const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [{ terms: [nodeShapeToValidate] }])
-        const invalidTerms: string[] = []
+        const invalidTerms = new Set<string>()
         for (const result of report.results) {
             const reportObject = this.template.qualifiedValueShape ? result.focusNode : result.value
             if (reportObject?.ptrs?.length) {
-                invalidTerms.push(reportObject.ptrs[0]._term.id)
+                invalidTerms.add(reportObject.ptrs[0]._term.id)
             }
         }
-        return values.filter(value => {
-            return invalidTerms.indexOf(value.object.id) === -1
-        })
+        return values.filter(value => !invalidTerms.has(value.object.id))
     }
 
     async createAddControls() {
