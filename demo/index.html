@@ -9,7 +9,7 @@
   <script type="importmap">
     {
       "imports": {
-        "@ulb-darmstadt/shacl-form/": "https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form@2.0.0/dist/"
+        "@ulb-darmstadt/shacl-form/": "https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form@3.0.0/dist/"
       }
     }
   </script>
@@ -203,8 +203,8 @@
           output.classList.remove('invalid')
           output.querySelector("pre").innerText = form.serialize()
         })
-        form.setClassInstanceProvider((clazz) => { 
-          if (clazz === 'http://example.org/Material') {
+        form.setClassInstanceProvider((classes) => {
+          if (classes.has('http://example.org/Material')) {
             return `
               <http://example.org/steel> a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Steel".
               <http://example.org/wood> a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Wood".
@@ -212,6 +212,7 @@
               <http://example.org/plaster> a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Plaster".
             `
           }
+          return ''
         })
         const shapesTTL = await fetch("complex-example.ttl").then(resp => resp.text())
         const dataTTL = await fetch("complex-example-data.ttl").then(resp => resp.text())
@@ -235,8 +236,8 @@
         const form = document.getElementById("shacl-form")
         const shapes = document.getElementById("shacl-shape-input")
         const data = document.getElementById("shacl-data-input")
-        form.setClassInstanceProvider((clazz) => { 
-          if (clazz === 'http://example.org/Material') {
+        form.setClassInstanceProvider((classes) => {
+          if (classes.has('http://example.org/Material')) {
             return `
               <http://example.org/steel> a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Steel".
               <http://example.org/wood> a <http://example.org/Material>; <http://www.w3.org/2000/01/rdf-schema#label> "Wood".
