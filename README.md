@@ -215,7 +215,7 @@ If your graphs only contain the resource identifiers (IRIs) and not the full tri
 * List resources that conform to a node shape so they can appear in the "Link existing ..." dialog.
 * Load RDF data for selected resource IRIs so the `shacl-form` can resolve, display and validate linked resources.
 
-The provider supports eager loading (resolve resources during initialization) or lazy loading (resolve when the user opens the link dialog).
+The provider supports eager loading (resolve resources during initialization) or lazy loading (resolve when the user opens the link dialog). See [here](https://github.com/ULB-Darmstadt/rdf-store/blob/main/frontend/src/editor.ts#L10) for an example implementation.
 
 ### SHACL shape inheritance
 
