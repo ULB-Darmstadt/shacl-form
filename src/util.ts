@@ -1,5 +1,5 @@
 import { Literal, NamedNode, Prefixes, Quad, Store } from 'n3'
-import { DATA_GRAPH, PREFIX_FOAF, PREFIX_RDF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHAPES_GRAPH, SKOS_PREDICATE_BROADER, SKOS_PREDICATE_NARROWER } from './constants'
+import { DATA_GRAPH, PREFIX_DCTERMS, PREFIX_FOAF, PREFIX_RDF, PREFIX_RDFS, PREFIX_SHACL, PREFIX_SKOS, RDFS_PREDICATE_SUBCLASS_OF, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH, SKOS_PREDICATE_BROADER, SKOS_PREDICATE_NARROWER } from './constants'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme'
 import { ShaclPropertyTemplate } from './property-template'
@@ -50,13 +50,14 @@ export function focusFirstInputElement(context: HTMLElement) {
 export function findLabel(quads: Quad[], languages: string[]): string {
     return findObjectValueByPredicate(quads, 'prefLabel', PREFIX_SKOS, languages) ||
     findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, languages) ||
+    findObjectValueByPredicate(quads, 'title', PREFIX_DCTERMS, languages) ||
     findObjectValueByPredicate(quads, 'name', PREFIX_FOAF, languages)
 }
 
-export function createInputListEntries(subjects: Term[], shapesGraph: Store, languages: string[]): InputListEntry[] {
+export function createInputListEntries(subjects: Term[], store: Store, languages: string[]): InputListEntry[] {
     const entries: InputListEntry[] = []
     for (const subject of subjects) {
-        entries.push({ value: subject, label: findLabel(shapesGraph.getQuads(subject, null, null, null), languages), children: [] })
+        entries.push({ value: subject, label: findLabel(store.getQuads(subject, null, null, null), languages), children: [] })
     }
     return entries
 }
@@ -73,15 +74,15 @@ export function removePrefixes(id: string, prefixes: Prefixes): string {
     return id
 }
 
-function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNodeTemplate | ShaclPropertyTemplate, shapesGraph: Store, instances: Term[], alreadyCheckedImports = new Set<string>()) {
+function findClassInstancesFromOwlImports(clazz: NamedNode, context: ShaclNodeTemplate | ShaclPropertyTemplate, store: Store, instances: Term[], alreadyCheckedImports = new Set<string>()) {
     for (const owlImport of context.owlImports) {
         if (!alreadyCheckedImports.has(owlImport.id)) {
             alreadyCheckedImports.add(owlImport.id)
-            instances.push(...shapesGraph.getSubjects(RDF_PREDICATE_TYPE, clazz, owlImport))
+            instances.push(...store.getSubjects(RDF_PREDICATE_TYPE, clazz, owlImport))
         }
     }
     if (context.parent) {
-        findClassInstancesFromOwlImports(clazz, context.parent, shapesGraph, instances, alreadyCheckedImports)
+        findClassInstancesFromOwlImports(clazz, context.parent, store, instances, alreadyCheckedImports)
     }
 }
 
@@ -173,6 +174,25 @@ export function prioritizeByLanguage(languages: string[], text1?: Literal, text2
         return text1
     }
     return index2 > index1 ? text1 : text2
+}
+
+export function findAllClasses(store: Store) {
+    const classes = new Set<string>()
+    for (const clazz of store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
+        classes.add(clazz.value)
+    }
+    for (const clazz of store.getObjects(null, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH)) {
+        classes.add(clazz.value)
+    }
+    return classes
+}
+
+export function filterOutExistingItems(existing: Set<string> | string[], items: Set<string>) {
+    if (existing instanceof Set) {
+        return [...items].filter(item => !existing.has(item))
+    } else {
+        return [...items].filter(item => !existing.includes(item))
+    }
 }
 
 /*

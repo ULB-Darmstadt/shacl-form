@@ -13,6 +13,7 @@ export class ShaclNode extends HTMLElement {
     nodeId: NamedNode | BlankNode
     template: ShaclNodeTemplate
     linked: boolean
+    ready: Promise<void>
 
     constructor(template: ShaclNodeTemplate, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string, linked?: boolean) {
         super()
@@ -55,6 +56,7 @@ export class ShaclNode extends HTMLElement {
             }
             this.appendChild(anchor)
             this.style.flexDirection = 'row'
+            this.ready = Promise.resolve()
         } else {
             if (valueSubject) {
                 template.config.renderedNodes.add(id)
@@ -66,7 +68,7 @@ export class ShaclNode extends HTMLElement {
                 div.classList.add('node-id-display')
                 this.appendChild(div)
             }
-            (async () => {
+            this.ready = (async () => {
                 // first output this shape's properties and then create extended shapes. this ensures that the values graph is bound to the most specific property.
                 for (const [_, properties] of Object.entries(template.properties)) {
                     for (const property of properties) {
@@ -74,7 +76,9 @@ export class ShaclNode extends HTMLElement {
                     }
                 }
                 for (const shape of template.extendedShapes) {
-                    this.prepend(new ShaclNode(shape, valueSubject, undefined, undefined, linked))
+                    const node = new ShaclNode(shape, valueSubject, undefined, undefined, linked)
+                    this.prepend(node)
+                    await node.ready
                 }
                 if (template.or?.length) {
                     await this.tryResolve(template.or, valueSubject, template.config)
@@ -137,7 +141,7 @@ export class ShaclNode extends HTMLElement {
             } else {
                 this.appendChild(property)
             }
-            property.updateControls()
+            await property.updateControls()
         }
     }
 

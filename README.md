@@ -76,6 +76,8 @@ data-show-root-shape-label | If this is set and the root SHACL shape has `rdfs:l
 data-proxy | URL of a proxy to use when fetching resources (e.g. `owl:imports`). This can help loading resources from the web that are not [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) enabled. The URL of the resource to fetch will be appended to the value of this attribute. Example value for this attribute: `http://you-proxy.org/?url=`.
 data-dense | Boolean indicating to render a compact form with small paddings and margins. Default: true
 data-hierarchy-colors | If set, a colored vertical bar is displayed on the right side of the form for each nested hierarchy level with the intention of easing orientation in complex nested forms. The value of this attribute can be a list of comma separated CSS color definitions. If no value is given, a default color palette is used.
+data-use-shadow-root | Boolean string indicating whether `<shacl-form>` renders its contents inside a shadow root. Default: 'true'. Set to 'false' to render into the light DOM.
+
 
 ### Element functions
 
@@ -109,6 +111,11 @@ Set a design theme to use for rendering. See section [Theming](#Theming).
 setClassInstanceProvider((className: string) => Promise<string>)
 ```
 Sets a callback function that is invoked when a SHACL property has an `sh:class` definition to retrieve class instances. See [below](#classInstanceProvider) for more information.
+
+```typescript
+setResourceLinkProvider(provider: ResourceLinkProvider)
+```
+Registers a callback provider that supplies existing resources for linking. The provider is used to list resources that conform to the node shapes of a property and to load RDF data for selected resources. See [below](#resourceLinkProvider) for details.
 
 ## Features
 
@@ -201,6 +208,14 @@ In case a node shape has a `sh:targetClass` and any graph, i.e.
 - triples provided by [classInstanceProvider](#classInstanceProvider)
 
 contains instances of that class, those can be linked in the respective SHACL property. The generated data graph will then just contain a reference to the instance, but not the triples that the instance consists of.
+
+<a id="resourceLinkProvider"></a>
+If your graphs only contain the resource identifiers (IRIs) and not the full triples for linked resources, you can use `setResourceLinkProvider` to supply them on demand. The `ResourceLinkProvider` lets you:
+
+* List resources that conform to a node shape so they can appear in the "Link existing ..." dialog.
+* Load RDF data for selected resource IRIs so the `shacl-form` can resolve, display and validate linked resources.
+
+The provider supports eager loading (resolve resources during initialization) or lazy loading (resolve when the user opens the link dialog).
 
 ### SHACL shape inheritance
 

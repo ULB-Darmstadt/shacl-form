@@ -45,7 +45,7 @@ describe('test value binding', () => {
             await expectValid(form, shapesQuads)
             expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
         }
-    })
+    }).timeout(4000)
 
     it('rdf:langString with sh:languageIn binding', async () => {
         const value = '"example string"@en'
@@ -162,5 +162,5 @@ describe('test value binding', () => {
             )
             await expectValid(form, shapesQuads)
         }
-    })
+    }).timeout(5000)
 })

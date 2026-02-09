@@ -2,17 +2,17 @@ import { BlankNode, DataFactory, Literal, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
-import { findInstancesOf, focusFirstInputElement } from './util'
-import { aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
-import { Editor, fieldFactory, InputListEntry } from './theme'
+import { focusFirstInputElement } from './util'
+import { aggregatedMaxCount, aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
+import { Editor, fieldFactory } from './theme'
 import { toRDF } from './serialize'
 import { findPlugin } from './plugin'
-import { DATA_GRAPH, RDF_PREDICATE_TYPE } from './constants'
-import { RokitButton, RokitCollapsible, RokitSelect } from '@ro-kit/ui-widgets'
+import { DATA_GRAPH } from './constants'
+import { RokitButton, RokitCollapsible } from '@ro-kit/ui-widgets'
+import { createLinker } from './linker'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
-    addButton: RokitSelect | undefined
     container: HTMLElement
     parent: ShaclNode
 
@@ -37,9 +37,7 @@ export class ShaclProperty extends HTMLElement {
             this.classList.add(this.template.cssClass)
         }
         if (template.config.editMode && !parent.linked) {
-            this.addButton = this.createAddButton()
-            this.container.appendChild(this.addButton)
-            this.addEventListener('change', () => { this.updateControls() })
+            this.addEventListener('change', async () => { await this.updateControls() })
         }
     }
 
@@ -59,7 +57,8 @@ export class ShaclProperty extends HTMLElement {
                     if (!this.parent.linked) {
                         this.template.config.store.delete(value)
                     }
-                    this.addPropertyInstance(value.object)
+                    // if value is not in data graph or has loaded via ResourceLinkProvider, then it is a linked resource
+                    await this.addPropertyInstance(value.object, !DATA_GRAPH.equals(value.graph) || this.template.config.providedResources[value.object.value] !== undefined, this.template.config.providedResources[value.object.value] !== undefined)
                     if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                         valuesContainHasValue = true
                     }
@@ -68,15 +67,14 @@ export class ShaclProperty extends HTMLElement {
             if (this.template.config.editMode) {
                 if (this.template.hasValue && !valuesContainHasValue && !this.parent.linked) {
                     // sh:hasValue is defined in shapes graph, but does not exist in data graph, so force it
-                    this.addPropertyInstance(this.template.hasValue)
+                    await this.addPropertyInstance(this.template.hasValue)
                 }
-                this.updateControls()
             }
         }
     }
 
-    addPropertyInstance(value?: Term): HTMLElement {
-        let instance: HTMLElement
+    async addPropertyInstance(value?: Term, linked?: boolean, forceRemovable = false): Promise<HTMLElement | undefined> {
+        let instance: HTMLElement | undefined
         if (this.template.or?.length || this.template.xone?.length) {
             const options = this.template.or?.length ? this.template.or : this.template.xone as Term[]
             let resolved = false
@@ -84,48 +82,48 @@ export class ShaclProperty extends HTMLElement {
                 const resolvedOptions = resolveShaclOrConstraintOnProperty(options, value, this.template.config)
                 if (resolvedOptions.length) {
                     const merged = mergeQuads(cloneProperty(this.template), resolvedOptions)
-                    instance = createPropertyInstance(merged, value, !this.parent.linked, this.parent.linked)
+                    instance = await createPropertyInstance(merged, value, !this.parent.linked, this.parent.linked)
                     resolved = true
                 }
             }
-            if (!resolved) {
+            // prevent creating constraint chooser in view mode
+            if (!resolved && this.template.config.editMode) {
                 instance = createShaclOrConstraint(options, this, this.template.config)
                 appendRemoveButton(instance, '', this.template.config.theme.dense, this.template.config.hierarchyColorsStyleSheet !== undefined)
             }
         } else {
-            // check if value is part of the data graph. if not, create a linked resource
-            let linked = false
-            if (value && !(value.termType !== 'Literal')) {
-                const clazz = this.getRdfClassToLinkOrCreate()
-                if (clazz && this.template.config.store.countQuads(value, RDF_PREDICATE_TYPE, clazz, DATA_GRAPH) === 0) {
-                    // value is not in data graph, so must be a link in the shapes graph
-                    linked = true
-                }
-            }
-            instance = createPropertyInstance(this.template, value, false, linked || this.parent.linked)
+            instance = await createPropertyInstance(this.template, value, forceRemovable, linked || this.parent.linked)
         }
-        if (this.addButton) {
-            this.container.insertBefore(instance!, this.addButton)
-        } else {
-            this.container.appendChild(instance!)
+        if (instance) {
+            this.container.insertBefore(instance, this.querySelector(':scope > .add-button-wrapper'))
         }
-        return instance!
+        return instance
     }
 
-    updateControls() {
-        let instanceCount = this.instanceCount()
-        if (instanceCount === 0 && (this.template.nodeShapes.size === 0 || aggregatedMinCount(this.template) > 0)) {
-            this.addPropertyInstance()
-            instanceCount = this.instanceCount()
+    async updateControls() {
+        if (this.template.config.editMode && !this.parent.linked && !this.querySelector(':scope > .add-button-wrapper')) {
+            this.container.appendChild(await this.createAddControls())
         }
-        let mayRemove: boolean
-        if (aggregatedMinCount(this.template) > 0) {
-            mayRemove = instanceCount > aggregatedMinCount(this.template)
-        } else {
-            mayRemove = this.template.nodeShapes.size > 0 || instanceCount > 1
+        const minCount = aggregatedMinCount(this.template)
+        const literal = this.template.nodeShapes.size === 0
+        const noLinkableResources = this.querySelector(':scope > .add-button-wrapper > .link-button') === null
+        let instanceCount = this.instanceCount()
+        if (instanceCount === 0 && (literal || (noLinkableResources && minCount > 0))) {
+                this.addPropertyInstance()
+                instanceCount = 1
+        }
+        if (!literal) {
+            this.querySelector(':scope > .add-button-wrapper')?.classList.toggle('required', instanceCount < minCount)
         }
 
-        const mayAdd = this.template.maxCount === undefined || instanceCount < this.template.maxCount
+        let mayRemove: boolean
+        if (minCount > 0) {
+            mayRemove = instanceCount > minCount
+        } else {
+            mayRemove = !literal || instanceCount > 1
+        }
+
+        const mayAdd = instanceCount < aggregatedMaxCount(this.template)
         this.classList.toggle('may-remove', mayRemove)
         this.classList.toggle('may-add', mayAdd)
     }
@@ -159,21 +157,6 @@ export class ShaclProperty extends HTMLElement {
         }
     }
 
-    getRdfClassToLinkOrCreate() {
-        if (this.template.class && this.template.nodeShapes.size) {
-            return this.template.class
-        }
-        else {
-            for (const node of this.template.nodeShapes) {
-                // if this property has no sh:class but sh:node, then use the node shape's sh:targetClass to find protiential instances
-                if (node.targetClass) {
-                    return node.targetClass
-                }
-            }
-        }
-        return undefined
-    }
-
     async filterValidValues(values: Quad[], valueSubject: NamedNode | BlankNode) {
         // if this property is a sh:qualifiedValueShape, then filter values by validating against this shape
         let nodeShapeToValidate = this.template.id
@@ -198,82 +181,44 @@ export class ShaclProperty extends HTMLElement {
         })
     }
 
-    createAddButton() {
-        const addButton = new RokitSelect()
-        addButton.dense = this.template.config.theme.dense
-        addButton.label = "+ " + this.template.label
-        addButton.title = 'Add ' + this.template.label
-        addButton.autoGrowLabelWidth = true
-        addButton.classList.add('add-button')
+    async createAddControls() {
+        const wrapper = document.createElement('div')
+        wrapper.classList.add('add-button-wrapper')
 
-        // load potential value candidates for linking
-        let instances: InputListEntry[] = []
-        const clazz = this.getRdfClassToLinkOrCreate()
-        if (clazz) {
-            instances = findInstancesOf(clazz, this.template)
+        const linker = await createLinker(this)
+        if (linker) {
+            wrapper.appendChild(linker)
         }
-        if (instances.length === 0) {
-            // no class instances found, so create an add button that creates a new instance
-            addButton.emptyMessage = ''
-            addButton.inputMinWidth = 0
-            addButton.addEventListener('click', () => {
-                addButton.blur()
-                const instance = this.addPropertyInstance()
+
+        const addButton = this.template.config.theme.createButton(this.template.label, false)
+        addButton.title = 'Add ' + this.template.label
+        addButton.classList.add('add-button')
+        addButton.setAttribute('text', '')
+        addButton.addEventListener('click', async () => {
+            const instance = await this.addPropertyInstance()
+            if (instance) {
                 instance.classList.add('fadeIn')
-                this.updateControls()
+                await this.updateControls()
                 setTimeout(() => {
                     focusFirstInputElement(instance)
                     instance.classList.remove('fadeIn')
                 }, 200)
-            })
-        } else {
-            // some instances found, so create an add button that can create a new instance or link existing ones
-            const ul = document.createElement('ul')
-            const newItem = document.createElement('li')
-            newItem.innerHTML = '&#xFF0B; Create new ' + this.template.label + '...'
-            newItem.dataset.value = 'new'
-            newItem.classList.add('large')
-            ul.appendChild(newItem)
-            const divider = document.createElement('li')
-            divider.classList.add('divider')
-            ul.appendChild(divider)
-            const header = document.createElement('li')
-            header.classList.add('header')
-            header.innerText = 'Or link existing:'
-            ul.appendChild(header)
-            for (const instance of instances) {
-                const li = document.createElement('li')
-                const itemValue = (typeof instance.value === 'string') ? instance.value : instance.value.value
-                li.innerText = instance.label ? instance.label : itemValue
-                li.dataset.value = JSON.stringify(instance.value)
-                ul.appendChild(li)
             }
-            addButton.appendChild(ul)
-            addButton.collapsibleWidth = '250px'
-            addButton.collapsibleOrientationLeft = ''
-            addButton.addEventListener('change', () => {
-                if (addButton.value === 'new') {
-                    // user wants to create a new instance
-                    this.addPropertyInstance()
-                } else {
-                    // user wants to link existing instance
-                    const value = JSON.parse(addButton.value) as Term
-                    this.container.insertBefore(createPropertyInstance(this.template, value, true, true), addButton)
-                }
-                addButton.value = ''
-            })
-        }
-        return addButton
+        })
+        wrapper.appendChild(addButton)
+        return wrapper
     }
 }
 
-export function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false): HTMLElement {
+export async function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false): Promise<HTMLElement> {
     let instance: HTMLElement
     if (template.nodeShapes.size) {
         instance = document.createElement('div')
         instance.classList.add('property-instance')
-        for (const node of template.nodeShapes) {
-            instance.appendChild(new ShaclNode(node, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked))
+        for (const shape of template.nodeShapes) {
+            const node = new ShaclNode(shape, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked)
+            instance.appendChild(node)
+            await node.ready
         }
     } else {
         const plugin = findPlugin(template.path, template.datatype?.value)

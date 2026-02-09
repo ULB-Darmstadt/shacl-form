@@ -1,9 +1,9 @@
-import { BlankNode, Literal, NamedNode, Quad } from 'n3'
+import { BlankNode, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from "./node"
 import { ShaclProperty, createPropertyInstance } from "./property"
 import { Config } from './config'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY } from './constants'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY, SHACL_PREDICATE_NODE } from './constants'
 import { findLabel, removePrefixes } from './util'
 import { Editor, InputListEntry } from './theme'
 import { cloneProperty, mergeQuads } from './property-template'
@@ -68,15 +68,23 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
             const quads = config.store.getQuads(options[i], null, null, null)
             if (quads.length) {
                 values.push(quads)
-                optionElements.push({ label: findLabel(quads, config.languages) || (removePrefixes(quads[0].predicate.value, prefixes) + ' = ' + removePrefixes(quads[0].object.value, prefixes)), value: i.toString() })
+                let label = findLabel(quads, config.languages)
+                // if no label found, but one of the quads has a sh:node predicate, try to find the label for the referenced node shape
+                for (const quad of quads) {
+                    if (quad.predicate.equals(SHACL_PREDICATE_NODE)) {
+                        label = findLabel(config.store.getQuads(quad.object, null, null, null), config.languages)
+                    }
+                }
+                optionElements.push({ label: label || (removePrefixes(quads[0].predicate.value, prefixes) + ' = ' + removePrefixes(quads[0].object.value, prefixes)), value: i.toString() })
             }
         }
         const editor = config.theme.createListEditor(context.template.label + '?', null, false, optionElements, context.template)
         const select = editor.querySelector('.editor') as Editor
-        select.onchange = () => {
+        select.onchange = async () => {
             if (select.value) {
                 const merged = mergeQuads(cloneProperty(context.template), values[parseInt(select.value)])
-                constraintElement.replaceWith(createPropertyInstance(merged, undefined, true))
+                const instance = await createPropertyInstance(merged, undefined, true)
+                constraintElement.replaceWith(instance)
             }
         }
         constraintElement.appendChild(editor)
@@ -86,7 +94,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
 }
 
 export function resolveShaclOrConstraintOnProperty(subjects: Term[], value: Term, config: Config): Quad[] {
-    if (value instanceof Literal) {
+    if (value.termType === 'Literal') {
         // value is a literal, try to resolve sh:or/sh:xone by matching on given value datatype
         const valueType = value.datatype
         for (const subject of subjects) {

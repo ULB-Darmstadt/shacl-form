@@ -1,6 +1,6 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
-import { ClassInstanceProvider, Plugin, listPlugins, registerPlugin } from './plugin'
+import { ClassInstanceProvider, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin'
 import { Store, NamedNode, DataFactory, BlankNode } from 'n3'
 import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
@@ -8,9 +8,10 @@ import { serialize } from './serialize'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
 import { loadGraphs, prefixes } from './loader'
+import { loadUnresolvedValues } from './linker'
 
 export * from './exports'
-export const initTimeout = 50
+export const initTimeout = 200
 
 export interface ValidationReport {
     conforms: boolean
@@ -24,11 +25,11 @@ export class ShaclForm extends HTMLElement {
     shape: ShaclNode | null = null
     form: HTMLFormElement
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
+    private styleElement: HTMLStyleElement | null = null
 
     constructor() {
         super()
 
-        this.attachShadow({ mode: 'open' })
         this.form = document.createElement('form')
         this.config = new Config(this.form)
         this.form.addEventListener('change', ev => {
@@ -42,11 +43,14 @@ export class ShaclForm extends HTMLElement {
     }
 
     connectedCallback() {
-        this.shadowRoot!.prepend(this.form)
+        this.config.updateAttributes(this)
+        this.ensureRenderRoot()
+        this.initialize()
     }
 
     attributeChangedCallback() {
         this.config.updateAttributes(this)
+        this.ensureRenderRoot()
         this.initialize()
     }
 
@@ -71,6 +75,11 @@ export class ShaclForm extends HTMLElement {
                     classInstanceProvider: this.config.classInstanceProvider,
                     proxy: this.config.attributes.proxy
                 })
+                // if we a resource link provider, let it resolve linked resources in the data graph
+                if (this.config.resourceLinkProvider) {
+                    await loadUnresolvedValues(this.config)
+                }
+
                 // remove loading indicator
                 this.form.replaceChildren()
                 // find root shacl shape
@@ -92,7 +101,7 @@ export class ShaclForm extends HTMLElement {
                             styles.push(plugin.stylesheet)
                         }
                     }
-                    this.shadowRoot!.adoptedStyleSheets = styles
+                    this.applyStyles(styles)
 
                     const rootTemplate = new ShaclNodeTemplate(rootShapeShaclSubject, this.config)
                     for (const nodeTemplate of this.config.nodeTemplates) {
@@ -134,14 +143,15 @@ export class ShaclForm extends HTMLElement {
                             })
                             this.form.appendChild(button)
                         }
-                        // property value binding is asynchronous, so delay data graph cleanup
-                        setTimeout(() => {
+                        (async () => {
+                            // property value binding is asynchronous, so wait for node rendering to finish before cleanup
+                            await this.shape?.ready
                             // delete bound values from data graph, otherwise validation would not work correctly
                             if (this.config.attributes.valuesSubject) {
                                 this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
                             }
                             this.validate(true)
-                        })
+                        })()
                     }
                 } else if (this.config.store.countQuads(null, null, null, SHAPES_GRAPH) > 0) {
                     // raise error only when shapes graph is not empty
@@ -154,9 +164,52 @@ export class ShaclForm extends HTMLElement {
                 this.form.replaceChildren(errorDisplay)
             }
             this.removeAttribute('loading')
-            // dispatch 'ready' event on macro task queue to be sure to have all property values bound to the form
-            setTimeout(() => { this.dispatchEvent(new Event('ready')) })
+            // drain micro task queue before dispatching 'ready' event
+            await this.shape?.ready
+            this.dispatchEvent(new Event('ready'))
         }, initTimeout)
+    }
+
+    private ensureRenderRoot() {
+        const useShadowRoot = this.config.attributes.useShadowRoot !== 'false'
+        if (useShadowRoot) {
+            if (!this.shadowRoot) {
+                this.attachShadow({ mode: 'open' })
+            }
+            if (!this.shadowRoot!.contains(this.form)) {
+                this.shadowRoot!.prepend(this.form)
+            }
+        } else {
+            if (this.shadowRoot?.contains(this.form)) {
+                this.shadowRoot.removeChild(this.form)
+            }
+            if (!this.contains(this.form)) {
+                this.prepend(this.form)
+            }
+        }
+    }
+
+    private applyStyles(styles: CSSStyleSheet[]) {
+        const useShadowRoot = this.config.attributes.useShadowRoot !== 'false'
+        if (useShadowRoot && this.shadowRoot) {
+            this.shadowRoot.adoptedStyleSheets = styles
+            if (this.styleElement) {
+                this.styleElement.remove()
+                this.styleElement = null
+            }
+            return
+        }
+
+        const cssText = styles.map(styleSheet => {
+            const rules = Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n')
+            return rules.replace(/:host\b/g, 'shacl-form')
+        }).join('\n')
+
+        if (!this.styleElement) {
+            this.styleElement = document.createElement('style')
+            this.prepend(this.styleElement)
+        }
+        this.styleElement.textContent = cssText
     }
 
     public serialize(format = 'text/turtle', graph = this.toRDF()): string {
@@ -179,8 +232,16 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
+    /**
+    * @deprecated Use setDataProvider() instead
+    */
     public setClassInstanceProvider(provider: ClassInstanceProvider) {
         this.config.classInstanceProvider = provider
+        this.initialize()
+    }
+
+    public setResourceLinkProvider(provider: ResourceLinkProvider) {
+        this.config.resourceLinkProvider = provider
         this.initialize()
     }
 
@@ -197,67 +258,87 @@ export class ShaclForm extends HTMLElement {
                 elem.classList.remove('valid')
             }
         }
+        for (const btn of this.form.querySelectorAll('.add-button-wrapper')) {
+            btn.classList.remove('invalid', 'validation-error')
+        }
 
-        this.config.store.deleteGraph(this.config.valuesGraphId || '')
         if (!this.shape) {
             return { conforms: true, results: [] }
         }
-        this.shape.toRDF(this.config.store, undefined, this.config.attributes.generateNodeShapeReference)
-        try {
-            const report = await this.config.validator.validate({ dataset: this.config.store, terms: [ this.shape.nodeId ] }, [{ terms: [ this.shape.template.id ] }])
-            for (const result of report.results) {
-                if (result.focusNode?.ptrs?.length) {
-                    for (const ptr of result.focusNode.ptrs) {
-                        const focusNode = ptr._term
-                        // result.path can be empty, e.g. if a focus node does not contain a required property node
-                        if (result.path?.length) {
-                            const path = result.path[0].predicates[0]
-                            // try to find most specific editor elements first
-                            let invalidElements = this.form.querySelectorAll(`
-                                :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
-                                :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor,
-                                :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
-                                :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor`)
-                            if (invalidElements.length === 0) {
-                                // if no editors found, select respective node. this will be the case for node shape violations.
-                                invalidElements = this.form.querySelectorAll(`
-                                    :scope [data-node-id='${focusNode.id}']  > shacl-property > .property-instance[data-path='${path.id}'],
-                                    :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .property-instance[data-path='${path.id}']`)
-                            }
+        // if a add-button is required, then mark it as invalid and early out
+        if (!ignoreEmptyValues) {
+            const requiredAddButtons = this.form.querySelectorAll('.add-button-wrapper.required')
+            for (const btn of requiredAddButtons) {
+                btn.classList.add('invalid')
+                btn.after(this.createValidationErrorDisplay('Value is required', 'node'))
+            }
+            if (requiredAddButtons.length > 0) {
+                return { conforms: false, results: [] }
+            }
+        }
 
-                            for (const invalidElement of invalidElements) {
-                                if (invalidElement.classList.contains('editor')) {
-                                    // this is a property shape violation
-                                    if (!ignoreEmptyValues || (invalidElement as Editor).value) {
-                                        let parent: HTMLElement | null = invalidElement.parentElement!
-                                        parent.classList.add('invalid')
-                                        parent.classList.remove('valid')
-                                        parent.appendChild(this.createValidationErrorDisplay(result))
-                                        do {
-                                            if (parent instanceof RokitCollapsible) {
-                                                parent.open = true
+        const rootShape = this.shape
+        const promise = new Promise<ValidationReport>((resolve) => {
+            this.config.store.deleteGraph(this.config.valuesGraphId || '').on('end', async () => {
+                rootShape.toRDF(this.config.store, undefined, this.config.attributes.generateNodeShapeReference)
+                try {
+                    const report = await this.config.validator.validate({ dataset: this.config.store, terms: [ rootShape.nodeId ] }, [{ terms: [ rootShape.template.id ] }])
+                    for (const result of report.results) {
+                        if (result.focusNode?.ptrs?.length) {
+                            for (const ptr of result.focusNode.ptrs) {
+                                const focusNode = ptr._term
+                                // result.path can be empty, e.g. if a focus node does not contain a required property node
+                                if (result.path?.length) {
+                                    const path = result.path[0].predicates[0]
+                                    // try to find most specific editor elements first
+                                    let invalidElements = this.form.querySelectorAll(`
+                                        :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
+                                        :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor,
+                                        :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
+                                        :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor`)
+                                    if (invalidElements.length === 0) {
+                                        // if no editors found, select respective node. this will be the case for node shape violations.
+                                        invalidElements = this.form.querySelectorAll(`
+                                            :scope [data-node-id='${focusNode.id}']  > shacl-property > .property-instance[data-path='${path.id}'],
+                                            :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .property-instance[data-path='${path.id}']`)
+                                    }
+
+                                    for (const invalidElement of invalidElements) {
+                                        if (invalidElement.classList.contains('editor')) {
+                                            // this is a property shape violation
+                                            if (!ignoreEmptyValues || (invalidElement as Editor).value) {
+                                                let parent: HTMLElement | null = invalidElement.parentElement!
+                                                parent.classList.add('invalid')
+                                                parent.classList.remove('valid')
+                                                parent.appendChild(this.createValidationErrorDisplay(result))
+                                                do {
+                                                    if (parent instanceof RokitCollapsible) {
+                                                        parent.open = true
+                                                    }
+                                                    parent = parent.parentElement
+                                                } while (parent)
                                             }
-                                            parent = parent.parentElement
-                                        } while (parent)
+                                        } else if (!ignoreEmptyValues) {
+                                            // this is a node shape violation
+                                            invalidElement.classList.add('invalid')
+                                            invalidElement.classList.remove('valid')
+                                            invalidElement.appendChild(this.createValidationErrorDisplay(result, 'node'))
+                                        }
                                     }
                                 } else if (!ignoreEmptyValues) {
-                                    // this is a node shape violation
-                                    invalidElement.classList.add('invalid')
-                                    invalidElement.classList.remove('valid')
-                                    invalidElement.appendChild(this.createValidationErrorDisplay(result, 'node'))
+                                    this.form.querySelector(`:scope [data-node-id='${focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
                                 }
                             }
-                        } else if (!ignoreEmptyValues) {
-                            this.form.querySelector(`:scope [data-node-id='${focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
                         }
                     }
+                    resolve(report)
+                } catch(e) {
+                    console.error(e)
+                    resolve({ conforms: false, results: [] })
                 }
-            }
-            return report
-        } catch(e) {
-            console.error(e)
-            return { conforms: false, results: [] }
-        }
+            })
+        })
+        return promise
     }
 
     private createValidationErrorDisplay(validatonResult?: unknown, clazz?: string): HTMLElement {
@@ -277,6 +358,9 @@ export class ShaclForm extends HTMLElement {
             } else if (result.sourceConstraintComponent?.value) {
                 messageElement.title = result.sourceConstraintComponent.value
             }
+        }
+        else if (typeof(validatonResult) === 'string') {
+            messageElement.title = validatonResult
         }
         return messageElement
     }

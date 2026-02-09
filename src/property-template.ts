@@ -129,7 +129,11 @@ export class ShaclPropertyTemplate {
 }
 
 export function aggregatedMinCount(template: ShaclPropertyTemplate) {
-    return Math.max(template.minCount || 0, template.qualifiedMinCount || 0)
+    return Math.max(template.minCount ?? 0, template.qualifiedMinCount ?? 0)
+}
+
+export function aggregatedMaxCount(template: ShaclPropertyTemplate) {
+    return Math.min(template.maxCount ?? Number.MAX_SAFE_INTEGER, template.qualifiedMaxCount ?? Number.MAX_SAFE_INTEGER)
 }
 
 export function cloneProperty(template: ShaclPropertyTemplate) {
