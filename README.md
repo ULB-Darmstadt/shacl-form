@@ -1,9 +1,5 @@
 # SHACL Form Generator
 
-```console
-npm i @ulb-darmstadt/shacl-form
-```
-
 HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that conform to [SHACL shapes](https://www.w3.org/TR/shacl/).
 
 ## [See demo here](https://ulb-darmstadt.github.io/shacl-form/)
@@ -50,6 +46,37 @@ HTML5 web component for editing/viewing [RDF](https://www.w3.org/RDF/) data that
     </script>
   </body>
 </html>
+```
+## Install and use in your project
+
+Install the package:
+
+```console
+npm i @ulb-darmstadt/shacl-form
+```
+
+This package declares peer dependencies; install them in your app as well:
+
+```console
+npm i @ro-kit/ui-widgets jsonld leaflet leaflet-editable leaflet.fullscreen n3 rdfxml-streaming-parser shacl-engine uuid
+```
+
+Then load the web component in your app. For a Vite/webpack-style project, import it once at startup:
+
+```ts
+import '@ulb-darmstadt/shacl-form'
+```
+
+Then use the element in your HTML:
+
+```html
+<shacl-form data-shapes="..."></shacl-form>
+```
+
+Alternatively, you can load the prebuilt bundle directly in a plain HTML page, like shown above:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/bundle.js" type="module"></script>
 ```
 
 ### Element attributes
@@ -260,6 +287,54 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
 * text/turtle, application/n-triples, application/n-quads, application/trig using [N3 writer](https://github.com/rdfjs/N3.js?tab=readme-ov-file#writing)
 * application/ld+json using [jsonld](https://github.com/digitalbazaar/jsonld.js)
 
+### Theming
+
+`<shacl-form>` has a built-in abstraction layer for theming, i.e. the look and feel of the form elements. If you would like to employ a different theme like e.g. `bootstrap` or `material design`, then extend class [Theme](./src/theme.ts) and call function `setTheme()` on the `<shacl-form>` element.
+
+If you only want to restyle the existing widgets (without re-implementing internal application behavior), you can use CSS in two ways:
+
+1) Render into light DOM for global CSS:
+
+```html
+<shacl-form data-use-shadow-root="false"></shacl-form>
+```
+
+2) Use CSS variables and parts (works with Shadow DOM too). The following CSS variables are supported:
+
+```css
+shacl-form {
+  --shacl-font-family: system-ui, sans-serif;
+  --shacl-font-size: 14px;
+  --shacl-text-color: #333;
+  --shacl-muted-color: #555;
+  --shacl-border-color: #ddd;
+  --shacl-bg: #fff;
+  --shacl-row-alt-bg: #f8f8f8;
+  --shacl-error-color: #c00;
+  --shacl-label-width: 10em;
+}
+```
+
+And these parts are exposed for styling:
+
+```css
+shacl-form::part(form) { padding: 8px; }
+shacl-form::part(field) { gap: 6px; }
+shacl-form::part(label) { font-weight: 600; }
+shacl-form::part(editor) { border-radius: 6px; }
+shacl-form::part(button) { min-height: 32px; }
+shacl-form::part(primary) { font-weight: 700; }
+shacl-form::part(add-button) { }
+shacl-form::part(remove-button) { }
+shacl-form::part(link-button) { }
+shacl-form::part(submit-button) { }
+```
+
+Available parts:
+`form`, `node`, `linked-node`, `node-title`, `group`, `group-title`, `collapsible`, `property`, `property-instance`, `field`, `label`, `editor`, `lang-chooser`, `constraint`, `constraint-editor`, `add-controls`, `remove-controls`, `add-button`, `remove-button`, `link-button`, `submit-button`, `button`, `primary`.
+
+Note: the <a href="https://gitlab.ulb.tu-darmstadt.de/rokit/ui-widgets">default widgets</a> are provided by ULB Darmstadt. Those components also expose their own internal `part` names; you can style them via `::part(...)` selectors on the respective elements. <a href="https://gitlab.ulb.tu-darmstadt.de/rokit/ui-widgets">The the readme</a> for documentation.
+
 ### Use with Solid Pods
 
 `<shacl-form>` can easily be integrated with [Solid Pods](https://solidproject.org/about). The output of `toRDF()` being a RDF/JS N3 Store, as explained [above](#toRDF), it can be presented to `solid-client`s `fromRdfJsDataset()` function, which converts the RDF graph into a Solid Dataset. The following example, based on Inrupt's basic [Solid Pod example](https://docs.inrupt.com/sdk/javascript-sdk/tutorial) shows how to merge data from a `<shacl-form>` with a Solid data resource at `readingListDataResourceURI`:
@@ -296,7 +371,3 @@ Apart from grouped properties, all properties having an `sh:node` predicate and 
     console.error(`Storing SHACL data from Form failed with error ${err}!`)
   }
 ```
-
-### Theming
-
-`<shacl-form>` has a built-in abstraction layer for theming, i.e. the look and feel of the form elements. If you would like to employ a different theme like e.g. `bootstrap` or `material design`, then extend class [Theme](./src/theme.ts) and call function `setTheme()` on the `<shacl-form>` element.

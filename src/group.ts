@@ -17,11 +17,14 @@ export function createShaclGroup(groupSubject: string, config: Config): HTMLElem
         group.classList.add('collapsible');
         (group as RokitCollapsible).open = config.attributes.collapse === 'open';
         (group as RokitCollapsible).label = name
+        group.setAttribute('part', 'group collapsible')
     } else {
         group = document.createElement('div')
         const header = document.createElement('h1')
         header.innerText = name
+        header.setAttribute('part', 'group-title')
         group.appendChild(header)
+        group.setAttribute('part', 'group')
     }
 
     group.dataset['subject'] = groupSubject

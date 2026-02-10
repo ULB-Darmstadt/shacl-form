@@ -19,6 +19,7 @@ export class ShaclNode extends HTMLElement {
         super()
         this.template = template
         this.linked = linked ?? false
+        this.setAttribute('part', 'node')
         let nodeId: NamedNode | BlankNode | undefined = valueSubject
         if (!nodeId) {
             // if no value subject given, create new node id with a type depending on own nodeKind or given parent property nodeKind
@@ -45,6 +46,8 @@ export class ShaclNode extends HTMLElement {
             labelElem.innerText = label
             labelElem.classList.add('linked')
             this.appendChild(labelElem)
+            const existingPart = this.getAttribute('part')
+            this.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}linked-node`)
 
             const anchor = document.createElement('a')
             const refId = (valueSubject.termType === 'BlankNode') ? '_:' + valueSubject.value : valueSubject.value
@@ -89,6 +92,7 @@ export class ShaclNode extends HTMLElement {
                 if (label) {
                     const header = document.createElement('h1')
                     header.innerText = label
+                    header.setAttribute('part', 'node-title')
                     this.prepend(header)
                 }
             })()

@@ -24,11 +24,13 @@ export class ShaclProperty extends HTMLElement {
         this.template = template
         this.parent = parent
         this.container = this
+        this.setAttribute('part', 'property')
         if (this.template.nodeShapes.size && this.template.config.attributes.collapse !== null && (this.template.maxCount === undefined || this.template.maxCount > 1)) {
             const collapsible = new RokitCollapsible()
             collapsible.classList.add('collapsible', 'shacl-group');
             collapsible.open = template.config.attributes.collapse === 'open';
             collapsible.label = this.template.label;
+            collapsible.setAttribute('part', 'collapsible')
             this.container = collapsible
             this.appendChild(this.container)
         }
@@ -185,6 +187,7 @@ export class ShaclProperty extends HTMLElement {
     async createAddControls() {
         const wrapper = document.createElement('div')
         wrapper.classList.add('add-button-wrapper')
+        wrapper.setAttribute('part', 'add-controls')
 
         const linker = await createLinker(this)
         if (linker) {
@@ -195,6 +198,8 @@ export class ShaclProperty extends HTMLElement {
         addButton.title = 'Add ' + this.template.label
         addButton.classList.add('add-button')
         addButton.setAttribute('text', '')
+        const existingPart = addButton.getAttribute('part')
+        addButton.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}add-button`)
         addButton.addEventListener('click', async () => {
             const instance = await this.addPropertyInstance()
             if (instance) {
@@ -216,6 +221,7 @@ export async function createPropertyInstance(template: ShaclPropertyTemplate, va
     if (template.nodeShapes.size) {
         instance = document.createElement('div')
         instance.classList.add('property-instance')
+        instance.setAttribute('part', 'property-instance')
         for (const shape of template.nodeShapes) {
             const node = new ShaclNode(shape, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked)
             instance.appendChild(node)
@@ -235,6 +241,7 @@ export async function createPropertyInstance(template: ShaclPropertyTemplate, va
         // count as property-instance only if not empty
         if (instance.childNodes.length > 0) {
             instance.classList.add('property-instance')
+            instance.setAttribute('part', 'property-instance')
         }
         if (linked) {
             instance.classList.add('linked')
@@ -273,6 +280,8 @@ function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean
     removeButton.title = 'Remove ' + label
     removeButton.dense = dense
     removeButton.icon = true
+    const existingPart = removeButton.getAttribute('part')
+    removeButton.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}remove-button`)
     removeButton.addEventListener('click', () => {
         instance.classList.remove('fadeIn')
         instance.classList.add('fadeOut')
@@ -292,6 +301,7 @@ function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean
 function createRemoveButtonWrapper(colorize: boolean) {
     const wrapper = document.createElement('div')
     wrapper.className = 'remove-button-wrapper'
+    wrapper.setAttribute('part', 'remove-controls')
     if (colorize) {
         wrapper.classList.add('colorize')
     }

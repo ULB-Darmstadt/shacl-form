@@ -8,7 +8,7 @@ import { RokitButton, RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-
 import { findLabel } from './util'
 
 const css = `
-.editor:not([type='checkbox']) { border: 1px solid #DDD; }
+.editor:not([type='checkbox']) { border: 1px solid var(--shacl-border-color, #DDD); }
 .property-instance label { display: inline-flex; word-break: break-word; line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
 .property-instance:not(:first-child) > label:not(.persistent) { visibility: hidden; max-height: 0; }
 .mode-edit .property-instance label { width: var(--label-width); }
@@ -24,6 +24,7 @@ export class DefaultTheme extends Theme {
     createDefaultTemplate(label: string, value: Term | null, required: boolean, editor: Editor, template?: ShaclPropertyTemplate): HTMLElement {
         editor.id = `e${this.idCtr++}`
         editor.classList.add('editor')
+        editor.setAttribute('part', 'editor')
         if (template?.datatype) {
             // store datatype on editor, this is used for RDF serialization
             editor.shaclDatatype = template.datatype
@@ -58,6 +59,7 @@ export class DefaultTheme extends Theme {
         const labelElem = document.createElement('label')
         labelElem.htmlFor = editor.id
         labelElem.innerText = label
+        labelElem.setAttribute('part', 'label')
         if (template?.description) {
             labelElem.setAttribute('title', template.description.value)
         }
@@ -72,6 +74,7 @@ export class DefaultTheme extends Theme {
         }
 
         const result = document.createElement('div')
+        result.setAttribute('part', 'field')
         result.appendChild(labelElem)
         result.appendChild(editor)
         return result
@@ -148,6 +151,7 @@ export class DefaultTheme extends Theme {
         }
         langChooser.title = 'Language of the text'
         langChooser.classList.add('lang-chooser')
+        langChooser.setAttribute('part', 'lang-chooser')
         langChooser.slot = 'suffix'
         // if lang chooser changes, fire a change event on the text input instead. this is for shacl validation handling.
         langChooser.addEventListener('change', (ev) => {
@@ -274,6 +278,9 @@ export class DefaultTheme extends Theme {
         button.innerHTML = label
         if (primary) {
             button.setAttribute('primary', '')
+            button.setAttribute('part', 'button primary')
+        } else {
+            button.setAttribute('part', 'button')
         }
         return button
     }

@@ -31,6 +31,7 @@ export class ShaclForm extends HTMLElement {
         super()
 
         this.form = document.createElement('form')
+        this.form.setAttribute('part', 'form')
         this.config = new Config(this.form)
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
@@ -120,6 +121,9 @@ export class ShaclForm extends HTMLElement {
                         // add submit button
                         if (this.config.attributes.submitButton !== null) {
                             const button = this.config.theme.createButton(this.config.attributes.submitButton || 'Submit', true)
+                            button.classList.add('submit-button')
+                            const existingPart = button.getAttribute('part')
+                            button.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}submit-button`)
                             button.addEventListener('click', (event) => {
                                 event.preventDefault()
                                 // let browser check form validity first

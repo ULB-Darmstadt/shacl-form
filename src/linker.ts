@@ -27,6 +27,8 @@ export async function createLinker(property: ShaclProperty): Promise<HTMLElement
     linkButton.title = 'Link existing ' + property.template.label
     linkButton.classList.add('link-button')
     linkButton.setAttribute('text', '')
+    const existingPart = linkButton.getAttribute('part')
+    linkButton.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}link-button`)
     linkButton.addEventListener('click', async () => {
         if (provider?.lazyLoad) {
             linkButton.classList.add('loading')

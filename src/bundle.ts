@@ -1,4 +1,4 @@
-// this file's only purpose is support bundling shacl-form wiht all its dependencies for use e.g. via CDN
+// this file's only purpose is support bundling shacl-form with all its dependencies for use e.g. via CDN
 
 import './form'
 import './plugins/file-upload'

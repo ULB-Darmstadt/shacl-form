@@ -1,12 +1,23 @@
-form { display:block; --label-width: 8em; --caret-size: 10px; }
+:host {
+    --shacl-font-family: inherit;
+    --shacl-font-size: 14px;
+    --shacl-text-color: #333;
+    --shacl-muted-color: #555;
+    --shacl-border-color: #DDD;
+    --shacl-bg: #FFF;
+    --shacl-row-alt-bg: #F8F8F8;
+    --shacl-error-color: #C00;
+    --shacl-label-width: 8em;
+}
+form { display:block; --label-width: var(--shacl-label-width, 8em); --caret-size: 10px; font-family: var(--shacl-font-family); font-size: var(--shacl-font-size); color: var(--shacl-text-color); background-color: var(--shacl-bg); }
 form.mode-edit { padding-left: 1em;  }
 form, form * { box-sizing: border-box; }
 shacl-node, .collapsible::part(content) { display: flex; flex-direction: column; width: 100%; position: relative; }
 shacl-node .remove-button { margin-top: 1px; }
-shacl-node .add-button-wrapper { display: flex; width: 100%; justify-content: flex-end; gap: 20px; padding-right: 24px; color: #555; font-size: 14px; }
+shacl-node .add-button-wrapper { display: flex; width: 100%; justify-content: flex-end; gap: 20px; padding-right: 24px; color: var(--shacl-muted-color); font-size: 14px; }
 shacl-node .add-button::part(button)::before { content: '+ ' }
 shacl-node .link-button::part(button)::before { content: '🔗 '; font-size: 10px; }
-shacl-node h1 { font-size: 16px; border-bottom: 1px solid #AAA; margin-top: 4px; color: #555; }
+shacl-node h1 { font-size: 16px; border-bottom: 1px solid #AAA; margin-top: 4px; color: var(--shacl-muted-color); }
 shacl-property:not(:has(>.collapsible)), shacl-property>.collapsible::part(content) { display: flex; flex-direction: column; align-items: end; position: relative; }
 shacl-property:not(.may-add) > .add-button-wrapper, shacl-property:not(.may-add) > .collapsible > .add-button-wrapper { display: none; }
 shacl-property:not(.may-remove) > .property-instance > .remove-button-wrapper > .remove-button:not(.persistent) { visibility: hidden; }
@@ -19,14 +30,14 @@ shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button-wrapper 
 .shacl-or-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
 .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
 .property-instance.linked label:after, label.linked:after { content: '\1F517'; font-size: 0.6em; position: absolute; top: 3px; right: 3px; }
-.mode-edit .property-instance label.required::before, .add-button-wrapper.required > .add-button::before, .add-button-wrapper.required > .link-button::before { color: red; content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; }
+.mode-edit .property-instance label.required::before, .add-button-wrapper.required > .add-button::before, .add-button-wrapper.required > .link-button::before { color: var(--shacl-error-color); content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; }
 .mode-edit .add-button-wrapper.required > .add-button::before, .add-button-wrapper.required > .link-button::before { left: -0.5em; }
 .mode-edit .property-instance label.required::before { top: 0.15rem; }
 .property-instance.valid::before { content: ''; position: absolute; left: calc(var(--label-width) - 1em); top:0.5em; width: 0.9em; height: 0.9em; background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1024 1024" fill="green" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M866.133333 258.133333L362.666667 761.6l-204.8-204.8L98.133333 618.666667 362.666667 881.066667l563.2-563.2z"/></svg>'); }
 .editor:not([type='checkbox']) { flex-grow: 1; }
 textarea.editor { resize: vertical; }
 .lang-chooser { border: 0; background-color: #e9e9ed; padding: 2px 4px; align-self: flex-start; }
-.validation-error { position: absolute; left: calc(var(--label-width) - 1em); color: red; cursor: help; }
+.validation-error { position: absolute; left: calc(var(--label-width) - 1em); color: var(--shacl-error-color); cursor: help; }
 .validation-error::before { content: '\26a0' }
 .validation-error.node { left: -1em; }
 .invalid > .editor { border-color: red !important; }
@@ -47,11 +58,11 @@ h3 { margin-top: 0; }
     100% { opacity: 1; transform: scaleY(1); }
 }
 .collapsible::part(label) { font-weight: 600; }
-.collapsible > .property-instance:nth-child(even) { background-color: #F8F8F8; }
+.collapsible > .property-instance:nth-child(even) { background-color: var(--shacl-row-alt-bg); }
 .collapsible > .property-instance > shacl-node > h1 { display: none; }
 .ref-link { cursor: pointer; }
 .ref-link:hover { text-decoration: underline; }
-.node-id-display { color: #999; font-size: 11px; }
+.node-id-display { color: var(--shacl-muted-color); font-size: 11px; }
 /* hierarchy colors */
 .colorize { --hierarchy-color-width: 3px; padding: 0 1px 0 calc(1px + var(--hierarchy-color-width)); align-self: stretch; position: relative; }
 .colorize::before {

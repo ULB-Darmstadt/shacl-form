@@ -13,6 +13,7 @@ import { prefixes } from './loader'
 export function createShaclOrConstraint(options: Term[], context: ShaclNode | ShaclProperty, config: Config): HTMLElement {
     const constraintElement = document.createElement('div')
     constraintElement.classList.add('shacl-or-constraint')
+    constraintElement.setAttribute('part', 'constraint')
 
     const optionElements: InputListEntry[] = []
 
@@ -46,6 +47,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
             }
         }
         const editor = config.theme.createListEditor('Please choose', null, false, optionElements)
+        editor.setAttribute('part', 'constraint-editor')
         const select = editor.querySelector('.editor') as Editor
         select.onchange = () => {
             if (select.value) {
@@ -79,6 +81,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
             }
         }
         const editor = config.theme.createListEditor(context.template.label + '?', null, false, optionElements, context.template)
+        editor.setAttribute('part', 'constraint-editor')
         const select = editor.querySelector('.editor') as Editor
         select.onchange = async () => {
             if (select.value) {
