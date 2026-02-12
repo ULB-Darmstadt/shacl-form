@@ -71,10 +71,21 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
             if (quads.length) {
                 values.push(quads)
                 let label = findLabel(quads, config.languages)
+                if (!label) {
+                    // try sh:name as fallback for label
+                    for (const quad of quads) {
+                        if (quad.predicate.value === `${PREFIX_SHACL}name`) {
+                            label = quad.object.value
+                            break
+                        }
+                    }
+                }
                 // if no label found, but one of the quads has a sh:node predicate, try to find the label for the referenced node shape
-                for (const quad of quads) {
-                    if (quad.predicate.equals(SHACL_PREDICATE_NODE)) {
-                        label = findLabel(config.store.getQuads(quad.object, null, null, null), config.languages)
+                if (!label) {
+                    for (const quad of quads) {
+                        if (quad.predicate.equals(SHACL_PREDICATE_NODE)) {
+                            label = findLabel(config.store.getQuads(quad.object, null, null, null), config.languages)
+                        }
                     }
                 }
                 optionElements.push({ label: label || (removePrefixes(quads[0].predicate.value, prefixes) + ' = ' + removePrefixes(quads[0].object.value, prefixes)), value: i.toString() })
