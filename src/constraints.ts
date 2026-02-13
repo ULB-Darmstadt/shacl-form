@@ -87,6 +87,10 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
             if (select.value) {
                 const merged = mergeQuads(cloneProperty(context.template), values[parseInt(select.value)])
                 const instance = await createPropertyInstance(merged, undefined, true)
+                const label = instance.querySelector(':scope > label')
+                if (label) {
+                    label.classList.add('persistent')
+                }
                 constraintElement.replaceWith(instance)
             }
         }
