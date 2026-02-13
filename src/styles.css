@@ -74,7 +74,8 @@ h3 { margin-top: 0; }
     background: linear-gradient(var(--hierarchy-colors)) no-repeat 0 calc(var(--index) * 100% / (var(--hierarchy-colors-length) - 1)) / 100% calc(1px * infinity);
  }
 .property-instance:not(:has(shacl-node)) > .colorize::before { background: 0; }
-.mode-view .property-instance > .colorize { order: -1; padding-left: calc(8px + var(--hierarchy-color-width)); }
+.colorize:not(:has(.remove-button)) { padding-left: calc(8px + var(--hierarchy-color-width)); }
+.mode-view .property-instance > .colorize { order: -1; }
 .link-option { padding: 10px; }
 .link-option:hover { background-color: #F5F5F5; cursor: pointer; }
 rokit-dialog.link-chooser::part(dialog) { min-height: min(434px, 90vh); width: min(90vw, 600px); }

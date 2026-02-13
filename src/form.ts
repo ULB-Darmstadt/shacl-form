@@ -76,7 +76,7 @@ export class ShaclForm extends HTMLElement {
                     classInstanceProvider: this.config.classInstanceProvider,
                     proxy: this.config.attributes.proxy
                 })
-                // if we a resource link provider, let it resolve linked resources in the data graph
+                // if we have a resource link provider, let it resolve linked resources in the data graph
                 if (this.config.resourceLinkProvider) {
                     await loadUnresolvedValues(this.config)
                 }

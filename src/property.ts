@@ -249,8 +249,8 @@ export async function createPropertyInstance(template: ShaclPropertyTemplate, va
     }
     if (template.config.editMode && (!linked || forceRemovable)) {
         appendRemoveButton(instance, template.label, template.config.theme.dense, template.config.hierarchyColorsStyleSheet !== undefined, forceRemovable)
-    } else if (!template.config.editMode && template.config.hierarchyColorsStyleSheet !== undefined) {
-        // in colorized view mode, add remove button wrapper only
+    } else if (template.config.hierarchyColorsStyleSheet !== undefined) {
+        // add remove button wrapper only (for coloring)
         instance.appendChild(createRemoveButtonWrapper(true))
     }
 
