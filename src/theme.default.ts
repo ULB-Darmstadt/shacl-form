@@ -1,7 +1,7 @@
 import { Term } from '@rdfjs/types'
 import { aggregatedMinCount, ShaclPropertyTemplate } from "./property-template"
 import { Editor, InputListEntry, Theme } from "./theme"
-import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI } from './constants'
+import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI, XSD_DATATYPE_BOOLEAN } from './constants'
 import { DataFactory, Literal, NamedNode } from 'n3'
 import { Term as N3Term } from 'n3'
 import { RokitButton, RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
@@ -54,8 +54,14 @@ export class DefaultTheme extends Theme {
         if ((template?.hasValue && value) || template?.readonly) {
             editor.disabled = true
         }
-        editor.value = value?.value || template?.defaultValue?.value || ''
+        
+        if (template?.datatype?.equals(XSD_DATATYPE_BOOLEAN)) {
+            editor.checked = value?.value === 'true' || template?.defaultValue?.value === 'true'
+        } else {
+            editor.value = value?.value || template?.defaultValue?.value || ''
+        }
 
+// editor.value = value?.value || template?.defaultValue?.value || ''
         const labelElem = document.createElement('label')
         labelElem.htmlFor = editor.id
         labelElem.innerText = label
