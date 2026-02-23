@@ -32,7 +32,7 @@ export abstract class Theme {
     createViewer(label: string, value: Term, template: ShaclPropertyTemplate): HTMLElement {
         const viewer = document.createElement('div')
         const labelElem = document.createElement('label')
-        labelElem.innerHTML = label + ':'
+        labelElem.textContent = `${label}:`
         if (template.description) {
             labelElem.setAttribute('title', template.description.value)
         }
