@@ -57,7 +57,7 @@
         "@typescript-eslint/parser": "^8.55.0",
         "@web/test-runner": "^0.20.2",
         "@web/test-runner-chrome": "^0.18.1",
-        "eslint": "^9.0.0",
+        "eslint": "^10.1.0",
         "rdf-isomorphic": "^2.0.1",
         "rimraf": "^6.1.2",
         "rollup-plugin-peer-deps-external": "^2.2.4",
@@ -74,10 +74,5 @@
         "rdfxml-streaming-parser": "^3.1.0",
         "shacl-engine": "^1.1.0",
         "uuid": "^13.0.0"
-    },
-    "overrides": {
-        "@digitalbazaar/http-client": "^4.1.1",
-        "undici": "^6.23.0",
-        "ws": "8.19.0"
     }
 }
