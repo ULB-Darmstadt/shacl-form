@@ -27,4 +27,23 @@ describe('test recursion protection', () => {
         )
         expect(form.shape?.template.id.value).to.equal('http://example.org/Human')
     })
+
+    it('does not auto-create recursive required nodes', async () => {
+        await bind(form, `
+            ${prefixes}
+            :Human a sh:NodeShape ;
+            sh:property [
+                sh:path :loves ;
+                sh:minCount 1 ;
+                sh:node :Dog ;
+            ] .
+            :Dog a sh:NodeShape ;
+            sh:property [
+                sh:path :loves ;
+                sh:minCount 1 ;
+                sh:node :Human ;
+            ] .`
+        )
+        expect(form.shadowRoot?.querySelectorAll('shacl-node').length).to.equal(2)
+    })
 })

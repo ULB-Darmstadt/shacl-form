@@ -14,11 +14,13 @@ export class ShaclNode extends HTMLElement {
     template: ShaclNodeTemplate
     linked: boolean
     ready: Promise<void>
+    ancestorShapeIds: Set<string>
 
-    constructor(template: ShaclNodeTemplate, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string, linked?: boolean) {
+    constructor(template: ShaclNodeTemplate, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string, linked?: boolean, ancestorShapeIds: Set<string> = new Set()) {
         super()
         this.template = template
         this.linked = linked ?? false
+        this.ancestorShapeIds = ancestorShapeIds
         this.setAttribute('part', 'node')
         let nodeId: NamedNode | BlankNode | undefined = valueSubject
         if (!nodeId) {
@@ -64,6 +66,8 @@ export class ShaclNode extends HTMLElement {
             if (valueSubject) {
                 template.config.renderedNodes.add(id)
             }
+            const ancestorShapeIds = this.ancestorShapeIds
+            const currentShapeId = this.template.id.value
             this.dataset.nodeId = this.nodeId.id
             if (this.template.config.attributes.showNodeIds !== null) {
                 const div = document.createElement('div')
@@ -72,6 +76,8 @@ export class ShaclNode extends HTMLElement {
                 this.appendChild(div)
             }
             this.ready = (async () => {
+                const childAncestorShapeIds = new Set(ancestorShapeIds)
+                childAncestorShapeIds.add(currentShapeId)
                 // first output this shape's properties and then create extended shapes. this ensures that the values graph is bound to the most specific property.
                 for (const [_, properties] of Object.entries(template.properties)) {
                     for (const property of properties) {
@@ -79,7 +85,7 @@ export class ShaclNode extends HTMLElement {
                     }
                 }
                 for (const shape of template.extendedShapes) {
-                    const node = new ShaclNode(shape, valueSubject, undefined, undefined, linked)
+                    const node = new ShaclNode(shape, valueSubject, undefined, undefined, linked, childAncestorShapeIds)
                     this.prepend(node)
                     await node.ready
                 }

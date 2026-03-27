@@ -87,7 +87,7 @@ export class ShaclProperty extends HTMLElement {
                 const resolvedOptions = resolveShaclOrConstraintOnProperty(options, value, this.template.config)
                 if (resolvedOptions.length) {
                     const merged = mergeQuads(cloneProperty(this.template), resolvedOptions)
-                    instance = await createPropertyInstance(merged, value, !this.parent.linked, this.parent.linked)
+                    instance = await createPropertyInstance(merged, value, !this.parent.linked, this.parent.linked, this.parent)
                     resolved = true
                 }
             }
@@ -97,7 +97,7 @@ export class ShaclProperty extends HTMLElement {
                 appendRemoveButton(instance, '', this.template.config.theme.dense, this.template.config.hierarchyColorsStyleSheet !== undefined)
             }
         } else {
-            instance = await createPropertyInstance(this.template, value, forceRemovable, linked || this.parent.linked)
+            instance = await createPropertyInstance(this.template, value, forceRemovable, linked || this.parent.linked, this.parent)
         }
         if (instance) {
             this.container.insertBefore(instance, this.querySelector(ADD_BUTTON_SELECTOR))
@@ -112,8 +112,9 @@ export class ShaclProperty extends HTMLElement {
         const minCount = aggregatedMinCount(this.template)
         const literal = this.template.nodeShapes.size === 0
         const noLinkableResources = this.querySelector(':scope > .add-button-wrapper > .link-button, :scope > .collapsible > .add-button-wrapper > .link-button') === null
+        const mayAutocreateRequiredNode = literal || !this.hasRecursiveNodeShape()
         let instanceCount = this.instanceCount()
-        if (instanceCount === 0 && (literal || (noLinkableResources && minCount > 0))) {
+        if (instanceCount === 0 && mayAutocreateRequiredNode && (literal || (noLinkableResources && minCount > 0))) {
             await this.addPropertyInstance()
             instanceCount = 1
         }
@@ -135,6 +136,18 @@ export class ShaclProperty extends HTMLElement {
 
     instanceCount() {
         return this.querySelectorAll(PROPERTY_INSTANCE_SELECTOR).length
+    }
+
+    hasRecursiveNodeShape() {
+        const ancestorShapeIds = new Set<string>()
+        this.parent.ancestorShapeIds.forEach(id => ancestorShapeIds.add(id))
+        ancestorShapeIds.add(this.parent.template.id.value)
+        for (const shape of this.template.nodeShapes) {
+            if (ancestorShapeIds.has(shape.id.value)) {
+                return true
+            }
+        }
+        return false
     }
 
     toRDF(graph: Store, subject: NamedNode | BlankNode) {
@@ -216,14 +229,18 @@ export class ShaclProperty extends HTMLElement {
     }
 }
 
-export async function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false): Promise<HTMLElement> {
+export async function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false, parentNode?: ShaclNode): Promise<HTMLElement> {
     let instance: HTMLElement
     if (template.nodeShapes.size) {
         instance = document.createElement('div')
         instance.classList.add('property-instance')
         instance.setAttribute('part', 'property-instance')
+        const childAncestorShapeIds = new Set(parentNode?.ancestorShapeIds ?? [])
+        if (parentNode) {
+            childAncestorShapeIds.add(parentNode.template.id.value)
+        }
         for (const shape of template.nodeShapes) {
-            const node = new ShaclNode(shape, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked)
+            const node = new ShaclNode(shape, value as NamedNode | BlankNode | undefined, template.nodeKind, template.label, linked, childAncestorShapeIds)
             instance.appendChild(node)
             await node.ready
         }
