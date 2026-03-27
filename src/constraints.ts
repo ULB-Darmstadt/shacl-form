@@ -34,7 +34,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                     const template = config.getPropertyTemplate(subject, context.template)
                     const property = new ShaclProperty(template, context)
                     list.push(property)
-                    combinedText += (combinedText.length > 1 ? ' / ' : '') + property.template.label
+                    combinedText += (combinedText.length > 0 ? ' / ' : '') + property.template.label
                 }
                 properties.push(list)
                 optionElements.push({ label: combinedText, value: i.toString() })
@@ -56,10 +56,12 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                 if (selectedOptions.length) {
                     lastAddedProperty = selectedOptions[0]
                     constraintElement.replaceWith(selectedOptions[0])
+                    lastAddedProperty.updateControls()
                 }
                 for (let i = 1; i < selectedOptions.length; i++) {
                     lastAddedProperty!.after(selectedOptions[i])
                     lastAddedProperty = selectedOptions[i]
+                    lastAddedProperty.updateControls()
                 }
             }
         }
