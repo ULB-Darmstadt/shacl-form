@@ -9,8 +9,8 @@
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 
-example:4f2a8de3-9fc8-40a9-9237-d5964520ec54
-  a dcat:Dataset, example:ArchitectureModelDataset ;
+example:4f2a8de3-9fc8-40a9-9237-d5964520ec54 a dcat:Dataset ;
+  dcterms:conformsTo example:ArchitectureModelDataset ;
   dcterms:title "Einsteinturm"@de, "Einstein Tower"@en ;
   dcterms:description "Modell des Einsteinturms"@de, "Model of the Einstein Tower"@en ;
   dcterms:issued "2023-07-27"^^xsd:date ;

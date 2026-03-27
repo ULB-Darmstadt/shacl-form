@@ -83,10 +83,10 @@ Attribute | Description
 ---|---
 data-shapes | SHACL shape definitions (e.g. Turtle) used to generate the form
 data-shapes-url | When `data-shapes` is not set, load SHACL shapes from this URL
-data-shape-subject | Optional subject IRI for the root node shape. If not set, the first node shape is used
+data-shape-subject | Optional subject IRI for the root `sh:NodeShape`. If not set, the `<shacl-form>` first tries to resolve the root shape from `data-values-subject` and loaded data, preferring `dcterms:conformsTo`, then `rdf:type` / `sh:targetClass`, and finally falling back to the first node shape in the shapes graph
 data-values | RDF triples (e.g. Turtle) used to prefill the form
 data-values-url | When `data-values` is not set, load RDF triples from this URL
-data-values-subject | Subject (IRI or blank node id) for generated data. If not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is used to find the root node in the data graph
+data-values-subject | Subject (IRI or blank node id) for generated data. If not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is used to find the root node in the data graph. When exactly one `dcterms:conformsTo` statement exists in the loaded data graph, its subject is used automatically. For the selected subject, a `dcterms:conformsTo` object that is a known `sh:NodeShape` is used as the root shape before falling back to `rdf:type` / `sh:targetClass`
 data-values-namespace | RDF namespace used when generating new RDF subjects. Default is empty, which yields blank nodes
 data-values-graph | If set, serialization creates a named graph with this IRI
 data-language | Language for `langString` values (e.g. in `sh:name` or `rdfs:label`). Default is [`navigator.language`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/language) with fallback to [`navigator.languages`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/languages)

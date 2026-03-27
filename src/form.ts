@@ -7,7 +7,7 @@ import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
-import { loadGraphs, prefixes } from './loader'
+import { findConformsToShapeSubject, findConformsToValuesSubject, loadGraphs, prefixes } from './loader'
 import { loadUnresolvedValues } from './linker'
 
 export * from './exports'
@@ -79,6 +79,9 @@ export class ShaclForm extends HTMLElement {
                 // if we have a resource link provider, let it resolve linked resources in the data graph
                 if (this.config.resourceLinkProvider) {
                     await loadUnresolvedValues(this.config)
+                }
+                if (!this.config.attributes.valuesSubject) {
+                    this.config.attributes.valuesSubject = findConformsToValuesSubject(this.config.store) || null
                 }
 
                 // remove loading indicator
@@ -383,18 +386,19 @@ export class ShaclForm extends HTMLElement {
             // if we have a data graph and data-values-subject is set, use shape of that
             if (this.config.attributes.valuesSubject && this.config.store.countQuads(null, null, null, DATA_GRAPH) > 0) {
                 const rootValueSubject = DataFactory.namedNode(this.config.attributes.valuesSubject)
-                const rootValueSubjectTypes = [
-                    ...this.config.store.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, DATA_GRAPH),
-                    ...this.config.store.getQuads(rootValueSubject, DCTERMS_PREDICATE_CONFORMS_TO, null, DATA_GRAPH)
-                ]
+                const rootConformsToShape = findConformsToShapeSubject(this.config.store, this.config.attributes.valuesSubject)
+                const rootValueSubjectTypes = this.config.store.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, DATA_GRAPH)
                 if (rootValueSubjectTypes.length === 0) {
                     console.warn(`value subject '${this.config.attributes.valuesSubject}' has neither ${RDF_PREDICATE_TYPE.id} nor ${DCTERMS_PREDICATE_CONFORMS_TO.id} statement`)
-                } else {
-                    // if type/conformsTo refers to a node shape, prioritize that over targetClass resolution
-                    for (const rootValueSubjectType of rootValueSubjectTypes) {
-                        if (this.config.store.getQuads(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length > 0) {
-                            return rootValueSubjectType.object as NamedNode
-                        }
+                }
+                // if dcterms:conformsTo refers to a node shape, prioritize that over targetClass resolution
+                if (rootConformsToShape) {
+                    return rootConformsToShape
+                }
+                // if rdf:type refers to a node shape, prioritize that over targetClass resolution
+                for (const rootValueSubjectType of rootValueSubjectTypes) {
+                    if (this.config.store.getQuads(rootValueSubjectType.object as NamedNode, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length > 0) {
+                        return rootValueSubjectType.object as NamedNode
                     }
                 }
                 // find root shape via targetClass

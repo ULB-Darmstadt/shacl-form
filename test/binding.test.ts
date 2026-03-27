@@ -163,4 +163,59 @@ describe('test value binding', () => {
             await expectValid(form, shapesQuads)
         }
     }).timeout(5000)
+
+    it('infers values subject from dcterms:conformsTo', async () => {
+        const autoForm = await fixture(html`<shacl-form></shacl-form>`) as ShaclForm
+        const values = `
+            ${prefixes} @prefix dcterms: <http://purl.org/dc/terms/> .
+            <${valuesSubject}> dcterms:conformsTo <http://example.org/OtherShape> ;
+                :title "Example title" .`
+        const [shapesQuads, inputQuads] = await bind(autoForm, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :name ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+            ] .
+            <http://example.org/OtherShape> a sh:NodeShape ;
+            sh:property [
+                sh:path :title ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+            ] .`,
+            undefined,
+            values
+        )
+        await expectValid(autoForm, shapesQuads)
+        expect(autoForm.config.attributes.valuesSubject).to.equal(valuesSubject)
+        expectIsomorphic(inputQuads, autoForm.toRDF().getQuads(null, null, null, null))
+    })
+
+    it('uses dcterms:conformsTo node shape as root shape', async () => {
+        const autoForm = await fixture(html`<shacl-form></shacl-form>`) as ShaclForm
+        const [shapesQuads, _] = await bind(autoForm, `
+            ${prefixes} @prefix dcterms: <http://purl.org/dc/terms/> .
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:targetClass :RootClass ;
+                sh:property [
+                    sh:path :name ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1 ;
+                ] .
+            <http://example.org/OtherShape> a sh:NodeShape ;
+                sh:property [
+                    sh:path :title ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1 ;
+                ] .`,
+            undefined, `
+            ${prefixes} @prefix dcterms: <http://purl.org/dc/terms/> .
+            <${valuesSubject}> a :RootClass ;
+                dcterms:conformsTo <http://example.org/OtherShape> ;
+                :title "Example title" .`
+        )
+        await expectValid(autoForm, shapesQuads)
+        expect(autoForm.shape?.template.id.value).to.equal('http://example.org/OtherShape')
+    })
 })

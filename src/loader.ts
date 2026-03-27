@@ -1,5 +1,5 @@
 import { Store, Quad, NamedNode, DataFactory, StreamParser, Prefixes } from 'n3'
-import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHAPES_GRAPH } from './constants'
+import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH } from './constants'
 import { findAllClasses, isURL } from './util'
 import { RdfXmlParser } from 'rdfxml-streaming-parser'
 import jsonld from 'jsonld'
@@ -26,6 +26,27 @@ export interface LoaderContext {
     store: Store
     importedUrls: string[]
     atts: LoaderAttributes
+}
+
+export function findConformsToValuesSubject(store: Store): string | undefined {
+    const subjects = new Set<string>()
+    for (const quad of store.getQuads(null, DCTERMS_PREDICATE_CONFORMS_TO, null, DATA_GRAPH)) {
+        if (quad.subject.termType === 'NamedNode') {
+            subjects.add(quad.subject.value)
+        }
+    }
+    if (subjects.size === 1) {
+        return subjects.values().next().value
+    }
+}
+
+export function findConformsToShapeSubject(store: Store, valuesSubject: string): NamedNode | undefined {
+    const rootValueSubject = DataFactory.namedNode(valuesSubject)
+    for (const shape of store.getObjects(rootValueSubject, DCTERMS_PREDICATE_CONFORMS_TO, DATA_GRAPH)) {
+        if (shape.termType === 'NamedNode' && store.getQuads(shape, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null).length > 0) {
+            return shape
+        }
+    }
 }
 
 export async function loadGraphs(atts: LoaderAttributes) {
@@ -59,6 +80,10 @@ export async function loadGraphs(atts: LoaderAttributes) {
         } catch (e) {
             console.error('failed loading class instances', e)
         }
+    }
+
+    if (!atts.valuesSubject) {
+        atts.valuesSubject = findConformsToValuesSubject(ctx.store) || null
     }
 
     // if shapes graph is empty, but we have the following triples:
