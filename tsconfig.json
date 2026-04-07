@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "declaration": true,
     "emitDeclarationOnly": true,
+    "rootDir": "src",
     "outDir": "dist",
 
     /* Bundler mode */

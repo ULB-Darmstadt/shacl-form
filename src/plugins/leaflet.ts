@@ -43,6 +43,18 @@ const markerIcon = L.icon({
     popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
 })
 
+type EditableMap = L.Map & {
+    editTools: {
+        startPolygon(latLng?: L.LatLng, options?: L.PolylineOptions): L.Polygon
+        startMarker(latLng?: L.LatLng, options?: L.MarkerOptions): L.Marker
+    }
+}
+
+type ExtendedMapOptions = L.MapOptions & {
+    editable?: boolean
+    fullscreenControl?: boolean
+}
+
 export class LeafletPlugin extends Plugin {
     map: L.Map | undefined
     currentEditor: Editor | undefined
@@ -63,7 +75,7 @@ export class LeafletPlugin extends Plugin {
             zoom: 5,
             maxBounds: worldBounds,
             center: defaultCenter
-        })
+        } as ExtendedMapOptions)
         this.map.attributionControl.addAttribution(attribution)
 
         const EditControl = L.Control.extend({ options: { position: 'topleft', callback: null, kind: '', html: '' },
@@ -75,7 +87,7 @@ export class LeafletPlugin extends Plugin {
                 link.innerHTML = this.options.html;
                 L.DomEvent.on(link, 'click', L.DomEvent.stop).on(link, 'click', () => {
                     // @ts-expect-error allow to set property on window
-                    window.LAYER = this.options.callback.call(map.editTools)
+                    window.LAYER = this.options.callback.call((map as EditableMap).editTools)
                 }, this)
                 return container
             }
@@ -84,7 +96,7 @@ export class LeafletPlugin extends Plugin {
             options: {
                 callback: () => {
                     this.displayedShape?.remove()
-                    this.displayedShape = this.map?.editTools.startPolygon()
+                    this.displayedShape = (this.map as EditableMap | undefined)?.editTools.startPolygon()
                 },
                 kind: 'polygon',
                 html: '▰'
@@ -94,7 +106,7 @@ export class LeafletPlugin extends Plugin {
             options: {
                 callback: () => {
                     this.displayedShape?.remove()
-                    this.displayedShape = this.map?.editTools.startMarker(undefined, { icon: markerIcon })
+                    this.displayedShape = (this.map as EditableMap | undefined)?.editTools.startMarker(undefined, { icon: markerIcon })
                 },
                 kind: 'marker',
                 html: '•'
@@ -151,7 +163,7 @@ export class LeafletPlugin extends Plugin {
                 zoom: 5,
                 center: defaultCenter,
                 maxBounds: worldBounds
-            })
+            } as ExtendedMapOptions)
             map.attributionControl.addAttribution(attribution)
             this.drawAndZoomToGeometry(geometry, map)
         }

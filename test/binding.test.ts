@@ -1,4 +1,4 @@
-import { html, fixture, expect } from '@open-wc/testing'
+import { expect } from '@open-wc/testing'
 import { ShaclForm } from '../src/form'
 import { bind, expectIsomorphic, expectValid } from './util'
 import '../src/form'
@@ -10,7 +10,15 @@ const valuesSubject = 'http://example.org/data'
 describe('test value binding', () => {
     let form: ShaclForm
 
-    before(async () => { form = await fixture(html`<shacl-form data-generate-node-shape-reference=""></shacl-form>`) })
+    before(() => {
+        form = document.createElement('shacl-form') as ShaclForm
+        form.dataset.generateNodeShapeReference = ''
+        document.body.appendChild(form)
+    })
+
+    after(() => {
+        form.remove()
+    })
 
     it('sh:in binding', async () => {
         const listValues = [
@@ -165,7 +173,8 @@ describe('test value binding', () => {
     }).timeout(5000)
 
     it('infers values subject from dcterms:conformsTo', async () => {
-        const autoForm = await fixture(html`<shacl-form></shacl-form>`) as ShaclForm
+        const autoForm = document.createElement('shacl-form') as ShaclForm
+        document.body.appendChild(autoForm)
         const values = `
             ${prefixes} @prefix dcterms: <http://purl.org/dc/terms/> .
             <${valuesSubject}> dcterms:conformsTo <http://example.org/OtherShape> ;
@@ -190,10 +199,12 @@ describe('test value binding', () => {
         await expectValid(autoForm, shapesQuads)
         expect(autoForm.config.attributes.valuesSubject).to.equal(valuesSubject)
         expectIsomorphic(inputQuads, autoForm.toRDF().getQuads(null, null, null, null))
+        autoForm.remove()
     })
 
     it('uses dcterms:conformsTo node shape as root shape', async () => {
-        const autoForm = await fixture(html`<shacl-form></shacl-form>`) as ShaclForm
+        const autoForm = document.createElement('shacl-form') as ShaclForm
+        document.body.appendChild(autoForm)
         const [shapesQuads, _] = await bind(autoForm, `
             ${prefixes} @prefix dcterms: <http://purl.org/dc/terms/> .
             <${shapeSubject}> a sh:NodeShape ;
@@ -217,5 +228,6 @@ describe('test value binding', () => {
         )
         await expectValid(autoForm, shapesQuads)
         expect(autoForm.shape?.template.id.value).to.equal('http://example.org/OtherShape')
+        autoForm.remove()
     })
 })

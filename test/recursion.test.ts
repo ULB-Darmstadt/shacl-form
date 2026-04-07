@@ -1,4 +1,4 @@
-import { html, fixture, expect } from '@open-wc/testing'
+import { expect } from '@open-wc/testing'
 import { ShaclForm } from '../src/form'
 import { bind, expectIsomorphic, expectValid } from './util'
 import '../src/form'
@@ -9,7 +9,15 @@ const prefixes = '@prefix : <http://example.org/> . @prefix sh: <http://www.w3.o
 describe('test recursion protection', () => {
     let form: ShaclForm
 
-    before(async () => { form = await fixture(html`<shacl-form data-generate-node-shape-reference=""></shacl-form>`) })
+    before(() => {
+        form = document.createElement('shacl-form') as ShaclForm
+        form.dataset.generateNodeShapeReference = ''
+        document.body.appendChild(form)
+    })
+
+    after(() => {
+        form.remove()
+    })
 
     it('parsing self-referencing shapes', async () => {
         await bind(form, `

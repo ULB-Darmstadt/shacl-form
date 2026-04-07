@@ -1,4 +1,4 @@
-import { html, fixture, expect } from '@open-wc/testing'
+import { expect } from '@open-wc/testing'
 import { ShaclForm } from '../src/form'
 import { bind, expectIsomorphic, expectValid } from './util'
 import '../src/form'
@@ -10,7 +10,15 @@ const valuesSubject = 'http://example.org/data'
 describe('test property overriding', () => {
     let form: ShaclForm
 
-    before(async () => { form = await fixture(html`<shacl-form data-generate-node-shape-reference=""></shacl-form>`) })
+    before(() => {
+        form = document.createElement('shacl-form') as ShaclForm
+        form.dataset.generateNodeShapeReference = ''
+        document.body.appendChild(form)
+    })
+
+    after(() => {
+        form.remove()
+    })
 
     it('test horizontal property merge', async () => {
         await bind(form, `
