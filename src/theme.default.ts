@@ -153,6 +153,7 @@ export class DefaultTheme extends Theme {
             langChooser = document.createElement('input')
             langChooser.maxLength = 5 // e.g. en-US
             langChooser.size = 5
+            langChooser.required = true
             langChooser.placeholder = 'lang?'
         }
         langChooser.title = 'Language of the text'
