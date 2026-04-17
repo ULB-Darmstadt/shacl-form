@@ -1,7 +1,7 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
 import { ClassInstanceProvider, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin'
-import { Store, NamedNode, DataFactory, BlankNode } from 'n3'
+import { Store, NamedNode, DataFactory, BlankNode, Literal } from 'n3'
 import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
@@ -9,6 +9,7 @@ import { RokitCollapsible } from '@ro-kit/ui-widgets'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
 import { findConformsToShapeSubject, findConformsToValuesSubject, loadGraphs, prefixes } from './loader'
 import { loadUnresolvedValues } from './linker'
+import { findBestMatchingLiteral } from './util'
 
 export * from './exports'
 export const initTimeout = 200
@@ -355,13 +356,11 @@ export class ShaclForm extends HTMLElement {
             messageElement.classList.add(clazz)
         }
         const result = (typeof validatonResult === 'object' && validatonResult !== null)
-            ? validatonResult as { message?: Array<{ value: string }>; sourceConstraintComponent?: { value?: string } }
+            ? validatonResult as { message?: Array<Literal>; sourceConstraintComponent?: { value?: string } }
             : null
         if (result) {
             if (result.message?.length) {
-                for (const message of result.message) {
-                    messageElement.title += message.value + '\n'
-                }
+                messageElement.title += findBestMatchingLiteral(this.config.languages, result.message)
             } else if (result.sourceConstraintComponent?.value) {
                 messageElement.title = result.sourceConstraintComponent.value
             }

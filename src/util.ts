@@ -176,6 +176,14 @@ export function prioritizeByLanguage(languages: string[], text1?: Literal, text2
     return index2 > index1 ? text1 : text2
 }
 
+export function findBestMatchingLiteral(languages: string[], literals: Literal[]): string {
+    let candidate: Literal | undefined
+    for (const literal of literals) {
+        candidate = prioritizeByLanguage(languages, candidate, literal)
+    }
+    return candidate ? candidate.value : ''
+}
+
 export function findAllClasses(store: Store) {
     const classes = new Set<string>()
     for (const clazz of store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
