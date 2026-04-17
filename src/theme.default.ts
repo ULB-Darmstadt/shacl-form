@@ -153,13 +153,16 @@ export class DefaultTheme extends Theme {
             langChooser = document.createElement('input')
             langChooser.maxLength = 5 // e.g. en-US
             langChooser.size = 5
-            langChooser.required = true
             langChooser.placeholder = 'lang?'
         }
         langChooser.title = 'Language of the text'
         langChooser.classList.add('lang-chooser')
         langChooser.setAttribute('part', 'lang-chooser')
         langChooser.slot = 'suffix'
+        // langChooser is required when editor contains text
+        editor.addEventListener('change', () => {
+            langChooser.required = editor.value !== ''
+        })
         // if lang chooser changes, fire a change event on the text input instead. this is for shacl validation handling.
         langChooser.addEventListener('change', (ev) => {
             ev.stopPropagation()
