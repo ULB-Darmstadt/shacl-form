@@ -61,7 +61,6 @@ export class DefaultTheme extends Theme {
             editor.value = value?.value || template?.defaultValue?.value || ''
         }
 
-// editor.value = value?.value || template?.defaultValue?.value || ''
         const labelElem = document.createElement('label')
         labelElem.htmlFor = editor.id
         labelElem.innerText = label
@@ -273,6 +272,7 @@ export class DefaultTheme extends Theme {
         }
 
         editor.appendChild(ul)
+        value = value ?? template?.defaultValue ?? null
         if (value) {
             editor.value = (value as N3Term).id
             if (value instanceof NamedNode) {
