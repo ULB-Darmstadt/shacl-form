@@ -228,7 +228,7 @@ export class DefaultTheme extends Theme {
             editor.max = String(max)
         }
         if (template.datatype?.value !== PREFIX_XSD + 'integer') {
-            editor.step = '0.1'
+            editor.step = 'any'
         }
         return this.createDefaultTemplate(label, value, required, editor, template)
     }
