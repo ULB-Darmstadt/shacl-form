@@ -16,6 +16,7 @@ example:4f2a8de3-9fc8-40a9-9237-d5964520ec54 a dcat:Dataset ;
   dcterms:issued "2023-07-27"^^xsd:date ;
   dcterms:subject <https://w3id.org/dfgfo/2024/451-01>;
   dcterms:license <http://creativecommons.org/licenses/by/4.0/> ;
+  dcterms:spatial _:d9caaeaa-aad5-40df-acec-3dab9da32fe0 ;
   schema:artworkSurface example:plaster ;
   schema:width 200 ;
 
@@ -29,6 +30,9 @@ example:4f2a8de3-9fc8-40a9-9237-d5964520ec54 a dcat:Dataset ;
     dcat:hadRole <http://w3id.org/nfdi4ing/metadata4ing#Researcher> ;
   ] .
 
+_:d9caaeaa-aad5-40df-acec-3dab9da32fe0 dcterms:description "Building has been realized here";
+    a dcterms:Location;
+    geo:asWKT "POLYGON((13.063733904630356 52.37865426903668,13.063723176557128 52.37897206351868,13.063787544996465 52.379017930574605,13.063905553801952 52.379014654357896,13.063977955246191 52.3789787302465,13.063975286277905 52.378644440304925,13.063953830131446 52.378644440304925,13.063733904630356 52.37865426903668))"^^geo:wktLiteral.
 
 example:darmstadt
   a dcterms:Location ;
