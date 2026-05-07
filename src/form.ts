@@ -240,9 +240,6 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
-    /**
-    * @deprecated Use setDataProvider() instead
-    */
     public setClassInstanceProvider(provider: ClassInstanceProvider) {
         this.config.classInstanceProvider = provider
         this.initialize()
