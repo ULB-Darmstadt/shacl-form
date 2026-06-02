@@ -75,6 +75,26 @@ describe('test value binding', () => {
         expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
     })
 
+    it('xsd:base64Binary datatype binding', async () => {
+        const value = '"aGVsbG8K"^^xsd:base64Binary'
+        const [shapesQuads, inputQuads] = await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :path ;
+                sh:datatype xsd:base64Binary ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+            ] .`,
+            shapeSubject, `
+            ${prefixes}
+            <${valuesSubject}> :path ${value} .`,
+            valuesSubject
+        )
+        await expectValid(form, shapesQuads)
+        expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
+    })
+
     it('sh:qualifiedValueShape binding', async () => {
         const [shapesQuads, inputQuads] = await bind(form, `
             ${prefixes}

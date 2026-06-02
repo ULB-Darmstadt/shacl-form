@@ -49,7 +49,10 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
     let languageOrDatatype: NamedNode<string> | string | undefined = editor.shaclDatatype
     // prefer value from dataset over editor value (this is used by rdfs:label substitution for term values)
     let value: number | string = editor.dataset.value || editor.value
-    if (editor['type'] === 'checkbox' || editor.getAttribute('type') === 'checkbox') {
+    if ((editor['type'] === 'file' || editor.getAttribute('type') === 'file') && editor['binaryData']) {
+        value = editor['binaryData']
+    }
+    else if (editor['type'] === 'checkbox' || editor.getAttribute('type') === 'checkbox') {
         // emit boolean 'false' only when required
         if (editor['checked'] || parseInt(editor.dataset.minCount || '0') > 0) {
             return DataFactory.literal(editor['checked'] ? 'true' : 'false', languageOrDatatype)
@@ -67,9 +70,6 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
             }
             else if (editor['type'] === 'number') {
                 value = parseFloat(value)
-            }
-            else if (editor['type'] === 'file' && editor['binaryData']) {
-                value = editor['binaryData']
             }
             else if (editor['type'] === 'datetime-local') {
                 // if seconds in value are 0, the input field omits them which is then not a valid xsd:dateTime

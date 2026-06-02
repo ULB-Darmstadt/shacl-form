@@ -55,10 +55,15 @@ export class DefaultTheme extends Theme {
             editor.disabled = true
         }
         
+        const defaultValue = value?.value || template?.defaultValue?.value || ''
         if (template?.datatype?.equals(XSD_DATATYPE_BOOLEAN)) {
             editor.checked = value?.value === 'true' || template?.defaultValue?.value === 'true'
+        } else if (editor.type === 'file') {
+            // Browsers do not allow pre-populating file inputs. Keep the existing
+            // RDF value separately so base64Binary fields can still round-trip.
+            editor.binaryData = defaultValue || undefined
         } else {
-            editor.value = value?.value || template?.defaultValue?.value || ''
+            editor.value = defaultValue
         }
 
         const labelElem = document.createElement('label')
