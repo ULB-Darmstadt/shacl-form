@@ -136,4 +136,90 @@ describe('test property overriding', () => {
         await expectValid(form, shapesQuads)
         expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
     })
+
+    it('merges overridden properties for lazily resolved sh:xone node shapes', async () => {
+        const previousView = form.dataset.view
+        form.dataset.view = 'true'
+        try {
+            const [shapesQuads, inputQuads] = await bind(form, `
+                ${prefixes}
+                @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+                :RootShape a sh:NodeShape ;
+                sh:xone (
+                    [
+                        sh:property [
+                            sh:name "Child 1" ;
+                            sh:path :entry ;
+                            sh:qualifiedValueShape :ChildShape ;
+                            sh:qualifiedMinCount 1 ;
+                            sh:qualifiedMaxCount 1 ;
+                        ] ;
+                    ]
+                    [
+                        sh:property [
+                            sh:name "Child 2" ;
+                            sh:path :entry ;
+                            sh:qualifiedValueShape :ChildShape2 ;
+                            sh:qualifiedMinCount 1 ;
+                            sh:qualifiedMaxCount 1 ;
+                        ] ;
+                    ]
+                ) .
+
+                :ChildShape a sh:NodeShape ;
+                sh:node :BaseShape ;
+                sh:property [
+                    sh:name "child label" ;
+                    sh:path rdfs:label ;
+                    sh:hasValue "Fixed label" ;
+                ] .
+
+                :ChildShape2 a sh:NodeShape ;
+                sh:node :BaseShape ;
+                sh:property [
+                    sh:name "child label 2" ;
+                    sh:path rdfs:label ;
+                    sh:hasValue "Another fixed label" ;
+                ] .
+
+                :BaseShape a sh:NodeShape ;
+                sh:property [
+                    sh:path rdfs:label ;
+                    sh:name "label" ;
+                    sh:datatype xsd:string ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1 ;
+                ] .
+                `,
+                'http://example.org/RootShape', `
+                ${prefixes}
+                @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+                <${valuesSubject}> :entry [
+                    rdfs:label "Fixed label" ;
+                ] .`,
+                valuesSubject
+            )
+
+            await expectValid(form, shapesQuads)
+            expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
+
+            const renderRoot = form.shadowRoot ?? form
+            const childNode = renderRoot.querySelector('shacl-node shacl-node') as HTMLElement | null
+            expect(childNode, 'expected nested child node to be rendered').to.exist
+
+            const labelInstances = childNode!.querySelectorAll(`[data-path='http://www.w3.org/2000/01/rdf-schema#label']`)
+            expect(labelInstances.length, 'expected overridden label property to be merged').to.equal(1)
+
+            const labels = Array.from(childNode!.querySelectorAll('.property-instance > label')).map(label => label.textContent?.trim())
+            expect(labels).to.deep.equal(['child label:'])
+        } finally {
+            if (previousView === undefined) {
+                delete form.dataset.view
+            } else {
+                form.dataset.view = previousView
+            }
+        }
+    })
 })
