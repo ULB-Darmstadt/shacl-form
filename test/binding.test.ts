@@ -143,6 +143,66 @@ describe('test value binding', () => {
         expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
     })
 
+    it('binds sh:hasValue properties after selecting a sh:xone node option', async () => {
+        const [shapesQuads, _] = await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:xone (
+                [
+                    sh:property [
+                        sh:name "Foo" ;
+                        sh:path :foo ;
+                        sh:datatype xsd:string ;
+                        sh:hasValue "fixed foo" ;
+                        sh:minCount 1 ;
+                        sh:maxCount 1 ;
+                    ] ;
+                    sh:property [
+                        sh:name "Bar" ;
+                        sh:path :bar ;
+                        sh:datatype xsd:string ;
+                        sh:hasValue "fixed bar" ;
+                        sh:minCount 1 ;
+                        sh:maxCount 1 ;
+                    ] ;
+                ]
+                [
+                    sh:property [
+                        sh:name "Baz" ;
+                        sh:path :baz ;
+                        sh:datatype xsd:string ;
+                        sh:hasValue "fixed baz" ;
+                        sh:minCount 1 ;
+                        sh:maxCount 1 ;
+                    ] ;
+                ]
+            ) .`,
+            shapeSubject
+        )
+
+        const renderRoot = form.shadowRoot ?? form
+        const chooser = renderRoot.querySelector('.shacl-or-constraint .editor') as HTMLInputElement | null
+        expect(chooser, 'expected xone chooser to be rendered').to.exist
+
+        chooser!.value = '0'
+        chooser!.dispatchEvent(new Event('change'))
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        const fooEditor = renderRoot.querySelector(`[data-path='http://example.org/foo'] .editor`) as HTMLInputElement | null
+        const barEditor = renderRoot.querySelector(`[data-path='http://example.org/bar'] .editor`) as HTMLInputElement | null
+        expect(fooEditor, 'expected first selected property to be created').to.exist
+        expect(barEditor, 'expected second selected property to be created').to.exist
+        expect(fooEditor!.value).to.equal('fixed foo')
+        expect(barEditor!.value).to.equal('fixed bar')
+        expect(fooEditor!.disabled).to.equal(true)
+        expect(barEditor!.disabled).to.equal(true)
+
+        await expectValid(form, shapesQuads)
+        const outputQuads = form.toRDF().getQuads(null, null, null, null)
+        expect(outputQuads.some(quad => quad.predicate.value === 'http://example.org/foo' && quad.object.value === 'fixed foo')).to.be.true
+        expect(outputQuads.some(quad => quad.predicate.value === 'http://example.org/bar' && quad.object.value === 'fixed bar')).to.be.true
+    })
+
     it('sh:hasValue binding', async () => {
         const values = [
             '<http://example.org/term>',

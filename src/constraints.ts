@@ -49,11 +49,14 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         const editor = config.theme.createListEditor('Please choose', null, false, optionElements)
         editor.setAttribute('part', 'constraint-editor')
         const select = editor.querySelector('.editor') as Editor
-        select.onchange = () => {
+        select.onchange = async () => {
             if (select.value) {
                 const selectedOptions = properties[parseInt(select.value)]
                 let lastAddedProperty: ShaclProperty
                 if (selectedOptions.length) {
+                    for (const property of selectedOptions) {
+                        await property.bindValues(context.nodeId, false)
+                    }
                     lastAddedProperty = selectedOptions[0]
                     constraintElement.replaceWith(selectedOptions[0])
                     lastAddedProperty.updateControls()
