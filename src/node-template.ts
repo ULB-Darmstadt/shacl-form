@@ -54,6 +54,7 @@ export class ShaclNodeTemplate {
     extendedShapes: Set<ShaclNodeTemplate> = new Set()
     properties: Record<string, ShaclPropertyTemplate[]> = {} // sh:path -> sh:property
     owlImports: Set<NamedNode> = new Set()
+    merged = false
     config: Config
 
     constructor(id: Term, config: Config, parent?: ShaclNodeTemplate | ShaclPropertyTemplate) {
@@ -75,6 +76,10 @@ export function mergeQuads(template: ShaclNodeTemplate, quads: Quad[]) {
 
 // merges properties with same sh:path and no sh:qualifiedValueShape on upmost suitable parent if cardinality of merged property's sh:maxCount equals 1
 export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
+    if (node.merged) {
+        return
+    }
+    node.merged = true
     for (const props of Object.values(node.properties)) {
         for (const prop of props) {
             const [chain, maxCountIsOne] = buildPropertyChain(node, prop.path!)

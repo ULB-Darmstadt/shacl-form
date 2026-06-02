@@ -6,7 +6,7 @@ import { createShaclGroup } from './group'
 import { v4 as uuidv4 } from 'uuid'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnNode } from './constraints'
 import { Config } from './config'
-import { ShaclNodeTemplate } from './node-template'
+import { ShaclNodeTemplate, mergeOverriddenProperties } from './node-template'
 import { ShaclPropertyTemplate } from './property-template'
 
 export class ShaclNode extends HTMLElement {
@@ -75,6 +75,8 @@ export class ShaclNode extends HTMLElement {
                 div.classList.add('node-id-display')
                 this.appendChild(div)
             }
+            // ensure overridden properties are merged before render, necessary for lazily referenced shape (e.g. inside sh:xone)
+            mergeOverriddenProperties(template)
             this.ready = (async () => {
                 const childAncestorShapeIds = new Set(ancestorShapeIds)
                 childAncestorShapeIds.add(currentShapeId)
