@@ -5,7 +5,7 @@ import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI, XSD_DATATYPE_BOOLEAN } from
 import { DataFactory, Literal, NamedNode } from 'n3'
 import { Term as N3Term } from 'n3'
 import { RokitButton, RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
-import { findLabel } from './util'
+import { findLabel, formatXsdDateTimeValueForInput, formatXsdDateValueForInput } from './util'
 
 const css = `
 .editor:not([type='checkbox']) { border: 1px solid var(--shacl-border-color, #DDD); }
@@ -105,16 +105,16 @@ export class DefaultTheme extends Theme {
         editor.classList.add('pr-0')
         const result = this.createDefaultTemplate(label, null, required, editor, template)
         if (value) {
-            try {
-                let isoDate = new Date(value.value).toISOString()
-                if (template.datatype?.value === PREFIX_XSD + 'dateTime') {
-                    isoDate = isoDate.slice(0, 19)
-                } else {
-                    isoDate = isoDate.slice(0, 10)
+            const formattedValue = template.datatype?.value === PREFIX_XSD + 'dateTime'
+                ? formatXsdDateTimeValueForInput(value.value)
+                : formatXsdDateValueForInput(value.value)
+            if (formattedValue) {
+                editor.value = formattedValue.value
+                if (formattedValue.suffix) {
+                    editor.dataset.xsdTemporalSuffix = formattedValue.suffix
                 }
-                editor.value = isoDate
-            } catch(ex) {
-                console.error(ex, value)
+            } else {
+                console.error('unable to parse xsd date literal', value)
             }
         }
         return result

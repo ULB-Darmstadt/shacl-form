@@ -95,6 +95,28 @@ describe('test value binding', () => {
         expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
     })
 
+    it('xsd:dateTime binding preserves timezone offsets without shifting wall-clock time', async () => {
+        const value = '"2026-06-03T10:30:00+02:00"^^xsd:dateTime'
+        const [shapesQuads, inputQuads] = await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :path ;
+                sh:datatype xsd:dateTime ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+            ] .`,
+            shapeSubject, `
+            ${prefixes}
+            <${valuesSubject}> :path ${value} .`,
+            valuesSubject
+        )
+        const renderRoot = form.shadowRoot ?? form
+        expect((renderRoot.querySelector('.editor') as HTMLInputElement).value).to.equal('2026-06-03T10:30:00')
+        await expectValid(form, shapesQuads)
+        expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
+    })
+
     it('sh:qualifiedValueShape binding', async () => {
         const [shapesQuads, inputQuads] = await bind(form, `
             ${prefixes}

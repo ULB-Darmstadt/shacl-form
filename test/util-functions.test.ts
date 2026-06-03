@@ -1,6 +1,6 @@
 import { expect } from '@open-wc/testing'
 import { DataFactory, NamedNode, Prefixes, Store } from 'n3'
-import { extractLists, isURL, prioritizeByLanguage, removePrefixes } from '../src/util'
+import { extractLists, formatXsdDateTimeValueForInput, formatXsdDateValueForInput, isURL, prioritizeByLanguage, removePrefixes, serializeXsdDateTimeValue, serializeXsdDateValue } from '../src/util'
 import { PREFIX_RDF } from '../src/constants'
 
 const { blankNode, literal, namedNode, quad } = DataFactory
@@ -34,6 +34,30 @@ describe('util functions', () => {
         expect(prioritizeByLanguage(languages, english, german)).to.equal(english)
         expect(prioritizeByLanguage(languages, undefined, german)).to.equal(german)
         expect(prioritizeByLanguage(languages, english, undefined)).to.equal(english)
+    })
+
+    it('formats xsd:dateTime values for datetime-local inputs without timezone conversion', () => {
+        expect(formatXsdDateTimeValueForInput('2026-06-03T10:30:00+02:00')).to.deep.equal({
+            value: '2026-06-03T10:30:00',
+            suffix: '+02:00'
+        })
+        expect(formatXsdDateTimeValueForInput('2026-06-03')).to.deep.equal({
+            value: '2026-06-03T00:00:00',
+            suffix: ''
+        })
+        expect(serializeXsdDateTimeValue('2026-06-03T10:30', '+02:00')).to.equal('2026-06-03T10:30:00+02:00')
+    })
+
+    it('formats xsd:date values for date inputs without timezone conversion', () => {
+        expect(formatXsdDateValueForInput('2026-06-03Z')).to.deep.equal({
+            value: '2026-06-03',
+            suffix: 'Z'
+        })
+        expect(formatXsdDateValueForInput('2026-06-03T10:30:00+02:00')).to.deep.equal({
+            value: '2026-06-03',
+            suffix: '+02:00'
+        })
+        expect(serializeXsdDateValue('2026-06-03', 'Z')).to.equal('2026-06-03Z')
     })
 
     it('extracts rdf lists even when rdf:type triples are present on list nodes', () => {

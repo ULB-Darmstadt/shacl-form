@@ -2,6 +2,7 @@ import { DataFactory, NamedNode, Writer, Quad, Literal, Prefixes } from 'n3'
 import { PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL, XSD_DATATYPE_STRING } from './constants'
 import { Editor } from './theme'
 import { NodeObject } from 'jsonld'
+import { serializeXsdDateTimeValue, serializeXsdDateValue } from './util'
 
 export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): string {
     if (format === 'application/ld+json') {
@@ -72,8 +73,10 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
                 value = parseFloat(value)
             }
             else if (editor['type'] === 'datetime-local') {
-                // if seconds in value are 0, the input field omits them which is then not a valid xsd:dateTime
-                value = new Date(value).toISOString().slice(0, 19)
+                value = serializeXsdDateTimeValue(value, editor.dataset.xsdTemporalSuffix)
+            }
+            else if (editor['type'] === 'date' && languageOrDatatype instanceof NamedNode && languageOrDatatype.value === PREFIX_XSD + 'date') {
+                value = serializeXsdDateValue(value, editor.dataset.xsdTemporalSuffix)
             }
             // check if value is a typed rdf literal or langString
             if ((!languageOrDatatype || (languageOrDatatype instanceof NamedNode && XSD_DATATYPE_STRING.equals(languageOrDatatype))) && typeof value === 'string') {

@@ -184,6 +184,62 @@ export function findBestMatchingLiteral(languages: string[], literals: Literal[]
     return candidate ? candidate.value : ''
 }
 
+const XSD_DATE_PATTERN = /^(-?\d{4,}-\d{2}-\d{2})(Z|[+-]\d{2}:\d{2})?$/
+const XSD_DATE_TIME_PATTERN = /^(-?\d{4,}-\d{2}-\d{2})T(\d{2}:\d{2})(?::(\d{2})(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/
+const HTML_DATETIME_LOCAL_PATTERN = /^(-?\d{4,}-\d{2}-\d{2}T\d{2}:\d{2})(?::(\d{2})(\.\d+)?)?$/
+
+export function formatXsdDateValueForInput(value: string) {
+    const tokens = value.match(XSD_DATE_PATTERN)
+    if (!tokens) {
+        const dateTimeTokens = value.match(XSD_DATE_TIME_PATTERN)
+        if (!dateTimeTokens) {
+            return
+        }
+        return {
+            value: dateTimeTokens[1],
+            suffix: dateTimeTokens[5] || ''
+        }
+    }
+    return {
+        value: tokens[1],
+        suffix: tokens[2] || ''
+    }
+}
+
+export function formatXsdDateTimeValueForInput(value: string) {
+    const tokens = value.match(XSD_DATE_TIME_PATTERN)
+    if (!tokens) {
+        const dateTokens = value.match(XSD_DATE_PATTERN)
+        if (!dateTokens) {
+            return
+        }
+        return {
+            value: `${dateTokens[1]}T00:00:00`,
+            suffix: dateTokens[2] || ''
+        }
+    }
+    return {
+        value: `${tokens[1]}T${tokens[2]}:${tokens[3] || '00'}`,
+        suffix: tokens[5] || ''
+    }
+}
+
+export function serializeXsdDateValue(value: string, suffix = '') {
+    const tokens = value.match(XSD_DATE_PATTERN)
+    if (!tokens) {
+        return value
+    }
+    return `${tokens[1]}${suffix}`
+}
+
+export function serializeXsdDateTimeValue(value: string, suffix = '') {
+    const tokens = value.match(HTML_DATETIME_LOCAL_PATTERN)
+    if (!tokens) {
+        return value
+    }
+    return `${tokens[1]}:${tokens[2] || '00'}${tokens[3] || ''}${suffix}`
+}
+
 export function findAllClasses(store: Store) {
     const classes = new Set<string>()
     for (const clazz of store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
