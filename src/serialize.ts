@@ -58,7 +58,8 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
         if (editor['checked'] || parseInt(editor.dataset.minCount || '0') > 0) {
             return DataFactory.literal(editor['checked'] ? 'true' : 'false', languageOrDatatype)
         }
-    } else if (value) {
+    }
+    if (value) {
         if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
             return DataFactory.namedNode(value.substring(1, value.length - 1))
         } else if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
