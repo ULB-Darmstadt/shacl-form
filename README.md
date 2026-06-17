@@ -266,6 +266,14 @@ form.registerPlugin(new LeafletPlugin({ datatype: 'http://www.opengis.net/ont/ge
 
 When a SHACL property has datatype `http://www.opengis.net/ont/geosparql#wktLiteral`, the plugin renders the editor/viewer elements. This plugin uses [Leaflet](https://leafletjs.com/) to edit or view geometry in [well known text](http://giswiki.org/wiki/Well_Known_Text) on a map.
 
+Plugins can also be registered for a specific property path instead of a datatype:
+
+```typescript
+form.registerPlugin(new MyPlugin({ predicate: 'http://example.org/title' }))
+```
+
+In that case, `predicate` is matched against the SHACL property's `sh:path`. Plugin lookup first tries a matching `predicate` and `datatype`, then `predicate` only, then `datatype` only.
+
 Custom plugins can be built by extending [Plugin](https://github.com/ULB-Darmstadt/shacl-form/blob/main/src/plugin.ts#L40).
 
 ### Property grouping and collapsing
