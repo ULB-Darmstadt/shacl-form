@@ -98,7 +98,7 @@ data-submit-button | [Ignored when `data-view` is set] Adds a submit button. The
 data-generate-node-shape-reference | When generating RDF data, adds a triple that references the root `sh:NodeShape`. Default predicate is `http://purl.org/dc/terms/conformsTo`. Set to an empty string to disable
 data-show-node-ids | Show node shape subject ids in the form
 data-show-root-shape-label | If set and the root shape has `rdfs:label` or `dcterms:title`, display that value as a heading
-data-proxy | Proxy URL used when fetching resources (e.g. `owl:imports`). The resource URL is appended to the proxy value, e.g. `http://your-proxy.org/?url=`
+data-proxy | Proxy URL used by the built-in fetch-based URL loader. The requested RDF URL is appended to the proxy value, e.g. `http://your-proxy.org/?url=`. This is ignored when `setRdfUrlResolver(...)` is used
 data-dense | Boolean to render a compact form with smaller paddings and margins. Default is true
 data-hierarchy-colors | Comma-separated list of CSS colors for nested hierarchy bars. If unset, a default palette is used
 data-use-shadow-root | Boolean string indicating whether `<shacl-form>` renders into a shadow root. Default is `"true"`. Set to `"false"` to render into light DOM
@@ -191,7 +191,7 @@ Besides `data-shapes` and `data-shapes-url`, `shacl-form` can enrich the shapes 
    - fallback shape resolution from data values
    - recursive `owl:imports`
 
-   The resolver must return RDF as a string in any of the [supported formats](#formats), for example `text/turtle`. If no resolver is configured, `shacl-form` uses the default fetch-based behavior.
+   The resolver must return RDF as a string in any of the [supported formats](#formats), for example `text/turtle`. If no resolver is configured, `shacl-form` uses the default fetch-based behavior. In that default mode, `data-proxy` can be used to route requests through a proxy without custom JavaScript.
 
    Caching behavior:
    With the default fetch path, URLs are cached across form instances by URL. When `setRdfUrlResolver(...)` is used, that built-in cache is bypassed and caching becomes the responsibility of the resolver implementation. Duplicate `owl:imports` URLs are still de-duplicated within a single form load.
