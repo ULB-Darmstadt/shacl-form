@@ -1,7 +1,7 @@
 import { DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
-import { ClassInstanceProvider, ImportProvider, ResourceLinkProvider } from './plugin'
+import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider } from './plugin'
 import { Theme } from './theme'
 import { extractLists } from './util'
 import { DefaultTheme } from './theme.default'
@@ -42,7 +42,7 @@ const defaultHierarchyColorPalette = '#4c93d785, #f85e9a85, #00327385, #87001f85
 export class Config {
     attributes = new ElementAttributes()
     classInstanceProvider: ClassInstanceProvider | undefined
-    importProvider: ImportProvider | undefined
+    rdfUrlResolver: RdfUrlResolver | undefined
     resourceLinkProvider: ResourceLinkProvider | undefined
     editMode = true
     languages: string[]

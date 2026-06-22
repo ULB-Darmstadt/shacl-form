@@ -1,13 +1,14 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
-import { ClassInstanceProvider, ImportProvider, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin'
+import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin'
 import { Store, NamedNode, DataFactory, BlankNode, Literal } from 'n3'
 import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
 import { serialize } from './serialize'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
-import { findConformsToShapeSubject, findConformsToValuesSubject, loadGraphs, prefixes } from './loader'
+import { findConformsToShapeSubject, findConformsToValuesSubject, loadGraphs } from './graph-loader'
+import { prefixes } from './rdf-loader'
 import { loadUnresolvedValues } from './linker'
 import { findBestMatchingLiteral } from './util'
 
@@ -75,7 +76,7 @@ export class ShaclForm extends HTMLElement {
                     valuesSubject: this.config.attributes.valuesSubject,
                     loadOwlImports: this.config.attributes.ignoreOwlImports === null,
                     classInstanceProvider: this.config.classInstanceProvider,
-                    importProvider: this.config.importProvider,
+                    rdfUrlResolver: this.config.rdfUrlResolver,
                     proxy: this.config.attributes.proxy
                 })
                 // if we have a resource link provider, let it resolve linked resources in the data graph
@@ -246,8 +247,8 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
-    public setImportProvider(provider: ImportProvider) {
-        this.config.importProvider = provider
+    public setRdfUrlResolver(provider: RdfUrlResolver) {
+        this.config.rdfUrlResolver = provider
         this.initialize()
     }
 

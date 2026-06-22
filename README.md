@@ -103,48 +103,48 @@ data-dense | Boolean to render a compact form with smaller paddings and margins.
 data-hierarchy-colors | Comma-separated list of CSS colors for nested hierarchy bars. If unset, a default palette is used
 data-use-shadow-root | Boolean string indicating whether `<shacl-form>` renders into a shadow root. Default is `"true"`. Set to `"false"` to render into light DOM
 
-### Element functions
+### Element methods
 
 <a id="toRDF"></a>
 ```typescript
 toRDF(graph?: Store): Store
 ```
-Adds the form values as RDF triples to the given graph. If no graph is provided, creates a new [N3 Store](https://github.com/rdfjs/N3.js#storing).
+Writes the current form values into the given graph. If no graph is provided, a new [N3 Store](https://github.com/rdfjs/N3.js#storing) is created.
 
 ```typescript
 serialize(format?: string, graph?: Store): string
 ```
-Serializes the given RDF graph to the given format. If no graph is provided, this calls `toRDF()` to construct the form data graph in one of the supported [output formats](#output-formats) (default is `text/turtle`).
+Serializes an RDF graph in one of the supported [output formats](#output-formats). If no graph is provided, `serialize()` first calls `toRDF()`. The default format is `text/turtle`.
 
 ```typescript
-validate(ignoreEmptyValues: boolean): Promise<boolean>
+validate(ignoreEmptyValues?: boolean): Promise<ValidationReport>
 ```
-Validates form data against the SHACL shapes graph and displays validation results as icons next to the respective input fields. If `ignoreEmptyValues` is true, empty fields will not be marked invalid. This function is also invoked on `change` and `submit` events.
+Validates the current form data against the SHACL shapes graph and returns a validation report. Validation messages are also rendered next to the affected fields. If `ignoreEmptyValues` is `true`, empty required fields are not marked invalid. This method also runs automatically on `change` and `submit`.
 
 ```typescript
 registerPlugin(plugin: Plugin)
 ```
-Registers a [plugin](./src/plugin.ts) to customize editing/viewing of certain values. Plugins handle specific RDF predicates, `xsd:datatype`s, or both. Example: [Leaflet](./src/plugins/leaflet.ts)
+Registers a [plugin](./src/plugin.ts) that customizes how certain values are edited or displayed. Plugins can target specific RDF predicates, `xsd:datatype`s, or both. Example: [Leaflet](./src/plugins/leaflet.ts)
 
 ```typescript
 setTheme(theme: Theme)
 ```
-Sets the design theme used for rendering. See [Theming](#theming).
+Sets the theme used to render the form. See [Theming](#theming).
 
 ```typescript
 setClassInstanceProvider((className: string) => Promise<string>)
 ```
-Sets a callback that is invoked when a SHACL property has an `sh:class` definition to retrieve class instances. See [below](#classInstanceProvider) for details.
+Sets a callback used to provide RDF instances for `sh:class` values. See [below](#classInstanceProvider) for details.
 
 ```typescript
-setImportProvider((url: string) => Promise<string>)
+setRdfUrlResolver((url: string) => Promise<string>)
 ```
-Sets a callback that is invoked for each `owl:imports` URL to retrieve RDF content before the default fetch logic is used. See [below](#importProvider) for details.
+Sets a callback used whenever `shacl-form` loads RDF from a URL. See [below](#rdfUrlResolver) for details.
 
 ```typescript
 setResourceLinkProvider(provider: ResourceLinkProvider)
 ```
-Registers a callback provider that supplies existing resources for linking. The provider lists resources that conform to a node shape and loads RDF data for selected resources. See [below](#resourcelinkprovider).
+Registers a provider for linking existing resources. It can list resources that conform to a node shape and load RDF for the selected resources. See [below](#resourceLinkProvider).
 
 ## Features
 
@@ -160,11 +160,13 @@ In edit mode, `<shacl-form>` validates the constructed data graph using [shacl-e
 
 `<shacl-form>` is both an editor and a viewer. Set `data-view` and bind a shapes graph and a data graph to render a read-only view. See the [demo](https://ulb-darmstadt.github.io/shacl-form/#viewer-mode).
 
-### Providing additional data to the shapes graph
+### Additional RDF for the shapes graph
 
-Besides `data-shapes` and `data-shapes-url`, there are three ways to add RDF data to the shapes graph:
+Besides `data-shapes` and `data-shapes-url`, `shacl-form` can enrich the shapes graph in three ways:
 
-1. While parsing the shapes graph, any `owl:imports` predicate with a valid HTTP URL is fetched. The response is parsed (using one of the [supported](#formats) MIME types) and added to a named graph. This graph is scoped to the node where the `owl:import` is defined and its sub nodes.
+1. `owl:imports`
+
+   While parsing the shapes graph, any `owl:imports` predicate with a valid HTTP URL is fetched, parsed, and added as a named graph. That graph is scoped to the node where the `owl:imports` statement appears and its child nodes.
 
    The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
 
@@ -178,24 +180,36 @@ Besides `data-shapes` and `data-shapes-url`, there are three ways to add RDF dat
      ] .
    ```
 
-   In this case, the URL references an ontology that defines instances of `prov:Role`. These instances populate the "Role" dropdown. The imported ontology is available only for rendering and validating this specific property.
+   Here the imported ontology defines instances of `prov:Role`, which populate the "Role" dropdown. The imported graph is only available while rendering and validating this specific property.
 
-2. <a id="importProvider"></a>The `<shacl-form>` element exposes `setImportProvider((url: string) => Promise<string>)`, a callback invoked for each `owl:imports` URL. The return value is a string (e.g. `text/turtle`) containing RDF for the imported graph. This is useful when imported URLs require authentication, custom routing, or application-level caching. When no import provider is configured, `shacl-form` falls back to the default fetch behavior described above.
+2. <a id="rdfUrlResolver"></a>`setRdfUrlResolver((url: string) => Promise<string>)`
 
-   With the default fetch path, imported URLs are cached across form instances by their URL. When `setImportProvider(...)` is used, this built-in cache is bypassed and caching becomes the responsibility of the provider implementation. Duplicate `owl:imports` URLs are still de-duplicated within a single form load.
+   Use this when RDF URLs need authentication, proxying, custom routing, or application-level caching. The resolver is used for:
 
-   In a typical integration, the code:
+   - `data-shapes-url`
+   - `data-values-url`
+   - fallback shape resolution from data values
+   - recursive `owl:imports`
+
+   The resolver must return RDF as a string in any of the [supported formats](#formats), for example `text/turtle`. If no resolver is configured, `shacl-form` uses the default fetch-based behavior.
+
+   Caching behavior:
+   With the default fetch path, URLs are cached across form instances by URL. When `setRdfUrlResolver(...)` is used, that built-in cache is bypassed and caching becomes the responsibility of the resolver implementation. Duplicate `owl:imports` URLs are still de-duplicated within a single form load.
+
+   Example:
 
    ```typescript
-   form.setImportProvider(async (url) => {
-     const response = await fetch(`/api/rdf-import?url=${encodeURIComponent(url)}`)
+   form.setRdfUrlResolver(async (url) => {
+     const response = await fetch(`/api/rdf?url=${encodeURIComponent(url)}`)
      return response.text()
    })
    ```
 
-   lets your application decide how imported ontologies are resolved while preserving `shacl-form`'s recursive `owl:imports` handling.
+   Resolver-returned RDF is parsed through the same pipeline as the default fetch path.
 
-3. <a id="classInstanceProvider"></a>The `<shacl-form>` element exposes `setClassInstanceProvider((className: string) => Promise<string>)`, a callback invoked when a property has `sh:class`. The return value is a string (e.g. `text/turtle`) containing instance definitions of the given class.
+3. <a id="classInstanceProvider"></a>`setClassInstanceProvider((className: string) => Promise<string>)`
+
+   Use this when a property has `sh:class` and the available instances should come from an external source. The callback returns RDF, for example `text/turtle`, containing instances of the requested class.
 
    In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), the code:
 
@@ -212,13 +226,11 @@ Besides `data-shapes` and `data-shapes-url`, there are three ways to add RDF dat
    })
    ```
 
-   returns instances of `http://example.org/Material`, which populate the "Artwork material" dropdown.
-
-   A more realistic use case is calling an API endpoint to fetch class instances from existing ontologies.
+   This returns instances of `http://example.org/Material`, which populate the "Artwork material" dropdown. In a real application, the callback would often call an API or triple store.
 
 ### Use of SHACL sh:class
 
-When a property shape has an `sh:class`, all available graphs are scanned for instances of that class so users can choose from them. `rdfs:subClassOf` is also considered when building the list of class instances.
+When a property shape has an `sh:class`, `shacl-form` scans all available graphs for matching instances so users can choose from them. `rdfs:subClassOf` is also considered when building the list of class instances.
 
 `shacl-form` also supports class instance hierarchies modelled with `skos:broader` and/or `skos:narrower`. This is illustrated by the "Subject classification" property in the [example](https://ulb-darmstadt.github.io/shacl-form/#example).
 
@@ -248,7 +260,7 @@ When binding an existing data graph to the form, the constraint is resolved base
 
 ### Linking existing data
 
-When a node shape has a `sh:targetClass` and any graph contains instances of that class, those instances can be linked in the respective SHACL property. The generated data graph will then contain only a reference to the instance, not its full triples.
+When a node shape has a `sh:targetClass` and any available graph contains instances of that class, those instances can be linked in the corresponding SHACL property. The generated data graph contains only a reference to the linked instance, not its full triples.
 
 Graphs considered are:
 - the shapes graph
@@ -257,12 +269,16 @@ Graphs considered are:
 - triples provided by [classInstanceProvider](#classInstanceProvider)
 
 <a id="resourceLinkProvider"></a>
-If your graphs only contain resource identifiers (IRIs) and not the full triples for linked resources, you can use `setResourceLinkProvider` to supply them on demand. The `ResourceLinkProvider` lets you:
+If your graphs only contain resource identifiers (IRIs) and not the full triples for linked resources, use `setResourceLinkProvider` to supply them on demand.
 
-* List resources that conform to a node shape so they can appear in the "Link existing ..." dialog.
-* Load RDF data for selected resource IRIs so the `shacl-form` can resolve, display, and validate linked resources.
+`ResourceLinkProvider` can:
 
-The provider supports eager loading (resolve resources during initialization) or lazy loading (resolve when the user opens the link dialog). See [here](https://github.com/ULB-Darmstadt/rdf-store/blob/main/frontend/src/editor.ts#L10) for an example implementation.
+- list resources that conform to a node shape so they can appear in the "Link existing ..." dialog
+- load RDF for selected resource IRIs so `shacl-form` can resolve, display, and validate linked resources
+
+The RDF returned by `loadResources(...)` can use any of the [supported formats](#formats). It is parsed through the same RDF-loading pipeline used for `owl:imports`, inline data, and `classInstanceProvider`.
+
+The provider supports both eager loading during initialization and lazy loading when the user opens the link dialog. See [here](https://github.com/ULB-Darmstadt/rdf-store/blob/main/frontend/src/editor.ts#L10) for an example implementation.
 
 ### SHACL shape inheritance
 

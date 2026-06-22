@@ -1,13 +1,14 @@
 import { DataFactory, Store } from "n3";
 import { Config } from "./config";
 import { DATA_GRAPH, SHAPES_GRAPH } from "./constants";
-import { importRDF, LoaderContext, parseRDF } from "./loader";
+import { importRDF, LoaderContext } from "./graph-loader";
 import { createPropertyInstance, ShaclProperty } from "./property";
 import { filterOutExistingItems, findLabel } from "./util";
 import { Term } from "@rdfjs/types";
 import { RokitDialog } from "@ro-kit/ui-widgets";
 import { ShaclPropertyTemplate } from "./property-template";
 import { InputListEntry } from "./theme";
+import { loadRDF } from "./rdf-loader";
 
 export async function createLinker(property: ShaclProperty): Promise<HTMLElement | undefined> {
     // we only link to resources that must conform to a SHACL node shape
@@ -95,7 +96,7 @@ async function addLink(resourceId: string, property: ShaclProperty) {
         // import resource if not already done
         if (property.template.config.providedResources[resourceId]?.length > 0) {
             const ctx: LoaderContext = { store: property.template.config.store, importedUrls: [], atts: { loadOwlImports: false }}
-            await importRDF(parseRDF(property.template.config.providedResources[resourceId]), ctx, SHAPES_GRAPH)
+            await importRDF(loadRDF({ rdf: property.template.config.providedResources[resourceId] }), ctx, SHAPES_GRAPH)
             property.template.config.providedResources[resourceId] = ''
         }
         const instance = await createPropertyInstance(property.template, id, true, true)
@@ -160,7 +161,7 @@ export async function loadResources(ids: Set<string>, addToStore: boolean, confi
                     // cache resource
                     config.providedResources[resource.resourceId] = resource.resourceRDF
                     if (addToStore) {
-                        await importRDF(parseRDF(resource.resourceRDF), ctx, SHAPES_GRAPH)
+                        await importRDF(loadRDF({ rdf: resource.resourceRDF }), ctx, SHAPES_GRAPH)
                     }
                 }
                 return resources

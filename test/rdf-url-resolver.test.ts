@@ -1,7 +1,7 @@
 import { expect } from '@open-wc/testing'
 import { DataFactory } from 'n3'
 import { ShaclForm } from '../src/form'
-import { loadGraphs } from '../src/loader'
+import { loadGraphs } from '../src/graph-loader'
 import { awaitFormLoaded } from './util'
 import '../src/form'
 
@@ -9,8 +9,10 @@ const RDF_TYPE = DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-
 const IMPORTED_CLASS = DataFactory.namedNode('http://example.org/ImportedClass')
 const FIRST_IMPORT = 'http://example.org/imports/one'
 const SECOND_IMPORT = 'http://example.org/imports/two'
+const SHAPES_URL = 'http://example.org/shapes'
+const VALUES_URL = 'http://example.org/values'
 
-describe('test import provider', () => {
+describe('test rdf url resolver', () => {
     let originalFetch: typeof fetch
 
     before(() => {
@@ -21,9 +23,9 @@ describe('test import provider', () => {
         globalThis.fetch = originalFetch
     })
 
-    it('setImportProvider resolves recursive owl:imports without fetch', async () => {
+    it('setRdfUrlResolver resolves recursive owl:imports without fetch', async () => {
         globalThis.fetch = (() => {
-            throw new Error('fetch should not be called when importProvider is configured')
+            throw new Error('fetch should not be called when rdfUrlResolver is configured')
         }) as typeof fetch
 
         const form = document.createElement('shacl-form') as ShaclForm
@@ -42,7 +44,7 @@ describe('test import provider', () => {
         form.dataset.shapeSubject = 'http://example.org/RootShape'
 
         const calls: string[] = []
-        form.setImportProvider(async (url) => {
+        form.setRdfUrlResolver(async (url) => {
             calls.push(url)
             if (url === FIRST_IMPORT) {
                 return `
@@ -85,7 +87,52 @@ describe('test import provider', () => {
         }
     })
 
-    it('loadGraphs falls back to fetch for owl:imports when no importProvider is configured', async () => {
+    it('setRdfUrlResolver is used for shapesUrl and valuesUrl', async () => {
+        globalThis.fetch = (() => {
+            throw new Error('fetch should not be called when rdfUrlResolver is configured')
+        }) as typeof fetch
+
+        const calls: string[] = []
+        const store = await loadGraphs({
+            shapesUrl: SHAPES_URL,
+            valuesUrl: VALUES_URL,
+            valuesSubject: 'http://example.org/data',
+            loadOwlImports: true,
+            rdfUrlResolver: async (url) => {
+                calls.push(url)
+                if (url === SHAPES_URL) {
+                    return `
+                        @prefix : <http://example.org/> .
+                        @prefix sh: <http://www.w3.org/ns/shacl#> .
+
+                        :RootShape a sh:NodeShape ;
+                            sh:property [
+                                sh:path :path ;
+                                sh:class :ImportedClass ;
+                            ] .
+                    `
+                }
+                if (url === VALUES_URL) {
+                    return `
+                        @prefix : <http://example.org/> .
+
+                        <http://example.org/data> :path :value .
+                    `
+                }
+                throw new Error(`unexpected RDF URL: ${url}`)
+            }
+        })
+
+        expect(calls).to.deep.equal([SHAPES_URL, VALUES_URL])
+        expect(store.countQuads(
+            DataFactory.namedNode('http://example.org/data'),
+            DataFactory.namedNode('http://example.org/path'),
+            DataFactory.namedNode('http://example.org/value'),
+            null
+        )).to.equal(1)
+    })
+
+    it('loadGraphs falls back to fetch for owl:imports when no rdfUrlResolver is configured', async () => {
         const calls: string[] = []
         globalThis.fetch = (async (input: RequestInfo | URL) => {
             calls.push(String(input))

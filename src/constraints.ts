@@ -7,7 +7,7 @@ import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICAT
 import { findLabel, removePrefixes } from './util'
 import { Editor, InputListEntry } from './theme'
 import { cloneProperty, mergeQuads } from './property-template'
-import { prefixes } from './loader'
+import { prefixes } from './rdf-loader'
 
 
 export function createShaclOrConstraint(options: Term[], context: ShaclNode | ShaclProperty, config: Config): HTMLElement {

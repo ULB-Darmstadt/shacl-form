@@ -58,7 +58,7 @@ export abstract class Plugin {
 }
 
 export type ClassInstanceProvider = (classes: Set<string>) => Promise<string>
-export type ImportProvider = (url: string) => Promise<string>
+export type RdfUrlResolver = (url: string) => Promise<string>
 
 export type ResourceLinkProvider = {
     lazyLoad: boolean
