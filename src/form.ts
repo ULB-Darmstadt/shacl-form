@@ -1,6 +1,6 @@
 import { ShaclNode } from './node'
 import { Config } from './config'
-import { ClassInstanceProvider, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin'
+import { ClassInstanceProvider, ImportProvider, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin'
 import { Store, NamedNode, DataFactory, BlankNode, Literal } from 'n3'
 import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
 import { Editor, Theme } from './theme'
@@ -75,6 +75,7 @@ export class ShaclForm extends HTMLElement {
                     valuesSubject: this.config.attributes.valuesSubject,
                     loadOwlImports: this.config.attributes.ignoreOwlImports === null,
                     classInstanceProvider: this.config.classInstanceProvider,
+                    importProvider: this.config.importProvider,
                     proxy: this.config.attributes.proxy
                 })
                 // if we have a resource link provider, let it resolve linked resources in the data graph
@@ -242,6 +243,11 @@ export class ShaclForm extends HTMLElement {
 
     public setClassInstanceProvider(provider: ClassInstanceProvider) {
         this.config.classInstanceProvider = provider
+        this.initialize()
+    }
+
+    public setImportProvider(provider: ImportProvider) {
+        this.config.importProvider = provider
         this.initialize()
     }
 

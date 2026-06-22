@@ -1,5 +1,5 @@
 export type { InputListEntry, Editor } from './theme'
-export type { ClassInstanceProvider, ResourceLinkProvider } from './plugin'
+export type { ClassInstanceProvider, ImportProvider, ResourceLinkProvider } from './plugin'
 export { Theme } from './theme'
 export { DefaultTheme } from './theme.default'
 export { Config } from './config'

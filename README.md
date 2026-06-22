@@ -137,6 +137,11 @@ setClassInstanceProvider((className: string) => Promise<string>)
 Sets a callback that is invoked when a SHACL property has an `sh:class` definition to retrieve class instances. See [below](#classInstanceProvider) for details.
 
 ```typescript
+setImportProvider((url: string) => Promise<string>)
+```
+Sets a callback that is invoked for each `owl:imports` URL to retrieve RDF content before the default fetch logic is used. See [below](#importProvider) for details.
+
+```typescript
 setResourceLinkProvider(provider: ResourceLinkProvider)
 ```
 Registers a callback provider that supplies existing resources for linking. The provider lists resources that conform to a node shape and loads RDF data for selected resources. See [below](#resourcelinkprovider).
@@ -157,7 +162,7 @@ In edit mode, `<shacl-form>` validates the constructed data graph using [shacl-e
 
 ### Providing additional data to the shapes graph
 
-Besides `data-shapes` and `data-shapes-url`, there are two ways to add RDF data to the shapes graph:
+Besides `data-shapes` and `data-shapes-url`, there are three ways to add RDF data to the shapes graph:
 
 1. While parsing the shapes graph, any `owl:imports` predicate with a valid HTTP URL is fetched. The response is parsed (using one of the [supported](#formats) MIME types) and added to a named graph. This graph is scoped to the node where the `owl:import` is defined and its sub nodes.
 
@@ -175,7 +180,22 @@ Besides `data-shapes` and `data-shapes-url`, there are two ways to add RDF data 
 
    In this case, the URL references an ontology that defines instances of `prov:Role`. These instances populate the "Role" dropdown. The imported ontology is available only for rendering and validating this specific property.
 
-2. <a id="classInstanceProvider"></a>The `<shacl-form>` element exposes `setClassInstanceProvider((className: string) => Promise<string>)`, a callback invoked when a property has `sh:class`. The return value is a string (e.g. `text/turtle`) containing instance definitions of the given class.
+2. <a id="importProvider"></a>The `<shacl-form>` element exposes `setImportProvider((url: string) => Promise<string>)`, a callback invoked for each `owl:imports` URL. The return value is a string (e.g. `text/turtle`) containing RDF for the imported graph. This is useful when imported URLs require authentication, custom routing, or application-level caching. When no import provider is configured, `shacl-form` falls back to the default fetch behavior described above.
+
+   With the default fetch path, imported URLs are cached across form instances by their URL. When `setImportProvider(...)` is used, this built-in cache is bypassed and caching becomes the responsibility of the provider implementation. Duplicate `owl:imports` URLs are still de-duplicated within a single form load.
+
+   In a typical integration, the code:
+
+   ```typescript
+   form.setImportProvider(async (url) => {
+     const response = await fetch(`/api/rdf-import?url=${encodeURIComponent(url)}`)
+     return response.text()
+   })
+   ```
+
+   lets your application decide how imported ontologies are resolved while preserving `shacl-form`'s recursive `owl:imports` handling.
+
+3. <a id="classInstanceProvider"></a>The `<shacl-form>` element exposes `setClassInstanceProvider((className: string) => Promise<string>)`, a callback invoked when a property has `sh:class`. The return value is a string (e.g. `text/turtle`) containing instance definitions of the given class.
 
    In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), the code:
 

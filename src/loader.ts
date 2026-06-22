@@ -3,7 +3,7 @@ import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_P
 import { findAllClasses, isURL } from './util'
 import { RdfXmlParser } from 'rdfxml-streaming-parser'
 import jsonld from 'jsonld'
-import { ClassInstanceProvider } from './plugin'
+import { ClassInstanceProvider, ImportProvider } from './plugin'
 
 // cache external data in module scope to avoid requesting/parsing
 // them multiple times, e.g. when more than one shacl-form element is on the page
@@ -20,6 +20,7 @@ export interface LoaderAttributes {
     valuesUrl?: string | null
     valuesSubject?: string | null
     classInstanceProvider?: ClassInstanceProvider
+    importProvider?: ImportProvider
 }
 
 export interface LoaderContext {
@@ -135,11 +136,18 @@ export async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph:
             // import url only once
             if (url && ctx.importedUrls.indexOf(url) < 0) {
                 ctx.importedUrls.push(url)
-                dependencies.push(importRDF(fetchRDF(url, ctx.atts.proxy), ctx, DataFactory.namedNode(url)))
+                dependencies.push(importRDF(loadOwlImport(url, ctx.atts), ctx, DataFactory.namedNode(url)))
             }
         }
     }
     await Promise.allSettled(dependencies)
+}
+
+async function loadOwlImport(url: string, atts: LoaderAttributes): Promise<Quad[]> {
+    if (atts.importProvider) {
+        return parseRDF(await atts.importProvider(url))
+    }
+    return fetchRDF(url, atts.proxy)
 }
 
 export async function fetchRDF(url: string, proxy: string | null | undefined): Promise<Quad[]> {
