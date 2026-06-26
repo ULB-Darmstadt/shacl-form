@@ -1,14 +1,20 @@
 import type { Literal, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
-import { OWL_PREDICATE_IMPORTS, PREFIX_DCTERMS, PREFIX_RDFS, PREFIX_SHACL } from './constants'
+import { OWL_PREDICATE_IMPORTS, PREFIX_DCTERMS, PREFIX_RDFS, PREFIX_SHACL, SHACL_PREDICATE_CLASS } from './constants'
 import { Config } from './config'
 import { mergeProperty, ShaclPropertyTemplate } from './property-template'
 import { prioritizeByLanguage } from './util'
 
 const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void> = {
-    [`${PREFIX_SHACL}node`]:                (template, term) => { template.extendedShapes.add(new ShaclNodeTemplate(term, template.config, template))},
-    [`${PREFIX_SHACL}and`]:                 (template, term) => { for (const shape of template.config.lists[term.value]) { template.extendedShapes.add(new ShaclNodeTemplate(shape, template.config, template))}},
-    [`${PREFIX_SHACL}property`]:            (template, term) => {
+    [`${PREFIX_SHACL}node`]: (template, term) => {
+        template.extendedShapes.add(new ShaclNodeTemplate(term, template.config, template))
+    },
+    [`${PREFIX_SHACL}and`]: (template, term) => {
+        for (const shape of template.config.lists[term.value]) {
+            template.extendedShapes.add(new ShaclNodeTemplate(shape, template.config, template))
+        }
+    },
+    [`${PREFIX_SHACL}property`]: (template, term) => {
         const property = template.config.getPropertyTemplate(term, template)
         if (property.path) {
             let array = template.properties[property.path]
@@ -34,13 +40,29 @@ const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void>
             }
         }
     },
-    [`${PREFIX_SHACL}nodeKind`]:            (template, term) => { template.nodeKind = term as NamedNode },
-    [`${PREFIX_SHACL}targetClass`]:         (template, term) => { template.targetClass = term as NamedNode },
-    [`${PREFIX_SHACL}or`]:                  (template, term) => { template.or = template.config.lists[term.value] },
-    [`${PREFIX_SHACL}xone`]:                (template, term) => { template.xone = template.config.lists[term.value] },
-    [OWL_PREDICATE_IMPORTS.id]:             (template, term) => { template.owlImports.add(term as NamedNode) },
-    [`${PREFIX_DCTERMS}title`]:             (template, term) => { const literal = term as Literal; template.label = prioritizeByLanguage(template.config.languages, template.label, literal) },
-    [`${PREFIX_RDFS}label`]:                (template, term) => { const literal = term as Literal; template.label = prioritizeByLanguage(template.config.languages, template.label, literal) }
+    [`${PREFIX_SHACL}nodeKind`]: (template, term) => {
+        template.nodeKind = term as NamedNode
+    },
+    [`${PREFIX_SHACL}targetClass`]: (template, term) => {
+        template.targetClass = term as NamedNode
+    },
+    [`${PREFIX_SHACL}or`]: (template, term) => {
+        template.or = template.config.lists[term.value]
+    },
+    [`${PREFIX_SHACL}xone`]: (template, term) => {
+        template.xone = template.config.lists[term.value]
+    },
+    [OWL_PREDICATE_IMPORTS.id]: (template, term) => {
+        template.owlImports.add(term as NamedNode)
+    },
+    [`${PREFIX_DCTERMS}title`]: (template, term) => {
+        const literal = term as Literal
+        template.label = prioritizeByLanguage(template.config.languages, template.label, literal)
+    },
+    [`${PREFIX_RDFS}label`]: (template, term) => {
+        const literal = term as Literal
+        template.label = prioritizeByLanguage(template.config.languages, template.label, literal)
+    },
 }
 
 export class ShaclNodeTemplate {
@@ -92,12 +114,64 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
                     delete source.parent.properties[source.path!]
                     mergeProperty(target, source)
                 }
+                // an override may have pinned a concrete value-type (e.g. sh:datatype) on a property that inherited sh:xone/sh:or options.
+                // narrow the options to the matching branches so the form does not keep showing options the override ruled out.
+                filterMatchingOptions(target)
             }
         }
     }
 }
 
-function buildPropertyChain(currentNode: ShaclNodeTemplate, path: string, visited = new Set<string>(), chain: ShaclPropertyTemplate[] = [], currentMaxCountIsOne = false): [ShaclPropertyTemplate[], boolean] {
+// narrows sh:xone/sh:or alternatives on a merged property to the branches compatible with the concrete value-type constraints the property now pins
+// (e.g. sh:datatype from a child override). if exactly one (or no) branch remains, the sh:xone/sh:or list is dropped.
+function filterMatchingOptions(template: ShaclPropertyTemplate) {
+    for (const key of ['xone', 'or'] as const) {
+        const branches = template[key]
+        if (!branches?.length) {
+            continue
+        }
+        const matching = branches.filter((branch) => branchMatchesPinnedConstraints(branch, template))
+        // only narrow when a pinned constraint actually ruled out at least one branch
+        if (matching.length < branches.length) {
+            template[key] = matching.length > 1 ? matching : undefined
+        }
+    }
+}
+
+function branchMatchesPinnedConstraints(branch: Term, template: ShaclPropertyTemplate): boolean {
+    const branchQuads = template.config.store.getQuads(branch, null, null, null)
+    return (
+        constraintMatches(branchQuads, `${PREFIX_SHACL}datatype`, template.datatype) &&
+        constraintMatches(branchQuads, SHACL_PREDICATE_CLASS.id, template.class) &&
+        constraintMatches(branchQuads, `${PREFIX_SHACL}nodeKind`, template.nodeKind)
+    )
+}
+
+// a branch is compatible with a pinned constraint if it does not declare a conflicting value:
+// a branch that omits the constraint is kept; one that declares a different value is ruled out.
+function constraintMatches(branchQuads: Quad[], predicate: string, pinned: NamedNode | undefined): boolean {
+    if (!pinned) {
+        return true
+    }
+    let declaredOnBranch = false
+    for (const quad of branchQuads) {
+        if (quad.predicate.value === predicate) {
+            declaredOnBranch = true
+            if (quad.object.equals(pinned)) {
+                return true
+            }
+        }
+    }
+    return !declaredOnBranch
+}
+
+function buildPropertyChain(
+    currentNode: ShaclNodeTemplate,
+    path: string,
+    visited = new Set<string>(),
+    chain: ShaclPropertyTemplate[] = [],
+    currentMaxCountIsOne = false,
+): [ShaclPropertyTemplate[], boolean] {
     if (!visited.has(currentNode.id.value)) {
         visited.add(currentNode.id.value)
         const prop = currentNode.properties[path]
