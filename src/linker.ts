@@ -1,14 +1,14 @@
-import { DataFactory, Store } from "n3";
-import { Config } from "./config";
-import { DATA_GRAPH, SHAPES_GRAPH } from "./constants";
-import { importRDF, LoaderContext } from "./graph-loader";
-import { createPropertyInstance, ShaclProperty } from "./property";
-import { filterOutExistingItems, findLabel } from "./util";
-import { Term } from "@rdfjs/types";
-import { RokitDialog } from "@ro-kit/ui-widgets";
-import { ShaclPropertyTemplate } from "./property-template";
-import { InputListEntry } from "./theme";
-import { loadRDF } from "./rdf-loader";
+import { DataFactory, Store } from 'n3'
+import { Config } from './config'
+import { DATA_GRAPH, SHAPES_GRAPH } from './constants'
+import { importRDF, LoaderContext } from './graph-loader'
+import { createPropertyInstance, ShaclProperty } from './property'
+import { filterOutExistingItems, findLabel } from './util'
+import { Term } from '@rdfjs/types'
+import { RokitDialog } from '@ro-kit/ui-widgets'
+import { ShaclPropertyTemplate } from './property-template'
+import { InputListEntry } from './theme'
+import { loadRDF } from './rdf-loader'
 
 export async function createLinker(property: ShaclProperty): Promise<HTMLElement | undefined> {
     // we only link to resources that must conform to a SHACL node shape
@@ -63,9 +63,9 @@ function buildLinkDialogContent(dialog: RokitDialog, property: ShaclProperty, ca
         const option = document.createElement('div')
         option.classList.add('link-option')
         option.title = 'Link this resource'
-        option.innerText = candidate.label || candidate.value as string
+        option.innerText = candidate.label || (candidate.value as string)
         option.addEventListener('click', () => {
-            addLink((candidate.value as string), property)
+            addLink(candidate.value as string, property)
             dialog.open = false
         })
         content.appendChild(option)
@@ -80,8 +80,24 @@ export function findLinkCandidates(property: ShaclProperty): InputListEntry[] {
             if (property.template.config.providedConformingResourceIds[shape.id.value]) {
                 for (const resourceId of property.template.config.providedConformingResourceIds[shape.id.value]) {
                     // check if already bound as value
-                    if (property.querySelector(`:scope > .property-instance > shacl-node[data-node-id='${resourceId}'], :scope > .collapsible > .property-instance > shacl-node[data-node-id='${resourceId}']`) === null) {
-                        result.push({ value: resourceId, label: findLabel(property.template.config.store.getQuads(DataFactory.namedNode(resourceId), null, null, null), property.template.config.languages), children: [] })
+                    if (
+                        property.querySelector(
+                            `:scope > .property-instance > shacl-node[data-node-id='${resourceId}'], :scope > .collapsible > .property-instance > shacl-node[data-node-id='${resourceId}']`,
+                        ) === null
+                    ) {
+                        result.push({
+                            value: resourceId,
+                            // provided resources aren't in the store yet, so prefer the
+                            // label extracted when the resource was loaded; fall back to
+                            // the store for resources that are already imported.
+                            label:
+                                property.template.config.providedResourceLabels[resourceId] ||
+                                findLabel(
+                                    property.template.config.store.getQuads(DataFactory.namedNode(resourceId), null, null, null),
+                                    property.template.config.languages,
+                                ),
+                            children: [],
+                        })
                     }
                 }
             }
@@ -95,7 +111,7 @@ async function addLink(resourceId: string, property: ShaclProperty) {
     if (isLinkCandidate(id, property.template.config.store)) {
         // import resource if not already done
         if (property.template.config.providedResources[resourceId]?.length > 0) {
-            const ctx: LoaderContext = { store: property.template.config.store, importedUrls: [], atts: { loadOwlImports: false }}
+            const ctx: LoaderContext = { store: property.template.config.store, importedUrls: [], atts: { loadOwlImports: false } }
             await importRDF(loadRDF({ rdf: property.template.config.providedResources[resourceId] }), ctx, SHAPES_GRAPH)
             property.template.config.providedResources[resourceId] = ''
         }
@@ -110,7 +126,7 @@ export async function loadConformingResources(property: ShaclPropertyTemplate) {
     if (!provider) {
         return
     }
-    const shapeIds = new Set(Array.from(property.nodeShapes).map(shape => shape.id.value))
+    const shapeIds = new Set(Array.from(property.nodeShapes).map((shape) => shape.id.value))
     if (shapeIds.size === 0) {
         return
     }
@@ -133,7 +149,7 @@ export async function loadConformingResources(property: ShaclPropertyTemplate) {
                 }
             }
         }
-    } catch(e) {
+    } catch (e) {
         console.error('failed loading conforming resources', e)
     }
 }
@@ -155,13 +171,19 @@ export async function loadResources(ids: Set<string>, addToStore: boolean, confi
                 const ctx: LoaderContext = {
                     store: config.store,
                     importedUrls: [],
-                    atts: { loadOwlImports: false }
+                    atts: { loadOwlImports: false },
                 }
                 for (const resource of resources) {
                     // cache resource
                     config.providedResources[resource.resourceId] = resource.resourceRDF
+                    // parse to extract and cache a human-readable label.
+                    const quads = await loadRDF({ rdf: resource.resourceRDF })
+                    config.providedResourceLabels[resource.resourceId] = findLabel(
+                        quads.filter((quad) => quad.subject.value === resource.resourceId),
+                        config.languages,
+                    )
                     if (addToStore) {
-                        await importRDF(loadRDF({ rdf: resource.resourceRDF }), ctx, SHAPES_GRAPH)
+                        await importRDF(Promise.resolve(quads), ctx, SHAPES_GRAPH)
                     }
                 }
                 return resources
@@ -172,7 +194,7 @@ export async function loadResources(ids: Set<string>, addToStore: boolean, confi
                     config.providedResources[id] = ''
                 }
             }
-        } catch(e) {
+        } catch (e) {
             console.error('failed loading resources', e)
         }
     }

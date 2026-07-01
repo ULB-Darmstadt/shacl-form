@@ -63,17 +63,24 @@ export class Config {
     providedConformingResourceIds: Record<string, Set<string>> = {}
     // resource id -> resource RDF
     providedResources: Record<string, string> = {}
+    // resource id -> human-readable label, extracted from the provided RDF.
+    providedResourceLabels: Record<string, string> = {}
 
     constructor(form: HTMLElement) {
         this.form = form
         this._theme = new DefaultTheme()
-        this.languages = [...new Set(navigator.languages.flatMap(lang => {
-            if (lang.length > 2) {
-                // for each 5 letter lang code (e.g. de-DE) append its corresponding 2 letter code (e.g. de) directly afterwards
-                return [lang.toLocaleLowerCase(), lang.substring(0, 2)]
-            }
-            return lang
-        })), ''] // <-- append empty string to accept RDF literals with no language
+        this.languages = [
+            ...new Set(
+                navigator.languages.flatMap((lang) => {
+                    if (lang.length > 2) {
+                        // for each 5 letter lang code (e.g. de-DE) append its corresponding 2 letter code (e.g. de) directly afterwards
+                        return [lang.toLocaleLowerCase(), lang.substring(0, 2)]
+                    }
+                    return lang
+                }),
+            ),
+            '',
+        ] // <-- append empty string to accept RDF literals with no language
     }
 
     reset() {
@@ -82,13 +89,14 @@ export class Config {
         this.renderedNodes.clear()
         this.providedConformingResourceIds = {}
         this.providedResources = {}
+        this.providedResourceLabels = {}
         this._nodeTemplates = {}
         this._propertyTemplates = {}
     }
 
     updateAttributes(elem: HTMLElement) {
-        const atts = new ElementAttributes();
-        (Object.keys(atts) as Array<keyof ElementAttributes>).forEach(key => {
+        const atts = new ElementAttributes()
+        ;(Object.keys(atts) as Array<keyof ElementAttributes>).forEach((key) => {
             const value = elem.dataset[key]
             if (value !== undefined) {
                 atts[key] = value
@@ -131,9 +139,9 @@ export class Config {
 
     static dataAttributes(): Array<string> {
         const atts = new ElementAttributes()
-        return Object.keys(atts).map(key => {
+        return Object.keys(atts).map((key) => {
             // convert camelcase key to kebap case
-            key = key.replace(/[A-Z]/g, m => "-" + m.toLowerCase());
+            key = key.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())
             return 'data-' + key
         })
     }
@@ -208,9 +216,14 @@ export class Config {
         this._store = store
         this.lists = extractLists(store, { ignoreErrors: true })
         this.groups = []
-        store.forSubjects(subject => {
-            this.groups.push(subject.id)
-        }, RDF_PREDICATE_TYPE, `${PREFIX_SHACL}PropertyGroup`, null)
+        store.forSubjects(
+            (subject) => {
+                this.groups.push(subject.id)
+            },
+            RDF_PREDICATE_TYPE,
+            `${PREFIX_SHACL}PropertyGroup`,
+            null,
+        )
         this.validator = new Validator(store, { details: true, factory: DataFactory })
     }
 }
