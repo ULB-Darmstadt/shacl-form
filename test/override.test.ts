@@ -222,4 +222,44 @@ describe('test property overriding', () => {
             }
         }
     })
+
+    it('filters incompatible sh:xone branches after overriding a property datatype', async () => {
+        await bind(form, `
+            ${prefixes}
+            :BaseShape a sh:NodeShape ;
+            sh:property [
+                sh:path :value ;
+                sh:maxCount 1 ;
+                sh:xone (
+                    [ sh:datatype xsd:string ]
+                    [ sh:datatype xsd:integer ]
+                ) ;
+            ] .
+
+            :ChildShape a sh:NodeShape ;
+            sh:node :BaseShape ;
+            sh:property [
+                sh:path :value ;
+                sh:datatype xsd:string ;
+            ] .
+
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :entry ;
+                sh:qualifiedValueShape :ChildShape ;
+                sh:qualifiedMinCount 1 ;
+                sh:qualifiedMaxCount 1 ;
+            ] .
+            `,
+            shapeSubject
+        )
+
+        const childShape = form.shape?.template.properties['http://example.org/entry']?.[0].qualifiedValueShape
+        const mergedShape = childShape ? Array.from(childShape.extendedShapes)[0] : undefined
+        const property = mergedShape?.properties['http://example.org/value']?.[0]
+
+        expect(property).to.exist
+        expect(property?.datatype?.value).to.equal('http://www.w3.org/2001/XMLSchema#string')
+        expect(property?.xone).to.equal(undefined)
+    })
 })
