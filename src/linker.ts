@@ -108,17 +108,15 @@ export function findLinkCandidates(property: ShaclProperty): InputListEntry[] {
 
 async function addLink(resourceId: string, property: ShaclProperty) {
     const id = DataFactory.namedNode(resourceId)
-    if (isLinkCandidate(id, property.template.config.store)) {
-        // import resource if not already done
-        if (property.template.config.providedResources[resourceId]?.length > 0) {
-            const ctx: LoaderContext = { store: property.template.config.store, importedUrls: [], atts: { loadOwlImports: false } }
-            await importRDF(loadRDF({ rdf: property.template.config.providedResources[resourceId] }), ctx, SHAPES_GRAPH)
-            property.template.config.providedResources[resourceId] = ''
-        }
-        const instance = await createPropertyInstance(property.template, id, true, true)
-        property.container.insertBefore(instance, property.querySelector(':scope > .add-button-wrapper'))
-        await property.updateControls()
+    // import resource if not already done
+    if (property.template.config.providedResources[resourceId]?.length > 0) {
+        const ctx: LoaderContext = { store: property.template.config.store, importedUrls: [], atts: { loadOwlImports: false } }
+        await importRDF(loadRDF({ rdf: property.template.config.providedResources[resourceId] }), ctx, SHAPES_GRAPH)
+        property.template.config.providedResources[resourceId] = ''
     }
+    const instance = await createPropertyInstance(property.template, id, true, true)
+    property.container.insertBefore(instance, property.querySelector(':scope > .add-button-wrapper'))
+    await property.updateControls()
 }
 
 export async function loadConformingResources(property: ShaclPropertyTemplate) {

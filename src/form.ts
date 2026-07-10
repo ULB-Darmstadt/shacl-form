@@ -338,7 +338,7 @@ export class ShaclForm extends HTMLElement {
                                         }
                                     }
                                 } else if (!ignoreEmptyValues) {
-                                    this.form.querySelector(`:scope [data-node-id='${focusNode.id}']`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
+                                    this.form.querySelector(`:scope [data-node-id='${focusNode.id}']:not([part~='linked-node'])`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
                                 }
                             }
                         }

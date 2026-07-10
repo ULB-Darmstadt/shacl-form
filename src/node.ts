@@ -50,6 +50,9 @@ export class ShaclNode extends HTMLElement {
             this.appendChild(labelElem)
             const existingPart = this.getAttribute('part')
             this.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}linked-node`)
+            // expose the node id on reference nodes too, so that it is not offered as valid link candidate again
+            // querySelector needs additional filter :not([part~='linked-node']) to get real node
+            this.dataset.nodeId = this.nodeId.id
 
             const anchor = document.createElement('a')
             const refId = (valueSubject.termType === 'BlankNode') ? '_:' + valueSubject.value : valueSubject.value
@@ -57,7 +60,7 @@ export class ShaclNode extends HTMLElement {
             anchor.classList.add('ref-link')
             anchor.onclick = () => {
                 // if anchor is clicked, scroll referenced shacl node into view
-                this.template.config.form.querySelector(`shacl-node[data-node-id='${refId}']`)?.scrollIntoView()
+                this.template.config.form.querySelector(`shacl-node[data-node-id='${refId}']:not([part~='linked-node'])`)?.scrollIntoView()
             }
             this.appendChild(anchor)
             this.style.flexDirection = 'row'
