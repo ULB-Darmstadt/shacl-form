@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Allow N3 2.x as a peer dependency while retaining support for N3 1.x.
+
 
 ## [3.2.0] - 2026-07-20
 
