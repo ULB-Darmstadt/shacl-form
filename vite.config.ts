@@ -6,6 +6,10 @@ import peerDepsExternal from 'rollup-plugin-peer-deps-external'
 export default defineConfig({
   build: {
     emptyOutDir: false,
+    // This package is bundled again by consuming applications. Vite's module
+    // preload dependency map contains the library build's hashed chunk names,
+    // which cannot be rewritten reliably by the consumer's Vite build.
+    modulePreload: false,
 
     rollupOptions: {
       input: "src/form.ts",
