@@ -2,7 +2,8 @@ name: Publish Package to npmjs
 
 permissions:
   contents: read
-  
+  id-token: write
+
 on:
   release:
     types: [published]
@@ -18,9 +19,8 @@ jobs:
         with:
           node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
       - run: npm ci
       - run: npm test
       - run: npm run build
       - run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}

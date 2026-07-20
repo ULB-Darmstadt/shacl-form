@@ -5,16 +5,6 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
-
-### Fixed
-
-- Merge inherited `sh:qualifiedValueShape` properties when both their containing
-  shapes and value shapes form matching specialization chains.
-- Accept both dot and comma decimal separators in `xsd:float`, `xsd:double`, and
-  `xsd:decimal` editors regardless of the browser locale.
-- Omit optional unchecked `xsd:boolean` fields instead of serializing the native
-  checkbox value `"on"`.
 
 ## [3.2.0] - 2026-07-20
 
@@ -53,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Preserve labels for lazily loaded resources in the resource-linking interface.
 - Keep constraints from the uniquely compatible branch of an overridden
   `sh:or` or `sh:xone` property.
+- Merge inherited `sh:qualifiedValueShape` properties when both their containing
+  shapes and value shapes form matching specialization chains.
+- Accept both dot and comma decimal separators in `xsd:float`, `xsd:double`, and
+  `xsd:decimal` editors regardless of the browser locale.
+- Omit optional unchecked `xsd:boolean` fields instead of serializing the native
+  checkbox value `"on"`.
 
 ## Reconstructed release history
 
