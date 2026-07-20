@@ -96,7 +96,9 @@ export function mergeQuads(template: ShaclNodeTemplate, quads: Quad[]) {
     return template
 }
 
-// merges properties with same sh:path and no sh:qualifiedValueShape on upmost suitable parent if cardinality of merged property's sh:maxCount equals 1
+// merges overridden properties with the same sh:path on the upmost suitable parent.
+// ordinary properties require sh:maxCount 1; qualified properties additionally merge when both
+// their containing shapes and their qualified value shapes form matching specialization chains.
 export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
     if (node.merged) {
         return
@@ -105,14 +107,22 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
     for (const props of Object.values(node.properties)) {
         for (const prop of props) {
             const [chain, maxCountIsOne] = buildPropertyChain(node, prop.path!)
-            // length must be > 1 and maxCount = 1 for overridden property
-            if (chain.length > 1 && maxCountIsOne) {
+            const hasQualifiedProperty = chain.some(property => property.qualifiedValueShape !== undefined)
+            const qualifiedSpecialization = isStrictQualifiedPropertySpecializationChain(chain)
+            const mayMerge = hasQualifiedProperty ? qualifiedSpecialization : maxCountIsOne
+            if (chain.length > 1 && mayMerge) {
                 // merge properties into the last element in array (which is the topmost in the hierarchy) and remove preceding properties
                 const target = chain[chain.length - 1]
                 for (let i = chain.length - 2; i >= 0; i--) {
                     const source = chain[i]
+                    const inheritedQualifiedShape = qualifiedSpecialization ? target.qualifiedValueShape : undefined
                     delete source.parent.properties[source.path!]
                     mergeProperty(target, source)
+                    // the more specific qualified shape already renders its inherited shape through
+                    // sh:node/sh:and. keeping both in nodeShapes would render the ancestor twice.
+                    if (inheritedQualifiedShape) {
+                        target.nodeShapes.delete(inheritedQualifiedShape)
+                    }
                 }
                 // an override may have pinned a concrete value-type (e.g. sh:datatype) on a property that inherited sh:xone/sh:or options.
                 // narrow the options to the matching branches so the form does not keep showing options the override ruled out.
@@ -120,6 +130,41 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
             }
         }
     }
+}
+
+function isStrictQualifiedPropertySpecializationChain(chain: ShaclPropertyTemplate[]): boolean {
+    if (chain.length < 2) {
+        return false
+    }
+    for (let i = 0; i < chain.length - 1; i++) {
+        const child = chain[i]
+        const parent = chain[i + 1]
+        if (
+            !child.qualifiedValueShape ||
+            !parent.qualifiedValueShape ||
+            !isStrictNodeShapeExtension(child.parent, parent.parent) ||
+            !isStrictNodeShapeExtension(child.qualifiedValueShape, parent.qualifiedValueShape)
+        ) {
+            return false
+        }
+    }
+    return true
+}
+
+function isStrictNodeShapeExtension(descendant: ShaclNodeTemplate, ancestor: ShaclNodeTemplate): boolean {
+    const pending = [...descendant.extendedShapes]
+    const visited = new Set<ShaclNodeTemplate>()
+    while (pending.length) {
+        const candidate = pending.pop()!
+        if (candidate.id.equals(ancestor.id)) {
+            return true
+        }
+        if (!visited.has(candidate)) {
+            visited.add(candidate)
+            pending.push(...candidate.extendedShapes)
+        }
+    }
+    return false
 }
 
 // narrows sh:xone/sh:or alternatives on a merged property to the branches compatible with the concrete value-type constraints the property now pins
@@ -181,7 +226,7 @@ function buildPropertyChain(
     if (!visited.has(currentNode.id.value)) {
         visited.add(currentNode.id.value)
         const prop = currentNode.properties[path]
-        // length == 1 excludes sh:qualifiedValueShapes
+        // multiple properties on the same node/path represent separate value partitions
         if (prop?.length === 1) {
             chain.push(prop[0])
             currentMaxCountIsOne = currentMaxCountIsOne || prop[0].maxCount === 1

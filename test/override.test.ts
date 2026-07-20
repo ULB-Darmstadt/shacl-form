@@ -45,6 +45,80 @@ describe('test property overriding', () => {
         expect(form.shape?.template.properties['http://example.org/pathToMerge'].length).to.equal(2)
     })
 
+    it('merges qualified properties with matching node shape specialization chains', async () => {
+        await bind(form, `
+            ${prefixes}
+            :GenericConfig a sh:NodeShape ;
+                sh:property [
+                    sh:path :assignedParameterSet ;
+                    sh:name "generic parameter set" ;
+                    sh:qualifiedValueShape :GenericParameterSet ;
+                    sh:qualifiedMinCount 1 ;
+                ] .
+
+            :DeviceConfig a sh:NodeShape ;
+                sh:node :GenericConfig ;
+                sh:property [
+                    sh:path :assignedParameterSet ;
+                    sh:name "device parameter set" ;
+                    sh:qualifiedValueShape :DeviceParameterSet ;
+                    sh:qualifiedMinCount 1 ;
+                ] .
+
+            :GenericParameterSet a sh:NodeShape .
+            :IntermediateParameterSet a sh:NodeShape ; sh:node :GenericParameterSet .
+            :DeviceParameterSet a sh:NodeShape ; sh:node :IntermediateParameterSet .
+            `,
+            'http://example.org/DeviceConfig'
+        )
+
+        const root = form.shape!.template
+        const genericConfig = [...root.extendedShapes][0]
+        const merged = genericConfig.properties['http://example.org/assignedParameterSet'][0]
+
+        expect(root.properties['http://example.org/assignedParameterSet']).to.equal(undefined)
+        expect(merged.label).to.equal('device parameter set')
+        expect(merged.qualifiedValueShape?.id.value).to.equal('http://example.org/DeviceParameterSet')
+        expect([...merged.nodeShapes].map(shape => shape.id.value)).to.deep.equal(['http://example.org/DeviceParameterSet'])
+
+        const renderRoot = form.shadowRoot ?? form
+        expect(renderRoot.querySelectorAll(`[data-path='http://example.org/assignedParameterSet']`).length).to.equal(1)
+    })
+
+    it('keeps qualified properties separate when their value shapes are not specializations', async () => {
+        await bind(form, `
+            ${prefixes}
+            :GenericConfig a sh:NodeShape ;
+                sh:property [
+                    sh:path :assignedParameterSet ;
+                    sh:qualifiedValueShape :GenericParameterSet ;
+                    sh:qualifiedMinCount 1 ;
+                    sh:maxCount 1 ;
+                ] .
+
+            :DeviceConfig a sh:NodeShape ;
+                sh:node :GenericConfig ;
+                sh:property [
+                    sh:path :assignedParameterSet ;
+                    sh:qualifiedValueShape :UnrelatedParameterSet ;
+                    sh:qualifiedMinCount 1 ;
+                ] .
+
+            :GenericParameterSet a sh:NodeShape .
+            :UnrelatedParameterSet a sh:NodeShape .
+            `,
+            'http://example.org/DeviceConfig'
+        )
+
+        const root = form.shape!.template
+        const genericConfig = [...root.extendedShapes][0]
+        expect(root.properties['http://example.org/assignedParameterSet'].length).to.equal(1)
+        expect(genericConfig.properties['http://example.org/assignedParameterSet'].length).to.equal(1)
+
+        const renderRoot = form.shadowRoot ?? form
+        expect(renderRoot.querySelectorAll(`[data-path='http://example.org/assignedParameterSet']`).length).to.equal(2)
+    })
+
     it('sh:qualifiedValueShape multiple override with sh:in', async () => {
         const [shapesQuads, inputQuads] = await bind(form, `
             ${prefixes}
