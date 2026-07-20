@@ -13,6 +13,7 @@ body {
     font-size: 16px;
 }
 
+a { color: var(--brand-color); }
 a:visited { color: inherit; }
 
 .header {

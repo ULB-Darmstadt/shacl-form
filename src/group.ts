@@ -1,12 +1,12 @@
-import { PREFIX_RDFS } from './constants'
-import { Config } from './config'
-import { findObjectValueByPredicate } from './util'
+import { PREFIX_RDFS } from './constants.js'
+import { Config } from './config.js'
+import { findObjectValueByPredicate } from './util.js'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 
 export function createShaclGroup(groupSubject: string, config: Config): HTMLElement {
     let name = groupSubject
     const quads = config.store.getQuads(groupSubject, null, null, null)
-    const label = findObjectValueByPredicate(quads, "label", PREFIX_RDFS, config.languages)
+    const label = findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, config.languages)
     if (label) {
         name = label
     }
@@ -29,7 +29,7 @@ export function createShaclGroup(groupSubject: string, config: Config): HTMLElem
 
     group.dataset['subject'] = groupSubject
     group.classList.add('shacl-group')
-    const order = findObjectValueByPredicate(quads, "order")
+    const order = findObjectValueByPredicate(quads, 'order')
     if (order) {
         group.style.order = order
     }

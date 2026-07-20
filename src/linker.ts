@@ -1,14 +1,14 @@
 import { DataFactory, Store } from 'n3'
-import { Config } from './config'
-import { DATA_GRAPH, SHAPES_GRAPH } from './constants'
-import { importRDF, LoaderContext } from './graph-loader'
-import { createPropertyInstance, ShaclProperty } from './property'
-import { filterOutExistingItems, findLabel } from './util'
+import { Config } from './config.js'
+import { DATA_GRAPH, SHAPES_GRAPH } from './constants.js'
+import { importRDF, LoaderContext } from './graph-loader.js'
+import { createPropertyInstance, ShaclProperty } from './property.js'
+import { filterOutExistingItems, findLabel } from './util.js'
 import { Term } from '@rdfjs/types'
 import { RokitDialog } from '@ro-kit/ui-widgets'
-import { ShaclPropertyTemplate } from './property-template'
-import { InputListEntry } from './theme'
-import { loadRDF } from './rdf-loader'
+import { ShaclPropertyTemplate } from './property-template.js'
+import { InputListEntry } from './theme.js'
+import { loadRDF } from './rdf-loader.js'
 
 export async function createLinker(property: ShaclProperty): Promise<HTMLElement | undefined> {
     // we only link to resources that must conform to a SHACL node shape
@@ -82,7 +82,7 @@ export function findLinkCandidates(property: ShaclProperty): InputListEntry[] {
                     // check if already bound as value
                     if (
                         property.querySelector(
-                            `:scope > .property-instance > shacl-node[data-node-id='${resourceId}'], :scope > .collapsible > .property-instance > shacl-node[data-node-id='${resourceId}']`,
+                            `:scope > .property-instance > shacl-node[data-node-id='${resourceId}'], :scope > .collapsible > .property-instance > shacl-node[data-node-id='${resourceId}']`
                         ) === null
                     ) {
                         result.push({
@@ -94,9 +94,9 @@ export function findLinkCandidates(property: ShaclProperty): InputListEntry[] {
                                 property.template.config.providedResourceLabels[resourceId] ||
                                 findLabel(
                                     property.template.config.store.getQuads(DataFactory.namedNode(resourceId), null, null, null),
-                                    property.template.config.languages,
+                                    property.template.config.languages
                                 ),
-                            children: [],
+                            children: []
                         })
                     }
                 }
@@ -169,7 +169,7 @@ export async function loadResources(ids: Set<string>, addToStore: boolean, confi
                 const ctx: LoaderContext = {
                     store: config.store,
                     importedUrls: [],
-                    atts: { loadOwlImports: false },
+                    atts: { loadOwlImports: false }
                 }
                 for (const resource of resources) {
                     // cache resource
@@ -178,7 +178,7 @@ export async function loadResources(ids: Set<string>, addToStore: boolean, confi
                     const quads = await loadRDF({ rdf: resource.resourceRDF })
                     config.providedResourceLabels[resource.resourceId] = findLabel(
                         quads.filter((quad) => quad.subject.value === resource.resourceId),
-                        config.languages,
+                        config.languages
                     )
                     if (addToStore) {
                         await importRDF(Promise.resolve(quads), ctx, SHAPES_GRAPH)

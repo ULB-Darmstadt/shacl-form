@@ -13,12 +13,12 @@ import {
     SHACL_PREDICATE_TARGET_CLASS,
     SHAPES_GRAPH,
     SKOS_PREDICATE_BROADER,
-    SKOS_PREDICATE_NARROWER,
-} from './constants'
+    SKOS_PREDICATE_NARROWER
+} from './constants.js'
 import { Term } from '@rdfjs/types'
-import { InputListEntry } from './theme'
-import { ShaclPropertyTemplate } from './property-template'
-import { ShaclNodeTemplate } from './node-template'
+import { InputListEntry } from './theme.js'
+import { ShaclPropertyTemplate } from './property-template.js'
+import { ShaclNodeTemplate } from './node-template.js'
 
 export function findObjectValueByPredicate(quads: Quad[], predicate: string, prefix: string = PREFIX_SHACL, languages?: string[]): string {
     let result = ''
@@ -94,7 +94,7 @@ function findClassInstancesFromOwlImports(
     context: ShaclNodeTemplate | ShaclPropertyTemplate,
     store: Store,
     instances: Term[],
-    alreadyCheckedImports = new Set<string>(),
+    alreadyCheckedImports = new Set<string>()
 ) {
     for (const owlImport of context.owlImports) {
         if (!alreadyCheckedImports.has(owlImport.id)) {
@@ -129,7 +129,7 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
             nodes.set(instance.id, {
                 value: instance,
                 label: findLabel(template.config.store.getQuads(instance, null, null, null), template.config.languages),
-                children: [],
+                children: []
             })
         }
 
@@ -222,12 +222,12 @@ export function formatXsdDateValueForInput(value: string) {
         }
         return {
             value: dateTimeTokens[1],
-            suffix: dateTimeTokens[5] || '',
+            suffix: dateTimeTokens[5] || ''
         }
     }
     return {
         value: tokens[1],
-        suffix: tokens[2] || '',
+        suffix: tokens[2] || ''
     }
 }
 
@@ -240,12 +240,12 @@ export function formatXsdDateTimeValueForInput(value: string) {
         }
         return {
             value: `${dateTokens[1]}T00:00:00`,
-            suffix: dateTokens[2] || '',
+            suffix: dateTokens[2] || ''
         }
     }
     return {
         value: `${tokens[1]}T${tokens[2]}:${tokens[3] || '00'}`,
-        suffix: tokens[5] || '',
+        suffix: tokens[5] || ''
     }
 }
 
@@ -293,8 +293,8 @@ export function extractLists(store: Store, { remove = false, ignoreErrors = fals
     const onError = ignoreErrors
         ? () => true
         : (node: Term, message: string) => {
-              throw new Error(`${node.value} ${message}`)
-          }
+            throw new Error(`${node.value} ${message}`)
+        }
 
     // Traverse each list from its tail
     const tails = store.getQuads(null, PREFIX_RDF + 'rest', PREFIX_RDF + 'nil', null)
@@ -319,23 +319,28 @@ export function extractLists(store: Store, { remove = false, ignoreErrors = fals
             // Find the first and rest of this list node
             for (let i = 0; i < subjectQuads.length && !malformed; i++) {
                 quad = subjectQuads[i]
-                if (!quad.graph.equals(graph)) malformed = onError(current, 'not confined to single graph')
-                else if (head) malformed = onError(current, 'has non-list arcs out')
-                // one rdf:first
-                else if (quad.predicate.value === PREFIX_RDF + 'first') {
-                    if (first) malformed = onError(current, 'has multiple rdf:first arcs')
-                    else toRemove.push((first = quad))
-                }
-
-                // one rdf:rest
-                else if (quad.predicate.value === PREFIX_RDF + 'rest') {
-                    if (rest) malformed = onError(current, 'has multiple rdf:rest arcs')
-                    else toRemove.push((rest = quad))
-                }
-
-                // alien triple
-                else if (objectQuads.length) malformed = onError(current, "can't be subject and object")
-                else {
+                if (!quad.graph.equals(graph)) {
+                    malformed = onError(current, 'not confined to single graph')
+                } else if (head) {
+                    malformed = onError(current, 'has non-list arcs out')
+                } else if (quad.predicate.value === PREFIX_RDF + 'first') {
+                    // one rdf:first
+                    if (first) {
+                        malformed = onError(current, 'has multiple rdf:first arcs')
+                    } else {
+                        toRemove.push((first = quad))
+                    }
+                } else if (quad.predicate.value === PREFIX_RDF + 'rest') {
+                    // one rdf:rest
+                    if (rest) {
+                        malformed = onError(current, 'has multiple rdf:rest arcs')
+                    } else {
+                        toRemove.push((rest = quad))
+                    }
+                } else if (objectQuads.length) {
+                    // alien triple
+                    malformed = onError(current, "can't be subject and object")
+                } else {
                     head = quad // e.g. { (1 2 3) :p :o }
                     headPos = 'subject'
                 }
@@ -345,11 +350,15 @@ export function extractLists(store: Store, { remove = false, ignoreErrors = fals
             // { (1 2) :p :o } arrives here with head set to the list.
             for (let i = 0; i < objectQuads.length && !malformed; ++i) {
                 quad = objectQuads[i]
-                if (head) malformed = onError(current, "can't have coreferences")
-                // one rdf:rest
-                else if (quad.predicate.value === PREFIX_RDF + 'rest') {
-                    if (parent) malformed = onError(current, 'has incoming rdf:rest arcs')
-                    else parent = quad
+                if (head) {
+                    malformed = onError(current, "can't have coreferences")
+                } else if (quad.predicate.value === PREFIX_RDF + 'rest') {
+                    // one rdf:rest
+                    if (parent) {
+                        malformed = onError(current, 'has incoming rdf:rest arcs')
+                    } else {
+                        parent = quad
+                    }
                 } else {
                     head = quad // e.g. { :s :p (1 2) }
                     headPos = 'object'
@@ -357,21 +366,27 @@ export function extractLists(store: Store, { remove = false, ignoreErrors = fals
             }
 
             // Store the list item and continue with parent
-            if (!first) malformed = onError(current, 'has no list head')
-            else items.unshift(first.object)
+            if (!first) {
+                malformed = onError(current, 'has no list head')
+            } else {
+                items.unshift(first.object)
+            }
             current = parent && parent.subject
         }
 
         // Don't remove any quads if the list is malformed
-        if (malformed) remove = false
-        // Store the list under the value of its head
-        else if (head) {
+        if (malformed) {
+            remove = false
+        } else if (head) {
+            // Store the list under the value of its head
             // @ts-expect-error using strings to index object
             lists[head[headPos].value] = items
         }
     })
 
     // Remove list quads if requested
-    if (remove) store.removeQuads(toRemove)
+    if (remove) {
+        store.removeQuads(toRemove)
+    }
     return lists
 }

@@ -1,18 +1,28 @@
-import { ShaclNode } from './node'
-import { Config } from './config'
-import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin'
+import { ShaclNode } from './node.js'
+import { Config } from './config.js'
+import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin.js'
 import { Store, NamedNode, DataFactory, BlankNode, Literal } from 'n3'
-import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants'
-import { Editor, Theme } from './theme'
-import { serialize } from './serialize'
+import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants.js'
+import { Editor, Theme } from './theme.js'
+import { serialize } from './serialize.js'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
-import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template'
-import { findConformsToShapeSubject, findConformsToValuesSubject, loadGraphs } from './graph-loader'
-import { prefixes } from './rdf-loader'
-import { loadUnresolvedValues } from './linker'
-import { findBestMatchingLiteral } from './util'
+import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template.js'
+import { findConformsToShapeSubject, findConformsToValuesSubject, loadGraphs } from './graph-loader.js'
+import { prefixes } from './rdf-loader.js'
+import { loadUnresolvedValues } from './linker.js'
+import { findBestMatchingLiteral } from './util.js'
+import type { Query, QueryFacetProvider } from './query/index.js'
 
-export * from './exports'
+type QueryController = {
+    stylesheet: CSSStyleSheet
+    initialize(): Promise<void>
+    handleChange(): void
+    getQuery(): Query
+    refreshFacets(): void
+    dispose(): void
+}
+
+export * from './exports.js'
 export const initTimeout = 200
 
 export interface ValidationReport {
@@ -21,13 +31,16 @@ export interface ValidationReport {
 }
 
 export class ShaclForm extends HTMLElement {
-    static get observedAttributes() { return Config.dataAttributes() }
+    static get observedAttributes() {
+        return Config.dataAttributes()
+    }
 
     config: Config
     shape: ShaclNode | null = null
     form: HTMLFormElement
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
     private styleElement: HTMLStyleElement | null = null
+    private queryController?: QueryController
 
     constructor() {
         super()
@@ -37,10 +50,14 @@ export class ShaclForm extends HTMLElement {
         this.config = new Config(this.form)
         this.form.addEventListener('change', ev => {
             ev.stopPropagation()
-            if (this.config.editMode) {
+            if (this.config.queryMode) {
+                this.queryController?.handleChange()
+            } else if (this.config.editMode) {
                 this.validate(true).then(report => {
                     this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': report.conforms, 'report': report } }))
-                }).catch(e => { console.warn(e) })
+                }).catch(e => {
+                    console.warn(e)
+                })
             }
         })
     }
@@ -59,6 +76,8 @@ export class ShaclForm extends HTMLElement {
 
     private initialize() {
         clearTimeout(this.initDebounceTimeout)
+        this.queryController?.dispose()
+        this.queryController = undefined
         // set loading attribute on element so that hosting app can apply special css rules
         this.setAttribute('loading', '')
         // remove all child elements from form and show loading indicator
@@ -93,15 +112,25 @@ export class ShaclForm extends HTMLElement {
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
                 if (rootShapeShaclSubject) {
                     // remove all previous css classes to have a defined state
-                    this.form.classList.forEach(value => { this.form.classList.remove(value) })
+                    this.form.classList.forEach(value => {
+                        this.form.classList.remove(value)
+                    })
                     this.form.classList.toggle('mode-edit', this.config.editMode)
-                    this.form.classList.toggle('mode-view', !this.config.editMode)
+                    this.form.classList.toggle('mode-view', this.config.mode === 'view')
+                    this.form.classList.toggle('mode-query', this.config.queryMode)
+                    if (this.config.queryMode) {
+                        const { QueryModeController } = await import('./query/mode.js')
+                        this.queryController = new QueryModeController(this)
+                    }
                     // let theme add css classes to form element
                     this.config.theme.apply(this.form)
                     // adopt stylesheets from theme and plugins
-                    const styles: CSSStyleSheet[] = [ this.config.theme.stylesheet ]
+                    const styles: CSSStyleSheet[] = [this.config.theme.stylesheet]
                     if (this.config.hierarchyColorsStyleSheet) {
                         styles.push(this.config.hierarchyColorsStyleSheet)
+                    }
+                    if (this.queryController) {
+                        styles.push(this.queryController.stylesheet)
                     }
                     for (const plugin of listPlugins()) {
                         if (plugin.stylesheet) {
@@ -162,6 +191,9 @@ export class ShaclForm extends HTMLElement {
                             }
                             this.validate(true)
                         })()
+                    } else if (this.config.queryMode) {
+                        await this.shape.ready
+                        await this.queryController?.initialize()
                     }
                 } else if (this.config.store.countQuads(null, null, null, SHAPES_GRAPH) > 0) {
                     // raise error only when shapes graph is not empty
@@ -222,12 +254,15 @@ export class ShaclForm extends HTMLElement {
         this.styleElement.textContent = cssText
     }
 
-    public serialize(format = 'text/turtle', graph = this.toRDF()): string {
+    public serialize(format = 'text/turtle', graph?: Store): string {
+        this.assertNotQueryMode('serialize')
+        graph = graph ?? this.toRDF()
         const quads = graph.getQuads(null, null, null, null)
         return serialize(quads, format, prefixes)
     }
 
     public toRDF(graph = new Store()): Store {
+        this.assertNotQueryMode('toRDF')
         this.shape?.toRDF(graph, undefined, this.config.attributes.generateNodeShapeReference)
         return graph
     }
@@ -257,8 +292,29 @@ export class ShaclForm extends HTMLElement {
         this.initialize()
     }
 
+    public setQueryFacetProvider(provider: QueryFacetProvider) {
+        this.config.queryFacetProvider = provider
+        this.queryController?.refreshFacets()
+    }
+
+    public getQuery(): Query {
+        if (!this.shape) {
+            return { rootShapeId: '', criteria: [] }
+        }
+        return this.queryController?.getQuery() ?? {
+            rootShapeId: this.shape.template.id.value,
+            targetClass: this.shape.template.targetClass?.value,
+            criteria: []
+        }
+    }
+
+    public refreshQueryFacets() {
+        this.queryController?.refreshFacets()
+    }
+
     /* Returns the validation report */
     public async validate(ignoreEmptyValues = false): Promise<ValidationReport> {
+        this.assertNotQueryMode('validate')
         for (const elem of this.form.querySelectorAll(':scope .validation-error')) {
             elem.remove()
         }
@@ -294,7 +350,7 @@ export class ShaclForm extends HTMLElement {
             this.config.store.deleteGraph(this.config.valuesGraphId || '').on('end', async () => {
                 rootShape.toRDF(this.config.store, undefined, this.config.attributes.generateNodeShapeReference)
                 try {
-                    const report = await this.config.validator.validate({ dataset: this.config.store, terms: [ rootShape.nodeId ] }, [{ terms: [ rootShape.template.id ] }])
+                    const report = await this.config.validator.validate({ dataset: this.config.store, terms: [rootShape.nodeId] }, [{ terms: [rootShape.template.id] }])
                     for (const result of report.results) {
                         if (result.focusNode?.ptrs?.length) {
                             for (const ptr of result.focusNode.ptrs) {
@@ -344,13 +400,19 @@ export class ShaclForm extends HTMLElement {
                         }
                     }
                     resolve(report)
-                } catch(e) {
+                } catch (e) {
                     console.error(e)
                     resolve({ conforms: false, results: [] })
                 }
             })
         })
         return promise
+    }
+
+    private assertNotQueryMode(method: string) {
+        if (this.config.queryMode) {
+            throw new Error(`${method}() is not available in query mode; use getQuery()`)
+        }
     }
 
     private createValidationErrorDisplay(validatonResult?: unknown, clazz?: string): HTMLElement {
@@ -368,8 +430,7 @@ export class ShaclForm extends HTMLElement {
             } else if (result.sourceConstraintComponent?.value) {
                 messageElement.title = result.sourceConstraintComponent.value
             }
-        }
-        else if (typeof(validatonResult) === 'string') {
+        } else if (typeof(validatonResult) === 'string') {
             messageElement.title = validatonResult
         }
         return messageElement

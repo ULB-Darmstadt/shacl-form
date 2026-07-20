@@ -1,41 +1,87 @@
 import { Literal, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
-import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_OA, PREFIX_SHACL, RDF_OBJECT_LANG_STRING, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS } from './constants'
-import { Config } from './config'
-import { findLabel, prioritizeByLanguage, removePrefixes } from './util'
-import { ShaclNodeTemplate } from './node-template'
-import { prefixes } from './rdf-loader'
+import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_OA, PREFIX_SHACL, RDF_OBJECT_LANG_STRING, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS } from './constants.js'
+import { Config } from './config.js'
+import { findLabel, prioritizeByLanguage, removePrefixes } from './util.js'
+import { ShaclNodeTemplate } from './node-template.js'
+import { prefixes } from './rdf-loader.js'
 
 export const mappers: Record<string, (template: ShaclPropertyTemplate, term: Term) => void> = {
-    [`${PREFIX_SHACL}name`]:         (template, term) => { const literal = term as Literal; template.name = prioritizeByLanguage(template.config.languages, template.name, literal) },
-    [`${PREFIX_SHACL}description`]:  (template, term) => { const literal = term as Literal; template.description = prioritizeByLanguage(template.config.languages, template.description, literal) },
-    [`${PREFIX_SHACL}path`]:         (template, term) => { template.path = term.value },
-    [`${PREFIX_SHACL}group`]:        (template, term) => { template.group = (term as NamedNode).id },
-    [`${PREFIX_SHACL}datatype`]:     (template, term) => { template.datatype = term as NamedNode },
-    [`${PREFIX_SHACL}nodeKind`]:     (template, term) => { template.nodeKind = term as NamedNode },
-    [`${PREFIX_SHACL}minCount`]:     (template, term) => { template.minCount = parseInt(term.value) },
-    [`${PREFIX_SHACL}maxCount`]:     (template, term) => { template.maxCount = parseInt(term.value) },
-    [`${PREFIX_SHACL}minLength`]:    (template, term) => { template.minLength = parseInt(term.value) },
-    [`${PREFIX_SHACL}maxLength`]:    (template, term) => { template.maxLength = parseInt(term.value) },
-    [`${PREFIX_SHACL}minInclusive`]: (template, term) => { template.minInclusive = parseInt(term.value) },
-    [`${PREFIX_SHACL}maxInclusive`]: (template, term) => { template.maxInclusive = parseInt(term.value) },
-    [`${PREFIX_SHACL}minExclusive`]: (template, term) => { template.minExclusive = parseInt(term.value) },
-    [`${PREFIX_SHACL}maxExclusive`]: (template, term) => { template.maxExclusive = parseInt(term.value) },
-    [`${PREFIX_SHACL}pattern`]:      (template, term) => { template.pattern = term.value },
-    [`${PREFIX_SHACL}order`]:        (template, term) => { template.order = parseInt(term.value) },
-    [`${PREFIX_DASH}singleLine`]:    (template, term) => { template.singleLine = term.value === 'true' },
-    [`${PREFIX_DASH}readonly`]:      (template, term) => { template.readonly = term.value === 'true' },
-    [`${PREFIX_OA}styleClass`]:      (template, term) => { template.cssClass = term.value },
-    [`${PREFIX_SHACL}in`]:           (template, term) => { template.in = term.value },
+    [`${PREFIX_SHACL}name`]: (template, term) => {
+        const literal = term as Literal; template.name = prioritizeByLanguage(template.config.languages, template.name, literal)
+    },
+    [`${PREFIX_SHACL}description`]: (template, term) => {
+        const literal = term as Literal; template.description = prioritizeByLanguage(template.config.languages, template.description, literal)
+    },
+    [`${PREFIX_SHACL}path`]: (template, term) => {
+        template.path = term.value
+    },
+    [`${PREFIX_SHACL}group`]: (template, term) => {
+        template.group = (term as NamedNode).id
+    },
+    [`${PREFIX_SHACL}datatype`]: (template, term) => {
+        template.datatype = term as NamedNode
+    },
+    [`${PREFIX_SHACL}nodeKind`]: (template, term) => {
+        template.nodeKind = term as NamedNode
+    },
+    [`${PREFIX_SHACL}minCount`]: (template, term) => {
+        template.minCount = parseInt(term.value)
+    },
+    [`${PREFIX_SHACL}maxCount`]: (template, term) => {
+        template.maxCount = parseInt(term.value)
+    },
+    [`${PREFIX_SHACL}minLength`]: (template, term) => {
+        template.minLength = parseInt(term.value)
+    },
+    [`${PREFIX_SHACL}maxLength`]: (template, term) => {
+        template.maxLength = parseInt(term.value)
+    },
+    [`${PREFIX_SHACL}minInclusive`]: (template, term) => {
+        template.minInclusive = parseInt(term.value)
+    },
+    [`${PREFIX_SHACL}maxInclusive`]: (template, term) => {
+        template.maxInclusive = parseInt(term.value)
+    },
+    [`${PREFIX_SHACL}minExclusive`]: (template, term) => {
+        template.minExclusive = parseInt(term.value)
+    },
+    [`${PREFIX_SHACL}maxExclusive`]: (template, term) => {
+        template.maxExclusive = parseInt(term.value)
+    },
+    [`${PREFIX_SHACL}pattern`]: (template, term) => {
+        template.pattern = term.value
+    },
+    [`${PREFIX_SHACL}order`]: (template, term) => {
+        template.order = parseInt(term.value)
+    },
+    [`${PREFIX_DASH}singleLine`]: (template, term) => {
+        template.singleLine = term.value === 'true'
+    },
+    [`${PREFIX_DASH}readonly`]: (template, term) => {
+        template.readonly = term.value === 'true'
+    },
+    [`${PREFIX_OA}styleClass`]: (template, term) => {
+        template.cssClass = term.value
+    },
+    [`${PREFIX_SHACL}in`]: (template, term) => {
+        template.in = term.value
+    },
     // sh:datatype might be undefined, but sh:languageIn defined. this is undesired. the spec says, that strings without a lang tag are not valid if sh:languageIn is set. but the shacl validator accepts these as valid. to prevent this, we just set the datatype here to 'langString'.
-    [`${PREFIX_SHACL}languageIn`]:   (template, term) => { template.languageIn = template.config.lists[term.value]; template.datatype = RDF_OBJECT_LANG_STRING },
-    [`${PREFIX_SHACL}defaultValue`]: (template, term) => { template.defaultValue = term },
-    [`${PREFIX_SHACL}hasValue`]:     (template, term) => { template.hasValue = term },
-    [`${PREFIX_SHACL}node`]:         (template, term) => {
+    [`${PREFIX_SHACL}languageIn`]: (template, term) => {
+        template.languageIn = template.config.lists[term.value]; template.datatype = RDF_OBJECT_LANG_STRING
+    },
+    [`${PREFIX_SHACL}defaultValue`]: (template, term) => {
+        template.defaultValue = term
+    },
+    [`${PREFIX_SHACL}hasValue`]: (template, term) => {
+        template.hasValue = term
+    },
+    [`${PREFIX_SHACL}node`]: (template, term) => {
         template.node = term as NamedNode
         template.nodeShapes.add(template.config.getNodeTemplate(term, template))
     },
-    [`${PREFIX_SHACL}and`]:          (template, term) => {
+    [`${PREFIX_SHACL}and`]: (template, term) => {
         template.and = term.value
         const list = template.config.lists[template.and]
         if (list?.length) {
@@ -49,10 +95,16 @@ export const mappers: Record<string, (template: ShaclPropertyTemplate, term: Ter
         template.qualifiedValueShape = shape
         template.nodeShapes.add(shape)
     },
-    [`${PREFIX_SHACL}qualifiedMinCount`]:   (template, term) => { template.qualifiedMinCount = parseInt(term.value) },
-    [`${PREFIX_SHACL}qualifiedMaxCount`]:   (template, term) => { template.qualifiedMaxCount = parseInt(term.value) },
-    [OWL_PREDICATE_IMPORTS.id]:      (template, term) => { template.owlImports.add(term as NamedNode) },
-    [SHACL_PREDICATE_CLASS.id]:      (template, term) => {
+    [`${PREFIX_SHACL}qualifiedMinCount`]: (template, term) => {
+        template.qualifiedMinCount = parseInt(term.value)
+    },
+    [`${PREFIX_SHACL}qualifiedMaxCount`]: (template, term) => {
+        template.qualifiedMaxCount = parseInt(term.value)
+    },
+    [OWL_PREDICATE_IMPORTS.id]: (template, term) => {
+        template.owlImports.add(term as NamedNode)
+    },
+    [SHACL_PREDICATE_CLASS.id]: (template, term) => {
         template.class = term as NamedNode
         // try to find node shape that has requested target class
         const nodeShapes = template.config.store.getSubjects(SHACL_PREDICATE_TARGET_CLASS, term, null)
@@ -60,7 +112,7 @@ export const mappers: Record<string, (template: ShaclPropertyTemplate, term: Ter
             template.node = nodeShapes[0] as NamedNode
         }
     },
-    [`${PREFIX_SHACL}or`]:           (template, term) => {
+    [`${PREFIX_SHACL}or`]: (template, term) => {
         const list = template.config.lists[term.value]
         if (list?.length) {
             template.or = list
@@ -68,7 +120,7 @@ export const mappers: Record<string, (template: ShaclPropertyTemplate, term: Ter
             console.error('list for sh:or not found:', term.value, 'existing lists:', template.config.lists)
         }
     },
-    [`${PREFIX_SHACL}xone`]:           (template, term) => {
+    [`${PREFIX_SHACL}xone`]: (template, term) => {
         const list = template.config.lists[term.value]
         if (list?.length) {
             template.xone = list
@@ -142,13 +194,13 @@ export function cloneProperty(template: ShaclPropertyTemplate) {
     copy.nodeShapes = new Set(template.nodeShapes)
     copy.owlImports = new Set(template.owlImports)
     if (template.languageIn) {
-        copy.languageIn = [ ...template.languageIn ]
+        copy.languageIn = [...template.languageIn]
     }
     if (template.or) {
-        copy.or = [ ...template.or ]
+        copy.or = [...template.or]
     }
     if (template.xone) {
-        copy.xone = [ ...template.xone ]
+        copy.xone = [...template.xone]
     }
     return copy
 }

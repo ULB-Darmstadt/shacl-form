@@ -56,7 +56,7 @@ npm i @ulb-darmstadt/shacl-form
 This package has peer dependencies; install them in your app as well:
 
 ```console
-npm i @ro-kit/ui-widgets jsonld leaflet leaflet-editable leaflet.fullscreen n3 rdfxml-streaming-parser shacl-engine uuid
+npm i @ro-kit/ui-widgets jsonld leaflet leaflet-editable leaflet.fullscreen leaflet.heat n3 rdfxml-streaming-parser shacl-engine uuid
 ```
 
 Load the web component in your app. For a Vite/webpack-style project, import it once at startup:
@@ -93,6 +93,7 @@ data-language | Language for `langString` values (e.g. in `sh:name` or `rdfs:lab
 data-loading | Text displayed while the component initializes. Default is `"Loading..."`
 data-ignore-owl-imports | By default, `owl:imports` URLs are fetched and merged into the shapes graph. Set this attribute to disable that behavior
 data-view | When set, turns the component into a viewer that displays the data graph without editing
+data-mode | Explicit component mode: `edit` (default), `view`, or `query`. When omitted, the legacy `data-view` attribute continues to select viewer mode
 data-collapse | When set, `sh:group`s and properties with `sh:node` and `sh:maxCount` != 1 are rendered in a collapsible accordion. Use value `"open"` to start expanded
 data-submit-button | [Ignored when `data-view` is set] Adds a submit button. The attribute value is used as the label. `submit` events fire only when the data validates
 data-generate-node-shape-reference | When generating RDF data, adds a triple that references the root `sh:NodeShape`. Default predicate is `http://purl.org/dc/terms/conformsTo`. Set to an empty string to disable
@@ -146,6 +147,21 @@ setResourceLinkProvider(provider: ResourceLinkProvider)
 ```
 Registers a provider for linking existing resources. It can list resources that conform to a node shape and load RDF for the selected resources. See [below](#resourceLinkProvider).
 
+```typescript
+setQueryFacetProvider(provider: QueryFacetProvider)
+```
+See the [query mode guide](./src/query/query-mode.md)
+
+```typescript
+getQuery(): Query
+```
+See the [query mode guide](./src/query/query-mode.md)
+
+```typescript
+refreshQueryFacets()
+```
+See the [query mode guide](./src/query/query-mode.md)
+
 ## Features
 
 ### Validation
@@ -160,6 +176,10 @@ In edit mode, `<shacl-form>` validates the constructed data graph using [shacl-e
 
 `<shacl-form>` is both an editor and a viewer. Set `data-view` and bind a shapes graph and a data graph to render a read-only view. See the [demo](https://ulb-darmstadt.github.io/shacl-form/#viewer-mode).
 
+### Query mode
+
+See the [query mode guide](./src/query/query-mode.md)
+
 ### Additional RDF for the shapes graph
 
 Besides `data-shapes` and `data-shapes-url`, `shacl-form` can enrich the shapes graph in three ways:
@@ -168,7 +188,7 @@ Besides `data-shapes` and `data-shapes-url`, `shacl-form` can enrich the shapes 
 
    While parsing the shapes graph, any `owl:imports` predicate with a valid HTTP URL is fetched, parsed, and added as a named graph. That graph is scoped to the node where the `owl:imports` statement appears and its child nodes.
 
-   The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) contains the following triples:
+   The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#edit-mode) contains the following triples:
 
    ```
    example:Attribution
@@ -211,7 +231,7 @@ Besides `data-shapes` and `data-shapes-url`, `shacl-form` can enrich the shapes 
 
    Use this when a property has `sh:class` and the available instances should come from an external source. The callback returns RDF, for example `text/turtle`, containing instances of the requested class.
 
-   In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), the code:
+   In [this example](https://ulb-darmstadt.github.io/shacl-form/#edit-mode), the code:
 
    ```typescript
    form.setClassInstanceProvider((clazz) => {
@@ -232,11 +252,11 @@ Besides `data-shapes` and `data-shapes-url`, `shacl-form` can enrich the shapes 
 
 When a property shape has an `sh:class`, `shacl-form` scans all available graphs for matching instances so users can choose from them. `rdfs:subClassOf` is also considered when building the list of class instances.
 
-`shacl-form` also supports class instance hierarchies modelled with `skos:broader` and/or `skos:narrower`. This is illustrated by the "Subject classification" property in the [example](https://ulb-darmstadt.github.io/shacl-form/#example).
+`shacl-form` also supports class instance hierarchies modelled with `skos:broader` and/or `skos:narrower`. This is illustrated by the "Subject classification" property in the [example](https://ulb-darmstadt.github.io/shacl-form/#edit-mode).
 
 ### SHACL constraints sh:or and sh:xone
 
-`<shacl-form>` supports [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) and [sh:xone](https://www.w3.org/TR/shacl/#XoneConstraintComponent) to let users choose between different options on nodes or properties. The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#example) includes:
+`<shacl-form>` supports [sh:or](https://www.w3.org/TR/shacl/#OrConstraintComponent) and [sh:xone](https://www.w3.org/TR/shacl/#XoneConstraintComponent) to let users choose between different options on nodes or properties. The [example shapes graph](https://ulb-darmstadt.github.io/shacl-form/#edit-mode) includes:
 
 ```
 example:Attribution
@@ -282,7 +302,7 @@ The provider supports both eager loading during initialization and lazy loading 
 
 ### SHACL shape inheritance
 
-SHACL defines two ways of inheriting shapes: [sh:and](https://www.w3.org/TR/shacl/#AndConstraintComponent) and [sh:node](https://www.w3.org/TR/shacl/#NodeConstraintComponent). `<shacl-form>` supports both. In [this example](https://ulb-darmstadt.github.io/shacl-form/#example), node shape `example:ArchitectureModelDataset` extends `example:Dataset` by defining:
+SHACL defines two ways of inheriting shapes: [sh:and](https://www.w3.org/TR/shacl/#AndConstraintComponent) and [sh:node](https://www.w3.org/TR/shacl/#NodeConstraintComponent). `<shacl-form>` supports both. In [this example](https://ulb-darmstadt.github.io/shacl-form/#edit-mode), node shape `example:ArchitectureModelDataset` extends `example:Dataset` by defining:
 
 ```
 example:ArchitectureModelDataset sh:node example:Dataset .
@@ -292,7 +312,7 @@ Properties of inherited shapes are displayed first.
 
 ### Plugins
 
-Plugins can modify rendering and add edit/view functionality for specific RDF datatypes or predicates (or both). For example, the JavaScript on [this page](https://ulb-darmstadt.github.io/shacl-form/#example) includes:
+Plugins can modify rendering and add edit/view functionality for specific RDF datatypes or predicates (or both). For example, the JavaScript on [this page](https://ulb-darmstadt.github.io/shacl-form/#edit-mode) includes:
 
 ```typescript
 import { LeafletPlugin } from '@ulb-darmstadt/shacl-form/plugins/leaflet.js'
@@ -314,7 +334,7 @@ Custom plugins can be built by extending [Plugin](https://github.com/ULB-Darmsta
 
 ### Property grouping and collapsing
 
-Properties can be grouped using [sh:group](https://www.w3.org/TR/shacl/#group) in the shapes graph. [This example](https://ulb-darmstadt.github.io/shacl-form/#example) defines a group "Physical properties" and assigns certain properties to it.
+Properties can be grouped using [sh:group](https://www.w3.org/TR/shacl/#group) in the shapes graph. [This example](https://ulb-darmstadt.github.io/shacl-form/#edit-mode) defines a group "Physical properties" and assigns certain properties to it.
 
 When `data-collapse` is set, `<shacl-form>` creates an accordion-like widget that toggles grouped properties to reduce visual complexity. If the grouped properties should start open, set `data-collapse="open"`.
 

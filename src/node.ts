@@ -1,13 +1,13 @@
 import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
-import { ShaclProperty } from './property'
-import { createShaclGroup } from './group'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants.js'
+import { ShaclProperty } from './property.js'
+import { createShaclGroup } from './group.js'
 import { v4 as uuidv4 } from 'uuid'
-import { createShaclOrConstraint, resolveShaclOrConstraintOnNode } from './constraints'
-import { Config } from './config'
-import { ShaclNodeTemplate, mergeOverriddenProperties } from './node-template'
-import { ShaclPropertyTemplate } from './property-template'
+import { createShaclOrConstraint, resolveShaclOrConstraintOnNode } from './constraints.js'
+import { Config } from './config.js'
+import { ShaclNodeTemplate, mergeOverriddenProperties } from './node-template.js'
+import { ShaclPropertyTemplate } from './property-template.js'
 
 export class ShaclNode extends HTMLElement {
     nodeId: NamedNode | BlankNode
@@ -15,12 +15,14 @@ export class ShaclNode extends HTMLElement {
     linked: boolean
     ready: Promise<void>
     ancestorShapeIds: Set<string>
+    queryContext?: QueryPathContext
 
-    constructor(template: ShaclNodeTemplate, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string, linked?: boolean, ancestorShapeIds: Set<string> = new Set()) {
+    constructor(template: ShaclNodeTemplate, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string, linked?: boolean, ancestorShapeIds: Set<string> = new Set(), queryContext?: QueryPathContext) {
         super()
         this.template = template
         this.linked = linked ?? false
         this.ancestorShapeIds = ancestorShapeIds
+        this.queryContext = queryContext
         this.setAttribute('part', 'node')
         let nodeId: NamedNode | BlankNode | undefined = valueSubject
         if (!nodeId) {
@@ -43,7 +45,7 @@ export class ShaclNode extends HTMLElement {
         const id = JSON.stringify([template.id, valueSubject])
         if (valueSubject && template.config.renderedNodes.has(id)) {
             // node/value pair is already rendered in the form, so just display a reference
-            label = label || "Link"
+            label = label || 'Link'
             const labelElem = document.createElement('label')
             labelElem.innerText = label
             labelElem.classList.add('linked')
@@ -71,6 +73,7 @@ export class ShaclNode extends HTMLElement {
             }
             const ancestorShapeIds = this.ancestorShapeIds
             const currentShapeId = this.template.id.value
+            const currentQueryContext = this.queryContext
             this.dataset.nodeId = this.nodeId.id
             if (this.template.config.attributes.showNodeIds !== null) {
                 const div = document.createElement('div')
@@ -90,7 +93,7 @@ export class ShaclNode extends HTMLElement {
                     }
                 }
                 for (const shape of template.extendedShapes) {
-                    const node = new ShaclNode(shape, valueSubject, undefined, undefined, linked, childAncestorShapeIds)
+                    const node = new ShaclNode(shape, valueSubject, undefined, undefined, linked, childAncestorShapeIds, currentQueryContext)
                     this.prepend(node)
                     await node.ready
                 }
@@ -147,16 +150,22 @@ export class ShaclNode extends HTMLElement {
             }
         }
         const property = new ShaclProperty(template, this)
-        await property.bindValues(valueSubject, multiValuedPath)
+        if (template.config.queryMode) {
+            await property.initializeQuery()
+        } else {
+            await property.bindValues(valueSubject, multiValuedPath)
+        }
 
         // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
-        if (template.config.editMode || property.instanceCount() > 0) {
+        if (template.config.editMode || template.config.queryMode || property.instanceCount() > 0) {
             if (container) {
                 container.appendChild(property)
             } else {
                 this.appendChild(property)
             }
-            await property.updateControls()
+            if (!template.config.queryMode) {
+                await property.updateControls()
+            }
         }
     }
 
@@ -166,7 +175,7 @@ export class ShaclNode extends HTMLElement {
             const resolvedPropertySubjects = resolveShaclOrConstraintOnNode(options, valueSubject, config)
             if (resolvedPropertySubjects.length) {
                 for (const propertySubject of resolvedPropertySubjects) {
-                   await this.addPropertyInstance(config.getPropertyTemplate(propertySubject, this.template), valueSubject)
+                    await this.addPropertyInstance(config.getPropertyTemplate(propertySubject, this.template), valueSubject)
                 }
                 resolved = true
             }
@@ -175,6 +184,11 @@ export class ShaclNode extends HTMLElement {
             this.appendChild(createShaclOrConstraint(options, this, config))
         }
     }
+}
+
+export type QueryPathContext = {
+    path: string[]
+    shapePath: string[]
 }
 
 window.customElements.define('shacl-node', ShaclNode)

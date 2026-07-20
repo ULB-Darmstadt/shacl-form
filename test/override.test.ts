@@ -231,7 +231,7 @@ describe('test property overriding', () => {
                 sh:path :value ;
                 sh:maxCount 1 ;
                 sh:xone (
-                    [ sh:datatype xsd:string ]
+                    [ sh:datatype xsd:string ; sh:maxLength 20 ]
                     [ sh:datatype xsd:integer ]
                 ) ;
             ] .
@@ -260,6 +260,7 @@ describe('test property overriding', () => {
 
         expect(property).to.exist
         expect(property?.datatype?.value).to.equal('http://www.w3.org/2001/XMLSchema#string')
+        expect(property?.maxLength).to.equal(20)
         expect(property?.xone).to.equal(undefined)
     })
 })

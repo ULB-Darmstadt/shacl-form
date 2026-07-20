@@ -1,5 +1,5 @@
-import { Plugin, PluginOptions } from '../plugin'
-import { aggregatedMinCount, ShaclPropertyTemplate } from '../property-template'
+import { Plugin, PluginOptions } from '../plugin.js'
+import { aggregatedMinCount, ShaclPropertyTemplate } from '../property-template.js'
 
 export class FileUploadPlugin extends Plugin {
     onChange: (event: Event) => void
@@ -15,11 +15,11 @@ export class FileUploadPlugin extends Plugin {
         const required = aggregatedMinCount(template) > 0
         const editor = template.config.theme.createFileEditor(template.label, null, required, template)
         editor.addEventListener('change', event => {
-          event.stopPropagation()
-          this.onChange(event)
+            event.stopPropagation()
+            this.onChange(event)
         })
         if (this.fileType) {
-          editor.querySelector('input[type="file"]')?.setAttribute('accept', this.fileType)
+            editor.querySelector('input[type="file"]')?.setAttribute('accept', this.fileType)
         }
         return editor
     }

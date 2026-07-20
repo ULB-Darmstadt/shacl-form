@@ -1,10 +1,10 @@
 import { Store, Quad, NamedNode, DataFactory } from 'n3'
-import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH } from './constants'
-import { findAllClasses, isURL } from './util'
-import { ClassInstanceProvider, RdfUrlResolver } from './plugin'
-import { loadRDF, prefixes } from './rdf-loader'
+import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, OWL_PREDICATE_IMPORTS, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH } from './constants.js'
+import { findAllClasses, isURL } from './util.js'
+import { ClassInstanceProvider, RdfUrlResolver } from './plugin.js'
+import { loadRDF, prefixes } from './rdf-loader.js'
 
-export { rdfCache, prefixes, fetchRDF, parseRDF } from './rdf-loader'
+export { rdfCache, prefixes, fetchRDF, parseRDF } from './rdf-loader.js'
 
 export interface LoaderAttributes {
     loadOwlImports: boolean

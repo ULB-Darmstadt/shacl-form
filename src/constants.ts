@@ -1,4 +1,4 @@
-import { DataFactory } from "n3"
+import { DataFactory } from 'n3'
 
 export const PREFIX_SHACL = 'http://www.w3.org/ns/shacl#'
 export const PREFIX_DASH = 'http://datashapes.org/dash#'
@@ -30,3 +30,41 @@ export const SHACL_PREDICATE_TARGET_CLASS = DataFactory.namedNode(PREFIX_SHACL +
 export const SHACL_PREDICATE_NODE_KIND = DataFactory.namedNode(PREFIX_SHACL + 'nodeKind')
 export const XSD_DATATYPE_STRING = DataFactory.namedNode(PREFIX_XSD + 'string')
 export const XSD_DATATYPE_BOOLEAN = DataFactory.namedNode(PREFIX_XSD + 'boolean')
+
+export const RANGE_DATATYPES = new Set([
+    'http://www.w3.org/2001/XMLSchema#integer',
+    'http://www.w3.org/2001/XMLSchema#int',
+    'http://www.w3.org/2001/XMLSchema#short',
+    'http://www.w3.org/2001/XMLSchema#byte',
+    'http://www.w3.org/2001/XMLSchema#unsignedInt',
+    'http://www.w3.org/2001/XMLSchema#unsignedShort',
+    'http://www.w3.org/2001/XMLSchema#unsignedByte',
+    'http://www.w3.org/2001/XMLSchema#long',
+    'http://www.w3.org/2001/XMLSchema#unsignedLong',
+    'http://www.w3.org/2001/XMLSchema#float',
+    'http://www.w3.org/2001/XMLSchema#double',
+    'http://www.w3.org/2001/XMLSchema#decimal',
+    'http://www.w3.org/2001/XMLSchema#date',
+    'http://www.w3.org/2001/XMLSchema#dateTime'
+])
+
+export const NUMERIC_QUERY_DATATYPES = new Set([
+    'http://www.w3.org/2001/XMLSchema#integer',
+    'http://www.w3.org/2001/XMLSchema#int',
+    'http://www.w3.org/2001/XMLSchema#short',
+    'http://www.w3.org/2001/XMLSchema#byte',
+    'http://www.w3.org/2001/XMLSchema#unsignedInt',
+    'http://www.w3.org/2001/XMLSchema#unsignedShort',
+    'http://www.w3.org/2001/XMLSchema#unsignedByte',
+    'http://www.w3.org/2001/XMLSchema#long',
+    'http://www.w3.org/2001/XMLSchema#unsignedLong',
+    'http://www.w3.org/2001/XMLSchema#float',
+    'http://www.w3.org/2001/XMLSchema#double',
+    'http://www.w3.org/2001/XMLSchema#decimal'
+])
+
+export const FRACTIONAL_QUERY_DATATYPES = new Set([
+    'http://www.w3.org/2001/XMLSchema#float',
+    'http://www.w3.org/2001/XMLSchema#double',
+    'http://www.w3.org/2001/XMLSchema#decimal'
+])

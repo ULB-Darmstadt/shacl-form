@@ -11,7 +11,7 @@ export default{
   },
   plugins: [vitePlugin({
     optimizeDeps: {
-      exclude: ['@open-wc/testing', 'rdf-isomorphic'],
+      exclude: ['@open-wc/testing', 'rdf-isomorphic', '@ro-kit/ui-widgets'],
     },
   })],
   browsers: [

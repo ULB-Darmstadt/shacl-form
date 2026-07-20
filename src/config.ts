@@ -1,13 +1,14 @@
 import { DataFactory, NamedNode, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants'
-import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider } from './plugin'
-import { Theme } from './theme'
-import { extractLists } from './util'
-import { DefaultTheme } from './theme.default'
+import { DCTERMS_PREDICATE_CONFORMS_TO, PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants.js'
+import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider } from './plugin.js'
+import type { QueryFacetProvider } from './query/index.js'
+import { Theme } from './theme.js'
+import { extractLists } from './util.js'
+import { DefaultTheme } from './theme.default.js'
 import { Validator } from 'shacl-engine'
-import { ShaclNodeTemplate } from './node-template'
-import { ShaclPropertyTemplate } from './property-template'
+import { ShaclNodeTemplate } from './node-template.js'
+import { ShaclPropertyTemplate } from './property-template.js'
 
 export class ElementAttributes {
     shapes: string | null = null
@@ -22,7 +23,11 @@ export class ElementAttributes {
     valuesSubject: string | null = null
     valuesNamespace = ''
     valuesGraph: string | null = null
+    /**
+     * @deprecated Use mode='view' instead
+     */
     view: string | null = null
+    mode: string | null = null
     language: string | null = null
     loading: string = 'Loading\u2026'
     proxy: string | null = null
@@ -44,7 +49,8 @@ export class Config {
     classInstanceProvider: ClassInstanceProvider | undefined
     rdfUrlResolver: RdfUrlResolver | undefined
     resourceLinkProvider: ResourceLinkProvider | undefined
-    editMode = true
+    queryFacetProvider: QueryFacetProvider | undefined
+    mode: 'edit' | 'view' | 'query' = 'edit'
     languages: string[]
 
     lists: Record<string, Term[]> = {}
@@ -77,10 +83,10 @@ export class Config {
                         return [lang.toLocaleLowerCase(), lang.substring(0, 2)]
                     }
                     return lang
-                }),
+                })
             ),
-            '',
-        ] // <-- append empty string to accept RDF literals with no language
+            '' // <-- append empty string to accept RDF literals with no language
+        ]
     }
 
     reset() {
@@ -102,7 +108,10 @@ export class Config {
                 atts[key] = value
             }
         })
-        this.editMode = atts.view === null
+        if (atts.mode !== null && !['edit', 'view', 'query'].includes(atts.mode)) {
+            throw new Error(`invalid shacl-form mode: ${atts.mode}`)
+        }
+        this.mode = (atts.mode ?? (atts.view === null ? 'edit' : 'view')) as 'edit' | 'view' | 'query'
         this.theme.setDense(atts.dense === 'true')
         this.attributes = atts
         // for backward compatibility
@@ -212,6 +221,14 @@ export class Config {
         return this._store
     }
 
+    get editMode() {
+        return this.mode === 'edit'
+    }
+
+    get queryMode() {
+        return this.mode === 'query'
+    }
+
     set store(store: Store) {
         this._store = store
         this.lists = extractLists(store, { ignoreErrors: true })
@@ -222,7 +239,7 @@ export class Config {
             },
             RDF_PREDICATE_TYPE,
             `${PREFIX_SHACL}PropertyGroup`,
-            null,
+            null
         )
         this.validator = new Validator(store, { details: true, factory: DataFactory })
     }

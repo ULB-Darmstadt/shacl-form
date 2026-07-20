@@ -1,11 +1,11 @@
 import { Term } from '@rdfjs/types'
-import { aggregatedMinCount, ShaclPropertyTemplate } from "./property-template"
-import { Editor, InputListEntry, Theme } from "./theme"
-import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI, XSD_DATATYPE_BOOLEAN } from './constants'
+import { aggregatedMinCount, ShaclPropertyTemplate } from './property-template.js'
+import { Editor, InputListEntry, Theme } from './theme.js'
+import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI, XSD_DATATYPE_BOOLEAN } from './constants.js'
 import { DataFactory, Literal, NamedNode } from 'n3'
 import { Term as N3Term } from 'n3'
 import { RokitButton, RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
-import { findLabel, formatXsdDateTimeValueForInput, formatXsdDateValueForInput } from './util'
+import { findLabel, formatXsdDateTimeValueForInput, formatXsdDateValueForInput } from './util.js'
 
 const css = `
 .editor:not([type='checkbox']) { border: 1px solid var(--shacl-border-color, #DDD); }
@@ -54,7 +54,7 @@ export class DefaultTheme extends Theme {
         if ((template?.hasValue && value) || template?.readonly) {
             editor.disabled = true
         }
-        
+
         const defaultValue = value?.value || template?.defaultValue?.value || ''
         if (template?.datatype?.equals(XSD_DATATYPE_BOOLEAN)) {
             editor.checked = value?.value === 'true' || template?.defaultValue?.value === 'true'
@@ -96,8 +96,7 @@ export class DefaultTheme extends Theme {
             editor.type = 'datetime-local'
             // this enables seconds in dateTime input
             editor.setAttribute('step', '1')
-        }
-        else {
+        } else {
             editor.type = 'date'
         }
         editor.clearable = true
@@ -125,8 +124,7 @@ export class DefaultTheme extends Theme {
         if (template.singleLine === false) {
             editor = new RokitTextArea()
             editor.resize = 'auto'
-        }
-        else {
+        } else {
             editor = new RokitInput()
         }
         editor.dense = this.dense
@@ -254,7 +252,7 @@ export class DefaultTheme extends Theme {
             } else {
                 li.dataset.value = (entry.value as N3Term).id
                 if (entry.value instanceof NamedNode) {
-                    li.dataset.value = '<' + li.dataset.value + ">"
+                    li.dataset.value = '<' + li.dataset.value + '>'
                 }
                 li.innerText = entry.label ? entry.label : entry.value.value
             }
@@ -281,7 +279,7 @@ export class DefaultTheme extends Theme {
         if (value) {
             editor.value = (value as N3Term).id
             if (value instanceof NamedNode) {
-                editor.value = '<' + editor.value + ">"
+                editor.value = '<' + editor.value + '>'
             }
         }
         return result

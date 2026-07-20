@@ -1,7 +1,7 @@
 import { DataFactory, Prefixes, Quad, StreamParser } from 'n3'
 import { RdfXmlParser } from 'rdfxml-streaming-parser'
 import jsonld from 'jsonld'
-import { RdfUrlResolver } from './plugin'
+import { RdfUrlResolver } from './plugin.js'
 
 // cache external data in module scope to avoid requesting/parsing
 // them multiple times, e.g. when more than one shacl-form element is on the page
@@ -37,7 +37,7 @@ export async function fetchRDF(url: string, proxy: string | null | undefined): P
         const response = await fetch(proxiedURL, {
             headers: {
                 'Accept': 'text/turtle, application/trig, application/n-triples, application/n-quads, text/n3, application/ld+json'
-            },
+            }
         })
         if (response.ok) {
             const content = await response.text()
@@ -59,7 +59,7 @@ export async function parseRDF(rdf: string): Promise<Quad[]> {
         // convert json to n-quads
         try {
             rdf = await jsonld.toRDF(JSON.parse(rdf), { format: 'application/n-quads' }) as string
-        } catch(e) {
+        } catch (e) {
             console.error(e)
         }
     }
@@ -69,18 +69,18 @@ export async function parseRDF(rdf: string): Promise<Quad[]> {
         parser.on('data', (quad: Quad) => {
             quads.push(DataFactory.quad(quad.subject, quad.predicate, quad.object, quad.graph))
         })
-        .on('error', (error) => {
-            reject(error)
-        })
-        .on('prefix', (prefix, iri) => {
+            .on('error', (error) => {
+                reject(error)
+            })
+            .on('prefix', (prefix, iri) => {
             // ignore empty (default) namespace
-            if (prefix) {
-                prefixes[prefix] = iri
-            }
-        })
-        .on('end', () => {
-            resolve(null)
-        })
+                if (prefix) {
+                    prefixes[prefix] = iri
+                }
+            })
+            .on('end', () => {
+                resolve(null)
+            })
         parser.write(rdf)
         parser.end()
     })

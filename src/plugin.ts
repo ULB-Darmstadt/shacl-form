@@ -1,5 +1,6 @@
-import { ShaclPropertyTemplate } from './property-template'
+import { ShaclPropertyTemplate } from './property-template.js'
 import { Term } from '@rdfjs/types'
+import type { QueryEditor, QueryField } from './query/index.js'
 
 // store plugins in module scope so that they apply to all shacl-form elements
 const plugins: Record<string, Plugin> = {}
@@ -13,7 +14,9 @@ export function registerPlugin(plugin: Plugin) {
 }
 
 export function listPlugins(): Plugin[] {
-    return Object.entries(plugins).map((value: [_: string, plugin: Plugin]) => { return value[1] })
+    return Object.entries(plugins).map((value: [_: string, plugin: Plugin]) => {
+        return value[1]
+    })
 }
 
 export function findPlugin(predicate: string | undefined, datatype: string | undefined): Plugin | undefined {
@@ -51,6 +54,8 @@ export abstract class Plugin {
     }
 
     abstract createEditor(template: ShaclPropertyTemplate, value?: Term): HTMLElement
+
+    createQueryEditor?(field: QueryField, template: ShaclPropertyTemplate): QueryEditor
 
     createViewer(template: ShaclPropertyTemplate, value: Term): HTMLElement {
         return template.config.theme.createViewer(template.label, value, template)

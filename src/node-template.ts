@@ -1,9 +1,9 @@
 import type { Literal, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
-import { OWL_PREDICATE_IMPORTS, PREFIX_DCTERMS, PREFIX_RDFS, PREFIX_SHACL, SHACL_PREDICATE_CLASS } from './constants'
-import { Config } from './config'
-import { mergeProperty, ShaclPropertyTemplate } from './property-template'
-import { prioritizeByLanguage } from './util'
+import { OWL_PREDICATE_IMPORTS, PREFIX_DCTERMS, PREFIX_RDFS, PREFIX_SHACL, SHACL_PREDICATE_CLASS } from './constants.js'
+import { Config } from './config.js'
+import { mergeProperty, mergeQuads as mergePropertyQuads, ShaclPropertyTemplate } from './property-template.js'
+import { prioritizeByLanguage } from './util.js'
 
 const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void> = {
     [`${PREFIX_SHACL}node`]: (template, term) => {
@@ -62,7 +62,7 @@ const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void>
     [`${PREFIX_RDFS}label`]: (template, term) => {
         const literal = term as Literal
         template.label = prioritizeByLanguage(template.config.languages, template.label, literal)
-    },
+    }
 }
 
 export class ShaclNodeTemplate {
@@ -123,7 +123,8 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
 }
 
 // narrows sh:xone/sh:or alternatives on a merged property to the branches compatible with the concrete value-type constraints the property now pins
-// (e.g. sh:datatype from a child override). if exactly one (or no) branch remains, the sh:xone/sh:or list is dropped.
+// (e.g. sh:datatype from a child override). if exactly one branch remains, its constraints are merged into the property.
+// if no branch matches, retain the alternatives so an unsatisfiable override is not silently presented as valid.
 function filterMatchingOptions(template: ShaclPropertyTemplate) {
     for (const key of ['xone', 'or'] as const) {
         const branches = template[key]
@@ -132,8 +133,13 @@ function filterMatchingOptions(template: ShaclPropertyTemplate) {
         }
         const matching = branches.filter((branch) => branchMatchesPinnedConstraints(branch, template))
         // only narrow when a pinned constraint actually ruled out at least one branch
-        if (matching.length < branches.length) {
-            template[key] = matching.length > 1 ? matching : undefined
+        if (matching.length > 0 && matching.length < branches.length) {
+            if (matching.length === 1) {
+                template[key] = undefined
+                mergePropertyQuads(template, template.config.store.getQuads(matching[0], null, null, null))
+            } else {
+                template[key] = matching
+            }
         }
     }
 }
@@ -170,7 +176,7 @@ function buildPropertyChain(
     path: string,
     visited = new Set<string>(),
     chain: ShaclPropertyTemplate[] = [],
-    currentMaxCountIsOne = false,
+    currentMaxCountIsOne = false
 ): [ShaclPropertyTemplate[], boolean] {
     if (!visited.has(currentNode.id.value)) {
         visited.add(currentNode.id.value)

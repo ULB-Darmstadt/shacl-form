@@ -1,15 +1,15 @@
 import { BlankNode, DataFactory, Literal, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
-import { ShaclNode } from './node'
-import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints'
-import { focusFirstInputElement } from './util'
-import { aggregatedMaxCount, aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template'
-import { Editor, fieldFactory } from './theme'
-import { toRDF } from './serialize'
-import { findPlugin } from './plugin'
-import { DATA_GRAPH } from './constants'
+import { ShaclNode } from './node.js'
+import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints.js'
+import { focusFirstInputElement } from './util.js'
+import { aggregatedMaxCount, aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template.js'
+import { Editor, fieldFactory } from './theme.js'
+import { toRDF } from './serialize.js'
+import { findPlugin } from './plugin.js'
+import { DATA_GRAPH } from './constants.js'
 import { RokitButton, RokitCollapsible } from '@ro-kit/ui-widgets'
-import { createLinker } from './linker'
+import { createLinker } from './linker.js'
 
 const ADD_BUTTON_SELECTOR = ':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper'
 const PROPERTY_INSTANCE_SELECTOR = ':scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance'
@@ -27,9 +27,9 @@ export class ShaclProperty extends HTMLElement {
         this.setAttribute('part', 'property')
         if (this.template.nodeShapes.size && this.template.config.attributes.collapse !== null && (this.template.maxCount === undefined || this.template.maxCount > 1)) {
             const collapsible = new RokitCollapsible()
-            collapsible.classList.add('collapsible', 'shacl-group');
-            collapsible.open = template.config.attributes.collapse === 'open';
-            collapsible.label = this.template.label;
+            collapsible.classList.add('collapsible', 'shacl-group')
+            collapsible.open = template.config.attributes.collapse === 'open'
+            collapsible.label = this.template.label
             collapsible.setAttribute('part', 'collapsible')
             this.container = collapsible
             this.appendChild(this.container)
@@ -42,7 +42,9 @@ export class ShaclProperty extends HTMLElement {
             this.classList.add(this.template.cssClass)
         }
         if (template.config.editMode && !parent.linked) {
-            this.addEventListener('change', async () => { await this.updateControls() })
+            this.addEventListener('change', async () => {
+                await this.updateControls()
+            })
         }
     }
 
@@ -76,6 +78,11 @@ export class ShaclProperty extends HTMLElement {
                 }
             }
         }
+    }
+
+    async initializeQuery() {
+        const { initializeQueryProperty } = await import('./query/mode.js')
+        await initializeQueryProperty(this)
     }
 
     async addPropertyInstance(value?: Term, linked?: boolean, forceRemovable = false): Promise<HTMLElement | undefined> {
@@ -164,8 +171,7 @@ export class ShaclProperty extends HTMLElement {
                             graph.addQuad(subject, pathNode, value, this.template.config.valuesGraphId)
                         }
                     }
-                }
-                else {
+                } else {
                     const value = toRDF(instance as Editor)
                     if (value) {
                         graph.addQuad(subject, pathNode, value, this.template.config.valuesGraphId)
@@ -315,7 +321,7 @@ function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean
     instance.appendChild(wrapper)
 }
 
-function createRemoveButtonWrapper(colorize: boolean) {
+export function createRemoveButtonWrapper(colorize: boolean) {
     const wrapper = document.createElement('div')
     wrapper.className = 'remove-button-wrapper'
     wrapper.setAttribute('part', 'remove-controls')

@@ -1,8 +1,8 @@
 import { DataFactory, NamedNode, Writer, Quad, Literal, Prefixes } from 'n3'
-import { PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL, XSD_DATATYPE_STRING } from './constants'
-import { Editor } from './theme'
+import { PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL, XSD_DATATYPE_STRING } from './constants.js'
+import { Editor } from './theme.js'
 import { NodeObject } from 'jsonld'
-import { serializeXsdDateTimeValue, serializeXsdDateValue } from './util'
+import { serializeXsdDateTimeValue, serializeXsdDateValue } from './util.js'
 
 export function serialize(quads: Quad[], format: string, prefixes?: Prefixes): string {
     if (format === 'application/ld+json') {
@@ -27,7 +27,7 @@ function serializeJsonld(quads: Quad[]): string {
         const triple: NodeObject = { '@id': quad.subject.id }
 
         if (quad.predicate === RDF_PREDICATE_TYPE) {
-          triple['@type'] = quad.object.id
+            triple['@type'] = quad.object.id
         } else {
             let object: string | Record<string, string> = quad.object.value
             if (quad.object instanceof Literal) {
@@ -52,8 +52,7 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
     let value: number | string = editor.dataset.value || editor.value
     if ((editor['type'] === 'file' || editor.getAttribute('type') === 'file') && editor['binaryData']) {
         value = editor['binaryData']
-    }
-    else if (editor['type'] === 'checkbox' || editor.getAttribute('type') === 'checkbox') {
+    } else if (editor['type'] === 'checkbox' || editor.getAttribute('type') === 'checkbox') {
         // emit boolean 'false' only when required
         if (editor['checked'] || parseInt(editor.dataset.minCount || '0') > 0) {
             return DataFactory.literal(editor['checked'] ? 'true' : 'false', languageOrDatatype)
@@ -69,14 +68,11 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
         } else {
             if (editor.dataset.lang) {
                 languageOrDatatype = editor.dataset.lang
-            }
-            else if (editor['type'] === 'number') {
+            } else if (editor['type'] === 'number') {
                 value = parseFloat(value)
-            }
-            else if (editor['type'] === 'datetime-local') {
+            } else if (editor['type'] === 'datetime-local') {
                 value = serializeXsdDateTimeValue(value, editor.dataset.xsdTemporalSuffix)
-            }
-            else if (editor['type'] === 'date' && languageOrDatatype instanceof NamedNode && languageOrDatatype.value === PREFIX_XSD + 'date') {
+            } else if (editor['type'] === 'date' && languageOrDatatype instanceof NamedNode && languageOrDatatype.value === PREFIX_XSD + 'date') {
                 value = serializeXsdDateValue(value, editor.dataset.xsdTemporalSuffix)
             }
             // check if value is a typed rdf literal or langString

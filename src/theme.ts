@@ -1,8 +1,8 @@
 import { Literal, NamedNode } from 'n3'
 import { Term } from '@rdfjs/types'
-import { PREFIX_XSD, RDF_OBJECT_LANG_STRING } from './constants'
-import { createInputListEntries, findInstancesOf, findLabel, isURL } from './util'
-import { aggregatedMinCount, ShaclPropertyTemplate } from './property-template'
+import { PREFIX_XSD, RDF_OBJECT_LANG_STRING } from './constants.js'
+import { createInputListEntries, findInstancesOf, findLabel, isURL } from './util.js'
+import { aggregatedMinCount, ShaclPropertyTemplate } from './property-template.js'
 import css from './styles.css?raw'
 
 export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, binaryData?: string, checked?: boolean, disabled?: boolean }
@@ -98,8 +98,7 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
             if (list?.length) {
                 const listEntries = createInputListEntries(list, template.config.store, template.config.languages)
                 return template.config.theme.createListEditor(template.label, value, required, listEntries, template)
-            }
-            else {
+            } else {
                 console.error('list not found:', template.in, 'existing lists:', template.config.lists)
             }
         }
@@ -122,7 +121,7 @@ export function fieldFactory(template: ShaclPropertyTemplate, value: Term | null
                 return template.config.theme.createBooleanEditor(template.label, value, required, template)
             case 'base64Binary':
                 return template.config.theme.createFileEditor(template.label, value, required, template)
-            }
+        }
 
         // nothing found (or datatype is 'string'), fallback to 'text'
         return template.config.theme.createTextEditor(template.label, value, required, template)

@@ -1,13 +1,13 @@
 import { BlankNode, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
-import { ShaclNode } from "./node"
-import { ShaclProperty, createPropertyInstance } from "./property"
-import { Config } from './config'
-import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY, SHACL_PREDICATE_NODE } from './constants'
-import { findLabel, removePrefixes } from './util'
-import { Editor, InputListEntry } from './theme'
-import { cloneProperty, mergeQuads } from './property-template'
-import { prefixes } from './rdf-loader'
+import { ShaclNode } from './node.js'
+import { ShaclProperty, createPropertyInstance } from './property.js'
+import { Config } from './config.js'
+import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY, SHACL_PREDICATE_NODE } from './constants.js'
+import { findLabel, removePrefixes } from './util.js'
+import { Editor, InputListEntry } from './theme.js'
+import { cloneProperty, mergeQuads } from './property-template.js'
+import { prefixes } from './rdf-loader.js'
 
 
 export function createShaclOrConstraint(options: Term[], context: ShaclNode | ShaclProperty, config: Config): HTMLElement {
@@ -26,7 +26,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         }
         for (let i = 0; i < options.length; i++) {
             if (optionsAreReferencedProperties) {
-                const quads = config.store.getObjects(options[i] , SHACL_PREDICATE_PROPERTY, null)
+                const quads = config.store.getObjects(options[i], SHACL_PREDICATE_PROPERTY, null)
                 // option can be single property or list of properties
                 const list: ShaclProperty[] = []
                 let combinedText = ''
@@ -52,6 +52,11 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         select.onchange = async () => {
             if (select.value) {
                 const selectedOptions = properties[parseInt(select.value)]
+                if (config.queryMode) {
+                    const { activateNodeConstraintOption } = await import('./query/mode.js')
+                    await activateNodeConstraintOption(selectedOptions, constraintElement)
+                    return
+                }
                 let lastAddedProperty: ShaclProperty
                 if (selectedOptions.length) {
                     for (const property of selectedOptions) {
@@ -91,6 +96,11 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         select.onchange = async () => {
             if (select.value) {
                 const merged = mergeQuads(cloneProperty(context.template), values[parseInt(select.value)])
+                if (config.queryMode) {
+                    const { activatePropertyConstraintOption } = await import('./query/mode.js')
+                    await activatePropertyConstraintOption(merged, context, constraintElement)
+                    return
+                }
                 const instance = await createPropertyInstance(merged, undefined, true)
                 const label = instance.querySelector(':scope > label')
                 if (label) {

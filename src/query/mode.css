@@ -1,0 +1,12 @@
+form.mode-query { padding: 0; }
+form.mode-query.query-facets-pending > shacl-node { display: none; }
+.mode-query shacl-property.query-unavailable { display: none; }
+.mode-query .shacl-group:not(:has(shacl-property:not(.query-unavailable))), .mode-query shacl-node:not(:has(shacl-property:not(.query-unavailable))) { display: none; }
+.query-editor { display: flex; align-items: center; width: 100%; padding: 3px 0; }
+.query-editor > label { width: var(--label-width); flex-shrink: 0; padding-right: 1em; word-break: break-word; }
+.query-controls { display: flex; flex: 1; min-width: 0; }
+.query-controls > rokit-input, .query-controls > rokit-slider, .query-value-row > rokit-input, .query-value-row > rokit-select { min-height: 28px; width: 100%; flex-grow: 1; }
+.query-value-row { display: flex; flex: 1; width: 100%; min-width: 0; gap: 4px; }
+.query-language { min-height: 28px; flex: 0 0 auto; }
+.query-range-slider[data-active='false'] { opacity: 0.7; }
+.query-facet-error .query-editor > label { color: var(--shacl-error-color); }

@@ -79,3 +79,4 @@ h3 { margin-top: 0; }
 .link-option { padding: 10px; }
 .link-option:hover { background-color: #F5F5F5; cursor: pointer; }
 rokit-dialog.link-chooser::part(dialog) { min-height: min(434px, 90vh); width: min(90vw, 600px); }
+rokit-select::part(facet-count)::after { content: attr(data-count); color: var(--shacl-muted-color); display: inline-block; font-family: monospace; margin-left: 7px; font-size: 12px; }
