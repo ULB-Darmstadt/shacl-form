@@ -7,7 +7,7 @@ import { findPlugin } from '../plugin.js'
 import { createQueryEditor } from './editor.js'
 import type { Query, QueryEditor, QueryFacet } from './index.js'
 import queryModeCss from './mode.css?raw'
-import { FRACTIONAL_QUERY_DATATYPES, NUMERIC_QUERY_DATATYPES } from '../constants.js'
+import { FRACTIONAL_DATATYPES, NUMERIC_DATATYPES } from '../constants.js'
 
 
 let nextQueryFieldId = 0
@@ -235,13 +235,13 @@ function resolveNumericAlternative(template: ShaclPropertyTemplate): ShaclProper
         mergeQuads(branch, template.config.store.getQuads(option, null, null, null))
         return branch.nodeShapes.size === 0 ? branch.datatype : undefined
     })
-    if (datatypes.some(datatype => !datatype || !NUMERIC_QUERY_DATATYPES.has(datatype.value))) {
+    if (datatypes.some(datatype => !datatype || !NUMERIC_DATATYPES.has(datatype.value))) {
         return undefined
     }
     const merged = cloneProperty(template)
     merged.or = undefined
     merged.xone = undefined
-    merged.datatype = datatypes.find(datatype => datatype && FRACTIONAL_QUERY_DATATYPES.has(datatype.value)) ?? datatypes[0]
+    merged.datatype = datatypes.find(datatype => datatype && FRACTIONAL_DATATYPES.has(datatype.value)) ?? datatypes[0]
     return merged
 }
 

@@ -95,6 +95,89 @@ describe('test value binding', () => {
         expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
     })
 
+    it('omits an optional unchecked xsd:boolean instead of serializing the checkbox value', async () => {
+        await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :path ;
+                sh:datatype xsd:boolean ;
+                sh:maxCount 1 ;
+            ] .`,
+            shapeSubject
+        )
+
+        const renderRoot = form.shadowRoot ?? form
+        const editor = renderRoot.querySelector('.editor') as HTMLInputElement
+        expect(editor.type).to.equal('checkbox')
+        expect(editor.checked).to.be.false
+        expect(form.toRDF().getObjects(null, 'http://example.org/path', null)).to.be.empty
+
+        editor.checked = true
+        const literal = form.toRDF().getObjects(null, 'http://example.org/path', null)[0]
+        expect(literal.value).to.equal('true')
+        expect(literal.datatype.value).to.equal('http://www.w3.org/2001/XMLSchema#boolean')
+    })
+
+    it('serializes an unchecked required xsd:boolean as false', async () => {
+        await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :path ;
+                sh:datatype xsd:boolean ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+            ] .`,
+            shapeSubject
+        )
+
+        const literal = form.toRDF().getObjects(null, 'http://example.org/path', null)[0]
+        expect(literal.value).to.equal('false')
+        expect(literal.datatype.value).to.equal('http://www.w3.org/2001/XMLSchema#boolean')
+    })
+
+    for (const datatype of ['float', 'double', 'decimal']) {
+        it(`accepts dot and comma decimal separators for xsd:${datatype}`, async () => {
+            await bind(form, `
+                ${prefixes}
+                <${shapeSubject}> a sh:NodeShape ;
+                sh:property [
+                    sh:path :path ;
+                    sh:datatype xsd:${datatype} ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1 ;
+                ] .`,
+                shapeSubject
+            )
+
+            const renderRoot = form.shadowRoot ?? form
+            const editor = renderRoot.querySelector('.editor') as HTMLElement & {
+                inputElement: HTMLInputElement
+                type: string
+                updateComplete: Promise<boolean>
+                value: string
+            }
+            await editor.updateComplete
+            expect(editor.type).to.equal('text')
+            expect(editor.inputElement.inputMode).to.equal('decimal')
+
+            for (const input of ['2.2', '2,2']) {
+                editor.value = input
+                await editor.updateComplete
+                expect(editor.inputElement.checkValidity()).to.be.true
+                editor.dispatchEvent(new Event('change', { bubbles: true }))
+                const literal = form.toRDF().getObjects(null, 'http://example.org/path', null)[0]
+                expect(literal?.value).to.equal('2.2')
+                expect(literal?.datatype.value).to.equal(`http://www.w3.org/2001/XMLSchema#${datatype}`)
+            }
+
+            editor.value = 'not a number'
+            await editor.updateComplete
+            expect(editor.inputElement.checkValidity()).to.be.false
+        })
+    }
+
     it('xsd:dateTime binding preserves timezone offsets without shifting wall-clock time', async () => {
         const value = '"2026-06-03T10:30:00+02:00"^^xsd:dateTime'
         const [shapesQuads, inputQuads] = await bind(form, `

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Accept both dot and comma decimal separators in `xsd:float`, `xsd:double`, and
+  `xsd:decimal` editors regardless of the browser locale.
+- Omit optional unchecked `xsd:boolean` fields instead of serializing the native
+  checkbox value `"on"`.
+
 ## [3.2.0] - 2026-07-20
 
 ### Added

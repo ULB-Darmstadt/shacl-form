@@ -1,7 +1,7 @@
 import { Term } from '@rdfjs/types'
 import { aggregatedMinCount, ShaclPropertyTemplate } from './property-template.js'
 import { Editor, InputListEntry, Theme } from './theme.js'
-import { PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI, XSD_DATATYPE_BOOLEAN } from './constants.js'
+import { FRACTIONAL_DATATYPES, PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI, XSD_DATATYPE_BOOLEAN } from './constants.js'
 import { DataFactory, Literal, NamedNode } from 'n3'
 import { Term as N3Term } from 'n3'
 import { RokitButton, RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
@@ -218,7 +218,18 @@ export class DefaultTheme extends Theme {
 
     createNumberEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
         const editor = new RokitInput()
-        editor.type = 'number'
+        const fractional = FRACTIONAL_DATATYPES.has(template.datatype?.value ?? '')
+        // Native number inputs sanitize their value according to the browser locale.
+        // In comma-based locales this can erase a dotted decimal before we can read it.
+        editor.type = fractional ? 'text' : 'number'
+        if (fractional) {
+            editor.pattern = template.datatype?.value === PREFIX_XSD + 'decimal'
+                ? '[+\\-]?(?:[0-9]+(?:[.,][0-9]*)?|[.,][0-9]+)'
+                : '[+\\-]?(?:[0-9]+(?:[.,][0-9]*)?|[.,][0-9]+)(?:[eE][+\\-]?[0-9]+)?'
+            editor.updateComplete.then(() => {
+                editor.inputElement.inputMode = 'decimal'
+            })
+        }
         editor.clearable = true
         editor.dense = this.dense
         editor.classList.add('pr-0')
@@ -230,7 +241,7 @@ export class DefaultTheme extends Theme {
         if (max !== undefined) {
             editor.max = String(max)
         }
-        if (template.datatype?.value !== PREFIX_XSD + 'integer') {
+        if (!fractional && template.datatype?.value !== PREFIX_XSD + 'integer') {
             editor.step = 'any'
         }
         return this.createDefaultTemplate(label, value, required, editor, template)

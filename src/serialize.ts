@@ -1,5 +1,5 @@
 import { DataFactory, NamedNode, Writer, Quad, Literal, Prefixes } from 'n3'
-import { PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL, XSD_DATATYPE_STRING } from './constants.js'
+import { FRACTIONAL_DATATYPES, PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL, XSD_DATATYPE_STRING } from './constants.js'
 import { Editor } from './theme.js'
 import { NodeObject } from 'jsonld'
 import { serializeXsdDateTimeValue, serializeXsdDateValue } from './util.js'
@@ -57,6 +57,7 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
         if (editor['checked'] || parseInt(editor.dataset.minCount || '0') > 0) {
             return DataFactory.literal(editor['checked'] ? 'true' : 'false', languageOrDatatype)
         }
+        return undefined
     }
     if (value) {
         if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
@@ -68,6 +69,12 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
         } else {
             if (editor.dataset.lang) {
                 languageOrDatatype = editor.dataset.lang
+            } else if (languageOrDatatype instanceof NamedNode && FRACTIONAL_DATATYPES.has(languageOrDatatype.value)) {
+                const normalizedValue = normalizeFractionalNumber(value)
+                if (normalizedValue === undefined) {
+                    return undefined
+                }
+                value = normalizedValue
             } else if (editor['type'] === 'number') {
                 value = parseFloat(value)
             } else if (editor['type'] === 'datetime-local') {
@@ -97,4 +104,11 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
             return DataFactory.literal(value, languageOrDatatype)
         }
     }
+}
+
+function normalizeFractionalNumber(value: string): string | undefined {
+    const normalized = value.replace(',', '.')
+    return /^[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?$/.test(normalized)
+        ? normalized
+        : undefined
 }

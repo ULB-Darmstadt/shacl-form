@@ -48,7 +48,7 @@ export const RANGE_DATATYPES = new Set([
     'http://www.w3.org/2001/XMLSchema#dateTime'
 ])
 
-export const NUMERIC_QUERY_DATATYPES = new Set([
+export const NUMERIC_DATATYPES = new Set([
     'http://www.w3.org/2001/XMLSchema#integer',
     'http://www.w3.org/2001/XMLSchema#int',
     'http://www.w3.org/2001/XMLSchema#short',
@@ -63,7 +63,7 @@ export const NUMERIC_QUERY_DATATYPES = new Set([
     'http://www.w3.org/2001/XMLSchema#decimal'
 ])
 
-export const FRACTIONAL_QUERY_DATATYPES = new Set([
+export const FRACTIONAL_DATATYPES = new Set([
     'http://www.w3.org/2001/XMLSchema#float',
     'http://www.w3.org/2001/XMLSchema#double',
     'http://www.w3.org/2001/XMLSchema#decimal'
