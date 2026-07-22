@@ -125,7 +125,7 @@ type QueryFacet = {
 
 An inactive leaf with `count: 0` is given the `query-unavailable` class and hidden by the default theme. An active field remains visible even when its count becomes zero. Structural parent branches are hidden when they contain no available leaf. The host element receives `query-facets-empty` when no filter is available and affected properties receive `query-facet-error` for field-level failures.
 
-If a provider is installed before initialization, the form has `query-facets-pending` and displays the configured loading text until the first facets arrive. Call `form.refreshQueryFacets()` after filters maintained outside the component change; it makes a new facet request without changing or emitting the query. The method is a no-op outside query mode.
+While a query-mode component initializes, the `shacl-form` host has the `loading` attribute. If a provider is installed before initialization, the attribute remains and the configured loading text is displayed until the first facets arrive. Applications can use `shacl-form[loading]` to style both loading phases without reaching into the shadow root. Call `form.refreshQueryFacets()` after filters maintained outside the component change; it makes a new facet request without changing or emitting the query. The method is a no-op outside query mode.
 
 If `getFacets` throws, the component emits a bubbling, composed `queryerror` event whose `detail` is the thrown value. Aborted requests do not emit this event.
 

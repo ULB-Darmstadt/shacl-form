@@ -56,6 +56,7 @@ export class QueryModeController {
 
     dispose(): void {
         this.facetAbortController?.abort()
+        this.setFacetsPending(false)
         this.host.classList.remove('query-facets-empty')
     }
 
@@ -126,13 +127,13 @@ export class QueryModeController {
     }
 
     private setFacetsPending(pending: boolean): void {
-        this.host.form.classList.toggle('query-facets-pending', pending)
-        const loading = this.host.form.querySelector('.query-facets-loading')
+        this.host.toggleAttribute('loading', pending)
+        const loading = this.host.form.querySelector('[part~="loading"]')
         if (!pending) {
             loading?.remove()
         } else if (!loading) {
             const indicator = document.createElement('div')
-            indicator.classList.add('query-facets-loading')
+            indicator.setAttribute('part', 'loading')
             indicator.textContent = this.host.config.attributes.loading
             this.host.form.prepend(indicator)
         }

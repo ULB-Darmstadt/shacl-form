@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   messages have consistent typography and colors.
 - Let applications style the visible facet-count text through the exported
   `facet-count` CSS part.
+- Use the `loading` host attribute as the single state for graph and initial
+  facet loading so applications can style both phases consistently.
 
 ## [3.2.1] - 2026-07-22
 

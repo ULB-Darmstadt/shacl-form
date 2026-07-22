@@ -210,7 +210,12 @@ export class ShaclForm extends HTMLElement {
                 errorDisplay.innerText = String(e)
                 this.form.replaceChildren(errorDisplay)
             }
-            this.removeAttribute('loading')
+            // QueryModeController owns the attribute while an initial facet request
+            // may still be running (for example when the provider was attached
+            // during initialization). Other modes finish loading here.
+            if (!(this.config.queryMode && this.config.queryFacetProvider && this.queryController)) {
+                this.removeAttribute('loading')
+            }
             // drain micro task queue before dispatching 'ready' event
             await this.shape?.ready
             this.dispatchEvent(new Event('ready'))

@@ -1,5 +1,5 @@
 form.mode-query { padding: 0; }
-form.mode-query.query-facets-pending > shacl-node { display: none; }
+:host([loading]) form.mode-query > shacl-node { display: none; }
 .mode-query shacl-property.query-unavailable { display: none; }
 .mode-query .shacl-group:not(:has(shacl-property:not(.query-unavailable))), .mode-query shacl-node:not(:has(shacl-property:not(.query-unavailable))) { display: none; }
 .query-editor { display: flex; align-items: center; width: 100%; padding: 3px 0; }

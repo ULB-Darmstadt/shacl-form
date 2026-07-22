@@ -128,8 +128,8 @@ ex:timeKindProperty sh:path ex:quantityKind ; sh:name "Time kind" .
         }
         const initialNode = await firstNodeRendered
 
-        expect(form.form.classList.contains('query-facets-pending')).to.be.true
-        expect(form.form.querySelector('.query-facets-loading')?.textContent).to.equal('Loading…')
+        expect(form.hasAttribute('loading')).to.be.true
+        expect(form.form.querySelector('[part~="loading"]')?.textContent).to.equal('Loading…')
         expect(getComputedStyle(initialNode).display).to.equal('none')
         const facetLoadingStyle = getComputedStyle(form.form)
         expect({
@@ -142,8 +142,8 @@ ex:timeKindProperty sh:path ex:quantityKind ; sh:name "Time kind" .
         resolveFacets()
         await loaded
 
-        expect(form.form.classList.contains('query-facets-pending')).to.be.false
-        expect(form.form.querySelector('.query-facets-loading')).to.be.null
+        expect(form.hasAttribute('loading')).to.be.false
+        expect(form.form.querySelector('[part~="loading"]')).to.be.null
         expect(getComputedStyle(form.form.querySelector('shacl-node')!).display).not.to.equal('none')
     })
 
