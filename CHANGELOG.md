@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.2.1] - 2026-07-22
+
 ### Changed
 
 - Allow N3 2.x as a peer dependency while retaining support for N3 1.x.
+- Update `@ro-kit/ui-widgets` to 1.0.50 for enhanced select controls.
+
+### Fixed
+
+- Bundle N3 into the optional SPARQL entry point so `sparql.js` can be loaded
+  directly in browsers without an additional import map.
 
 
 ## [3.2.0] - 2026-07-20
