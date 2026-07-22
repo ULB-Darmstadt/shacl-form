@@ -80,6 +80,11 @@ export class ShaclForm extends HTMLElement {
         this.queryController = undefined
         // set loading attribute on element so that hosting app can apply special css rules
         this.setAttribute('loading', '')
+        // Keep the graph-loading placeholder visually consistent with the form and
+        // query-facet loading states. The complete stylesheet set is applied again
+        // after graph loading, once query-mode and plugin styles are known.
+        this.config.theme.apply(this.form)
+        this.applyStyles([this.config.theme.stylesheet])
         // remove all child elements from form and show loading indicator
         this.form.replaceChildren(document.createTextNode(this.config.attributes.loading))
         this.initDebounceTimeout = setTimeout(async () => {
