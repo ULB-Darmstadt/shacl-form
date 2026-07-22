@@ -35,9 +35,6 @@ export class ShaclProperty extends HTMLElement {
             this.appendChild(this.container)
         }
 
-        if (this.template.order !== undefined) {
-            this.style.order = `${this.template.order}`
-        }
         if (this.template.cssClass) {
             this.classList.add(this.template.cssClass)
         }

@@ -141,8 +141,9 @@ export class ShaclNode extends HTMLElement {
                 // check if group element already exists, otherwise create it
                 let group = this.querySelector(`:scope > .shacl-group[data-subject='${template.group}']`) as HTMLElement
                 if (!group) {
-                    group = createShaclGroup(template.group, template.config)
-                    this.appendChild(group)
+                    const createdGroup = createShaclGroup(template.group, template.config)
+                    group = createdGroup.element
+                    insertInOrder(this, group, createdGroup.order)
                 }
                 container = group
             } else {
@@ -159,9 +160,9 @@ export class ShaclNode extends HTMLElement {
         // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
         if (template.config.editMode || template.config.queryMode || property.instanceCount() > 0) {
             if (container) {
-                container.appendChild(property)
+                insertInOrder(container, property, template.order)
             } else {
-                this.appendChild(property)
+                insertInOrder(this, property, template.order)
             }
             if (!template.config.queryMode) {
                 await property.updateControls()
@@ -184,6 +185,16 @@ export class ShaclNode extends HTMLElement {
             this.appendChild(createShaclOrConstraint(options, this, config))
         }
     }
+}
+
+const elementOrders = new WeakMap<Element, number>()
+
+function insertInOrder(container: HTMLElement, element: HTMLElement, order = 0) {
+    elementOrders.set(element, order)
+    const nextElement = Array.from(container.children).find(child => {
+        return child !== element && (elementOrders.get(child) ?? 0) > order
+    })
+    container.insertBefore(element, nextElement ?? null)
 }
 
 export type QueryPathContext = {

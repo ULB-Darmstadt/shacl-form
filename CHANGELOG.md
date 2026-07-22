@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep keyboard tab order aligned with the visual `sh:order` of properties and
+  groups, including within nested node shapes.
+
 ## [3.2.1] - 2026-07-22
 
 ### Changed

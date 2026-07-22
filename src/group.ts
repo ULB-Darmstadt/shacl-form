@@ -3,7 +3,7 @@ import { Config } from './config.js'
 import { findObjectValueByPredicate } from './util.js'
 import { RokitCollapsible } from '@ro-kit/ui-widgets'
 
-export function createShaclGroup(groupSubject: string, config: Config): HTMLElement {
+export function createShaclGroup(groupSubject: string, config: Config): { element: HTMLElement, order: number } {
     let name = groupSubject
     const quads = config.store.getQuads(groupSubject, null, null, null)
     const label = findObjectValueByPredicate(quads, 'label', PREFIX_RDFS, config.languages)
@@ -29,9 +29,6 @@ export function createShaclGroup(groupSubject: string, config: Config): HTMLElem
 
     group.dataset['subject'] = groupSubject
     group.classList.add('shacl-group')
-    const order = findObjectValueByPredicate(quads, 'order')
-    if (order) {
-        group.style.order = order
-    }
-    return group
+    const order = parseInt(findObjectValueByPredicate(quads, 'order') ?? '') || 0
+    return { element: group, order }
 }
