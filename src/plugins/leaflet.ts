@@ -77,8 +77,22 @@ function createMap(container: HTMLElement, options: ExtendedMapOptions): L.Map {
 }
 
 function createHeatLayer(points: L.HeatLatLngTuple[], maxZoom: number): L.HeatLayer {
-    const leafletGlobal = (window as Window & { L: typeof L }).L
-    return leafletGlobal.heatLayer(points, { maxZoom })
+    const leaflet = ((L as typeof L & { default?: typeof L }).default ?? L) as typeof L
+    const leafletGlobal = (window as Window & { L?: typeof L }).L
+    const heatPlugin = leaflet as unknown as { HeatLayer?: unknown; heatLayer?: typeof L.heatLayer }
+    const globalHeatPlugin = leafletGlobal as unknown as { HeatLayer?: unknown; heatLayer?: typeof L.heatLayer }
+
+    // Legacy Leaflet plugins attach themselves to window.L. When this package is
+    // symlinked during development, the plugin and the application can resolve
+    // separate Leaflet instances. Move the heat plugin to the instance that
+    // created the map; otherwise leaflet.heat receives Points from a different
+    // constructor and misidentifies them as empty Bounds.
+    if (!heatPlugin.heatLayer && globalHeatPlugin?.heatLayer) {
+        heatPlugin.HeatLayer = globalHeatPlugin.HeatLayer
+        heatPlugin.heatLayer = globalHeatPlugin.heatLayer
+    }
+    window.L = leaflet
+    return heatPlugin.heatLayer!(points, { maxZoom })
 }
 
 function createEditControl(title: string, content: string, startDrawing: () => void): L.Control {
