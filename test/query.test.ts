@@ -1,6 +1,6 @@
 import { expect } from '@open-wc/testing'
 import { DataFactory } from 'n3'
-import { initTimeout, ShaclForm } from '../src/form'
+import { ShaclForm } from '../src/form'
 import { isRangeQueryField, Query, QueryEditor, QueryFacetProvider } from '../src/query'
 import { awaitFormLoaded, bind } from './util'
 import { RokitInput, RokitSelect, RokitSlider } from '@ro-kit/ui-widgets'
@@ -98,19 +98,47 @@ ex:timeKindProperty sh:path ex:quantityKind ; sh:name "Time kind" .
 
     it('keeps the initial query form hidden until facets are applied', async () => {
         let resolveFacets!: () => void
+        let markFacetsRequested!: () => void
+        const facetsRequested = new Promise<void>(resolve => {
+            markFacetsRequested = resolve
+        })
         form.setQueryFacetProvider({
             getFacets: request => new Promise(resolve => {
+                markFacetsRequested()
                 resolveFacets = () => resolve(request.fields.map(field => ({ fieldId: field.id, count: 1 })))
             }),
         })
 
+        const firstNodeRendered = new Promise<HTMLElement>(resolve => {
+            const observer = new MutationObserver(() => {
+                const node = form.form.querySelector<HTMLElement>(':scope > shacl-node')
+                if (node) {
+                    observer.disconnect()
+                    resolve(node)
+                }
+            })
+            observer.observe(form.form, { childList: true })
+        })
         const loaded = bind(form, shapes, 'http://example.org/Root')
-        await new Promise(resolve => setTimeout(resolve, initTimeout + 50))
+        const graphLoadingStyle = getComputedStyle(form.form)
+        const graphLoadingTypography = {
+            color: graphLoadingStyle.color,
+            fontFamily: graphLoadingStyle.fontFamily,
+            fontSize: graphLoadingStyle.fontSize,
+        }
+        const initialNode = await firstNodeRendered
 
         expect(form.form.classList.contains('query-facets-pending')).to.be.true
         expect(form.form.querySelector('.query-facets-loading')?.textContent).to.equal('Loading…')
-        expect(getComputedStyle(form.form.querySelector('shacl-node')!).display).to.equal('none')
+        expect(getComputedStyle(initialNode).display).to.equal('none')
+        const facetLoadingStyle = getComputedStyle(form.form)
+        expect({
+            color: facetLoadingStyle.color,
+            fontFamily: facetLoadingStyle.fontFamily,
+            fontSize: facetLoadingStyle.fontSize,
+        }).to.deep.equal(graphLoadingTypography)
 
+        await facetsRequested
         resolveFacets()
         await loaded
 

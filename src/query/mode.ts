@@ -22,6 +22,9 @@ export class QueryModeController {
     constructor(host: ShaclForm) {
         this.host = host
         this.stylesheet.replaceSync(queryModeCss)
+        if (host.config.queryFacetProvider) {
+            this.setFacetsPending(true)
+        }
     }
 
     async initialize(): Promise<void> {
