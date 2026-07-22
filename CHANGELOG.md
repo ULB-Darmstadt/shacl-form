@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Keep keyboard tab order aligned with the visual `sh:order` of properties and
   groups, including within nested node shapes.
+- Keep the initial query form hidden until its first facet response is applied,
+  preventing the unfiltered form from flashing before facet-based controls render.
+- Apply form theme styles during initialization so graph-loading and facet-loading
+  messages have consistent typography and colors.
+- Let applications style the visible facet-count text through the exported
+  `facet-count` CSS part.
 
 ## [3.2.1] - 2026-07-22
 
