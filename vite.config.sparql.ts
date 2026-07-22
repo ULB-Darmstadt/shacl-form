@@ -1,6 +1,4 @@
 import { defineConfig } from 'vite'
-// @ts-ignore
-import peerDepsExternal from 'rollup-plugin-peer-deps-external'
 
 export default defineConfig({
   build: {
@@ -15,8 +13,5 @@ export default defineConfig({
         format: "es",
       },
     }
-  },
-  plugins: [
-    peerDepsExternal()
-  ]
+  }
 })
