@@ -217,14 +217,49 @@ export function mergeQuads(template: ShaclPropertyTemplate, quads: Quad[]) {
     return template
 }
 
-export function mergeProperty(target: ShaclPropertyTemplate, source: ShaclPropertyTemplate) {
+export function mergeProperty(target: ShaclPropertyTemplate, source: ShaclPropertyTemplate, preferSourceDisplayMetadata = false) {
     const s = source as unknown as Record<string, unknown>
     const t = target as unknown as Record<string, unknown>
+    const targetNodesAreValidationOnly = hasValidationOnlyNodeShapes(target)
+    const sourceNodesAreValidationOnly = hasValidationOnlyNodeShapes(source)
+    const discardTargetNodes = targetNodesAreValidationOnly && hasDirectEditorConstraints(source)
+    const discardSourceNodes = sourceNodesAreValidationOnly && hasDirectEditorConstraints(target)
+
+    if (discardTargetNodes) {
+        target.nodeShapes.clear()
+        target.node = undefined
+    }
+
     for (const key in source) {
         if (key !== 'parent' && key !== 'config' && key !== 'id') {
             const sourceValue = s[key]
             if (sourceValue !== undefined && sourceValue !== '') {
-                if (Array.isArray(sourceValue)) {
+                if (key === 'label') {
+                    // The label is recomputed from the merged sh:name below. Keeping the
+                    // target here also prevents a later path fallback from replacing an
+                    // earlier, explicitly selected label.
+                    continue
+                } else if (key === 'name' || key === 'description' || key === 'group' || key === 'order') {
+                    // Display metadata is deterministic: the first declaration wins,
+                    // while a later declaration may fill metadata omitted by the first.
+                    // A property inherited through sh:node is different: there the
+                    // more-specific source property intentionally overrides its base.
+                    if (preferSourceDisplayMetadata || t[key] === undefined || t[key] === '') {
+                        t[key] = sourceValue
+                    }
+                } else if (key === 'minCount') {
+                    target.minCount = Math.max(target.minCount ?? 0, source.minCount!)
+                } else if (key === 'maxCount') {
+                    target.maxCount = Math.min(target.maxCount ?? Number.MAX_SAFE_INTEGER, source.maxCount!)
+                } else if (key === 'qualifiedMinCount') {
+                    target.qualifiedMinCount = Math.max(target.qualifiedMinCount ?? 0, source.qualifiedMinCount!)
+                } else if (key === 'qualifiedMaxCount') {
+                    target.qualifiedMaxCount = Math.min(target.qualifiedMaxCount ?? Number.MAX_SAFE_INTEGER, source.qualifiedMaxCount!)
+                } else if (key === 'nodeShapes' && discardSourceNodes) {
+                    continue
+                } else if (key === 'node' && discardSourceNodes) {
+                    continue
+                } else if (Array.isArray(sourceValue)) {
                     const targetValue = t[key]
                     if (Array.isArray(targetValue)) {
                         targetValue.push(...sourceValue)
@@ -240,4 +275,27 @@ export function mergeProperty(target: ShaclPropertyTemplate, source: ShaclProper
             }
         }
     }
+    if (target.name) {
+        target.label = target.name.value
+    }
+}
+
+// sh:node normally describes the nested form to render. When a same-path sibling
+// explicitly defines a scalar editor, however, an otherwise bare sh:node shape is
+// a validation constraint and must not replace that editor with a nested form.
+function hasValidationOnlyNodeShapes(template: ShaclPropertyTemplate) {
+    return template.nodeShapes.size > 0 &&
+        template.qualifiedValueShape === undefined &&
+        template.name === undefined &&
+        template.description === undefined &&
+        !hasDirectEditorConstraints(template)
+}
+
+function hasDirectEditorConstraints(template: ShaclPropertyTemplate) {
+    return template.in !== undefined ||
+        template.datatype !== undefined ||
+        template.languageIn !== undefined ||
+        template.class !== undefined ||
+        template.hasValue !== undefined ||
+        template.defaultValue !== undefined
 }

@@ -45,6 +45,51 @@ describe('test property overriding', () => {
         expect(form.shape?.template.properties['http://example.org/pathToMerge'].length).to.equal(2)
     })
 
+    it('keeps the scalar editor when same-path sh:node shapes are validation-only', async () => {
+        await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :license ;
+                sh:maxCount 5 ;
+            ] , [
+                sh:path :license ;
+                sh:name "License" ;
+                sh:minCount 1 ;
+                sh:nodeKind sh:IRIOrLiteral ;
+            ] , [
+                sh:path :license ;
+                sh:in (:license1 :license2) ;
+                sh:maxCount 3 ;
+            ] , [
+                sh:path :license ;
+                sh:node :LicenseConstraint ;
+                sh:minCount 2 ;
+                sh:maxCount 4 ;
+            ] .
+
+            :LicenseConstraint a sh:NodeShape ;
+                sh:xone (
+                    [ sh:nodeKind sh:IRI ]
+                    [ sh:datatype xsd:string ]
+                ) .
+        `)
+
+        const property = form.shape?.template.properties['http://example.org/license']?.[0]
+        expect(property).to.exist
+        expect(property?.label).to.equal('License')
+        expect(property?.minCount).to.equal(2)
+        expect(property?.maxCount).to.equal(3)
+        expect(property?.nodeShapes.size).to.equal(0)
+
+        const renderRoot = form.shadowRoot ?? form
+        const editors = renderRoot.querySelectorAll(`.property-instance[data-path='http://example.org/license'] > .editor`)
+        expect(editors.length).to.equal(1)
+        const renderedProperty = editors[0].closest('shacl-property')
+        expect(renderedProperty?.querySelector('shacl-node')).to.equal(null)
+        expect(renderedProperty?.querySelector('.shacl-or-constraint')).to.equal(null)
+    })
+
     it('merges qualified properties with matching node shape specialization chains', async () => {
         await bind(form, `
             ${prefixes}
@@ -54,6 +99,7 @@ describe('test property overriding', () => {
                     sh:name "generic parameter set" ;
                     sh:qualifiedValueShape :GenericParameterSet ;
                     sh:qualifiedMinCount 1 ;
+                    sh:qualifiedMaxCount 5 ;
                 ] .
 
             :DeviceConfig a sh:NodeShape ;
@@ -62,7 +108,8 @@ describe('test property overriding', () => {
                     sh:path :assignedParameterSet ;
                     sh:name "device parameter set" ;
                     sh:qualifiedValueShape :DeviceParameterSet ;
-                    sh:qualifiedMinCount 1 ;
+                    sh:qualifiedMinCount 2 ;
+                    sh:qualifiedMaxCount 3 ;
                 ] .
 
             :GenericParameterSet a sh:NodeShape .
@@ -79,6 +126,8 @@ describe('test property overriding', () => {
         expect(root.properties['http://example.org/assignedParameterSet']).to.equal(undefined)
         expect(merged.label).to.equal('device parameter set')
         expect(merged.qualifiedValueShape?.id.value).to.equal('http://example.org/DeviceParameterSet')
+        expect(merged.qualifiedMinCount).to.equal(2)
+        expect(merged.qualifiedMaxCount).to.equal(3)
         expect([...merged.nodeShapes].map(shape => shape.id.value)).to.deep.equal(['http://example.org/DeviceParameterSet'])
 
         const renderRoot = form.shadowRoot ?? form

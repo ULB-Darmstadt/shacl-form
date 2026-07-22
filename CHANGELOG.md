@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Keep an explicitly configured scalar editor such as `sh:in` when a separate
+  same-path property shape contributes a validation-only `sh:node` constraint.
+- Merge display metadata (`sh:name` and `sh:description`)deterministically across same-path property shapes,
+  while retaining more-specific metadata for inherited property overrides.
+- Combine `sh:minCount` and `sh:qualifiedMinCount` using the highest minimum,
+  and `sh:maxCount` and `sh:qualifiedMaxCount` using the lowest maximum.
 - Keep keyboard tab order aligned with the visual `sh:order` of properties and
   groups, including within nested node shapes.
 - Keep the initial query form hidden until its first facet response is applied,

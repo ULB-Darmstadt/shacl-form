@@ -117,7 +117,7 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
                     const source = chain[i]
                     const inheritedQualifiedShape = qualifiedSpecialization ? target.qualifiedValueShape : undefined
                     delete source.parent.properties[source.path!]
-                    mergeProperty(target, source)
+                    mergeProperty(target, source, true)
                     // the more specific qualified shape already renders its inherited shape through
                     // sh:node/sh:and. keeping both in nodeShapes would render the ancestor twice.
                     if (inheritedQualifiedShape) {
