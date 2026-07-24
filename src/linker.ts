@@ -1,14 +1,20 @@
-import { DataFactory, Store } from 'n3'
+import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
 import { Config } from './config.js'
 import { DATA_GRAPH, SHAPES_GRAPH } from './constants.js'
 import { importRDF, LoaderContext } from './graph-loader.js'
 import { createPropertyInstance, ShaclProperty } from './property.js'
+import type { ShaclNode } from './node.js'
 import { filterOutExistingItems, findLabel } from './util.js'
 import { Term } from '@rdfjs/types'
 import { RokitDialog } from '@ro-kit/ui-widgets'
 import { ShaclPropertyTemplate } from './property-template.js'
-import { InputListEntry } from './theme.js'
 import { loadRDF } from './rdf-loader.js'
+
+type LinkCandidate = {
+    value: NamedNode | BlankNode
+    label: string
+    template: ShaclPropertyTemplate
+}
 
 export async function createLinker(property: ShaclProperty): Promise<HTMLElement | undefined> {
     // we only link to resources that must conform to a SHACL node shape
@@ -57,15 +63,15 @@ export async function createLinker(property: ShaclProperty): Promise<HTMLElement
     return linkButton
 }
 
-function buildLinkDialogContent(dialog: RokitDialog, property: ShaclProperty, candidates: InputListEntry[]) {
+function buildLinkDialogContent(dialog: RokitDialog, property: ShaclProperty, candidates: LinkCandidate[]) {
     const content = document.createElement('div')
     for (const candidate of candidates) {
         const option = document.createElement('div')
         option.classList.add('link-option')
         option.title = 'Link this resource'
-        option.innerText = candidate.label || (candidate.value as string)
-        option.addEventListener('click', () => {
-            addLink(candidate.value as string, property)
+        option.innerText = candidate.label || candidate.value.value
+        option.addEventListener('click', async () => {
+            await addLink(candidate, property)
             dialog.open = false
         })
         content.appendChild(option)
@@ -73,50 +79,68 @@ function buildLinkDialogContent(dialog: RokitDialog, property: ShaclProperty, ca
     dialog.replaceChildren(content)
 }
 
-export function findLinkCandidates(property: ShaclProperty): InputListEntry[] {
-    const result: InputListEntry[] = []
-    if (property.template.config.resourceLinkProvider) {
-        for (const shape of property.template.nodeShapes) {
-            if (property.template.config.providedConformingResourceIds[shape.id.value]) {
-                for (const resourceId of property.template.config.providedConformingResourceIds[shape.id.value]) {
-                    // check if already bound as value
-                    if (
-                        property.querySelector(
-                            `:scope > .property-instance > shacl-node[data-node-id='${resourceId}'], :scope > .collapsible > .property-instance > shacl-node[data-node-id='${resourceId}']`
-                        ) === null
-                    ) {
-                        result.push({
-                            value: resourceId,
-                            // provided resources aren't in the store yet, so prefer the
-                            // label extracted when the resource was loaded; fall back to
-                            // the store for resources that are already imported.
-                            label:
-                                property.template.config.providedResourceLabels[resourceId] ||
-                                findLabel(
-                                    property.template.config.store.getQuads(DataFactory.namedNode(resourceId), null, null, null),
-                                    property.template.config.languages
-                                ),
-                            children: []
-                        })
-                    }
+export function findLinkCandidates(property: ShaclProperty): LinkCandidate[] {
+    const config = property.template.config
+    const shapeIds = linkShapeIds(property.template)
+    const boundNodeIds = new Set(
+        Array.from(property.querySelectorAll<ShaclNode>(':scope > .property-instance > shacl-node, :scope > .collapsible > .property-instance > shacl-node'))
+            .map(node => node.nodeId.id)
+    )
+    const result = new Map<string, LinkCandidate>()
+
+    for (const node of config.form.querySelectorAll<ShaclNode>('shacl-node:not([part~="linked-node"])')) {
+        if (!shapeIds.has(node.template.id.value) || boundNodeIds.has(node.nodeId.id)) {
+            continue
+        }
+        const graph = new Store()
+        node.toRDF(graph)
+        result.set(node.nodeId.id, {
+            value: node.nodeId,
+            label: findLabel([
+                ...graph.getQuads(node.nodeId, null, null, null),
+                ...config.store.getQuads(node.nodeId, null, null, null)
+            ], config.languages) || config.providedResourceLabels[node.nodeId.value],
+            template: property.template
+        })
+    }
+
+    if (config.resourceLinkProvider) {
+        for (const shapeId of shapeIds) {
+            for (const resourceId of config.providedConformingResourceIds[shapeId] ?? []) {
+                const id = DataFactory.namedNode(resourceId)
+                if (!boundNodeIds.has(id.id) && !result.has(id.id)) {
+                    result.set(id.id, {
+                        value: id,
+                        // Provided resources aren't in the store yet, so prefer the
+                        // label extracted when the resource was loaded.
+                        label: config.providedResourceLabels[resourceId] || findLabel(
+                            config.store.getQuads(id, null, null, null),
+                            config.languages
+                        ),
+                        template: property.template
+                    })
                 }
             }
         }
     }
-    return result
+    return [...result.values()]
 }
 
-async function addLink(resourceId: string, property: ShaclProperty) {
-    const id = DataFactory.namedNode(resourceId)
+async function addLink(candidate: LinkCandidate, property: ShaclProperty) {
+    const resourceId = candidate.value.value
     // import resource if not already done
-    if (property.template.config.providedResources[resourceId]?.length > 0) {
-        const ctx: LoaderContext = { store: property.template.config.store, importedUrls: [], atts: { loadOwlImports: false } }
-        await importRDF(loadRDF({ rdf: property.template.config.providedResources[resourceId] }), ctx, SHAPES_GRAPH)
-        property.template.config.providedResources[resourceId] = ''
+    if (candidate.value.termType === 'NamedNode' && candidate.template.config.providedResources[resourceId]?.length > 0) {
+        const ctx: LoaderContext = { store: candidate.template.config.store, importedUrls: [], atts: { loadOwlImports: false } }
+        await importRDF(loadRDF({ rdf: candidate.template.config.providedResources[resourceId] }), ctx, SHAPES_GRAPH)
+        candidate.template.config.providedResources[resourceId] = ''
     }
-    const instance = await createPropertyInstance(property.template, id, true, true)
+    const instance = await createPropertyInstance(candidate.template, candidate.value, true, true)
     property.container.insertBefore(instance, property.querySelector(':scope > .add-button-wrapper'))
     await property.updateControls()
+}
+
+function linkShapeIds(property: ShaclPropertyTemplate): Set<string> {
+    return new Set(Array.from(property.nodeShapes, shape => shape.id.value))
 }
 
 export async function loadConformingResources(property: ShaclPropertyTemplate) {
@@ -124,7 +148,7 @@ export async function loadConformingResources(property: ShaclPropertyTemplate) {
     if (!provider) {
         return
     }
-    const shapeIds = new Set(Array.from(property.nodeShapes).map((shape) => shape.id.value))
+    const shapeIds = linkShapeIds(property)
     if (shapeIds.size === 0) {
         return
     }

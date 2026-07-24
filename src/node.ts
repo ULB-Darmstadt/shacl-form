@@ -8,6 +8,7 @@ import { createShaclOrConstraint, resolveShaclOrConstraintOnNode } from './const
 import { Config } from './config.js'
 import { ShaclNodeTemplate, mergeOverriddenProperties } from './node-template.js'
 import { ShaclPropertyTemplate } from './property-template.js'
+import { findLabel } from './util.js'
 
 export class ShaclNode extends HTMLElement {
     nodeId: NamedNode | BlankNode
@@ -42,7 +43,7 @@ export class ShaclNode extends HTMLElement {
         this.nodeId = nodeId
 
         // check if the form already contains the node/value pair to prevent recursion
-        const id = JSON.stringify([template.id, valueSubject])
+        const id = JSON.stringify([template.id, this.nodeId])
         if (valueSubject && template.config.renderedNodes.has(id)) {
             // node/value pair is already rendered in the form, so just display a reference
             label = label || 'Link'
@@ -58,7 +59,14 @@ export class ShaclNode extends HTMLElement {
 
             const anchor = document.createElement('a')
             const refId = (valueSubject.termType === 'BlankNode') ? '_:' + valueSubject.value : valueSubject.value
-            anchor.innerText = refId
+            const target = Array.from(this.template.config.form.querySelectorAll<ShaclNode>('shacl-node:not([part~="linked-node"])'))
+                .find(node => node.nodeId.equals(valueSubject))
+            const graph = new Store()
+            target?.toRDF(graph)
+            anchor.innerText = findLabel([
+                ...graph.getQuads(valueSubject, null, null, null),
+                ...this.template.config.store.getQuads(valueSubject, null, null, null)
+            ], this.template.config.languages) || refId
             anchor.classList.add('ref-link')
             anchor.onclick = () => {
                 // if anchor is clicked, scroll referenced shacl node into view
@@ -68,9 +76,9 @@ export class ShaclNode extends HTMLElement {
             this.style.flexDirection = 'row'
             this.ready = Promise.resolve()
         } else {
-            if (valueSubject) {
-                template.config.renderedNodes.add(id)
-            }
+            // Track generated nodes as well as nodes bound from an input graph so
+            // subsequent properties can render a reference instead of a duplicate.
+            template.config.renderedNodes.add(id)
             const ancestorShapeIds = this.ancestorShapeIds
             const currentShapeId = this.template.id.value
             const currentQueryContext = this.queryContext

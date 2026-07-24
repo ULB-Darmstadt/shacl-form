@@ -178,7 +178,7 @@ In edit mode, `<shacl-form>` validates the constructed data graph using [shacl-e
 
 ### Query mode
 
-See the [query mode guide](./src/query/query-mode.md)
+See the [query mode guide](./src/query/query-mode.md) and the [demo](https://ulb-darmstadt.github.io/shacl-form/#query-mode).
 
 ### Additional RDF for the shapes graph
 
@@ -246,7 +246,7 @@ Besides `data-shapes` and `data-shapes-url`, `shacl-form` can enrich the shapes 
    })
    ```
 
-   This returns instances of `http://example.org/Material`, which populate the "Artwork material" dropdown. In a real application, the callback would often call an API or triple store.
+   returns instances of `http://example.org/Material`, which populate the "Artwork material" dropdown. In a real application, the callback would often call an API or triple store.
 
 ### Use of SHACL sh:class
 
@@ -299,6 +299,8 @@ If your graphs only contain resource identifiers (IRIs) and not the full triples
 The RDF returned by `loadResources(...)` can use any of the [supported formats](#formats). It is parsed through the same RDF-loading pipeline used for `owl:imports`, inline data, and `classInstanceProvider`.
 
 The provider supports both eager loading during initialization and lazy loading when the user opens the link dialog. See [here](https://github.com/ULB-Darmstadt/rdf-store/blob/main/frontend/src/editor.ts#L10) for an example implementation.
+
+For properties with `sh:or` or `sh:xone` node-shape alternatives, first choose the type of node to use. The selected branch then provides separate controls for creating a new node or linking a compatible node. Link candidates combine nodes already rendered elsewhere in the form with resources supplied by `ResourceLinkProvider`.
 
 ### SHACL shape inheritance
 

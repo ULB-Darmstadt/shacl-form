@@ -1,4 +1,5 @@
 import { ShaclNode } from './node.js'
+import type { ShaclProperty } from './property.js'
 import { Config } from './config.js'
 import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin.js'
 import { Store, NamedNode, DataFactory, BlankNode, Literal } from 'n3'
@@ -54,6 +55,7 @@ export class ShaclForm extends HTMLElement {
                 this.queryController?.handleChange()
             } else if (this.config.editMode) {
                 this.validate(true).then(report => {
+                    this.refreshClassInstanceEditors()
                     this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': report.conforms, 'report': report } }))
                 }).catch(e => {
                     console.warn(e)
@@ -187,15 +189,14 @@ export class ShaclForm extends HTMLElement {
                             })
                             this.form.appendChild(button)
                         }
-                        (async () => {
-                            // property value binding is asynchronous, so wait for node rendering to finish before cleanup
-                            await this.shape?.ready
-                            // delete bound values from data graph, otherwise validation would not work correctly
-                            if (this.config.attributes.valuesSubject) {
-                                this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
-                            }
-                            this.validate(true)
-                        })()
+                        // property value binding is asynchronous, so wait for node rendering to finish before cleanup
+                        await this.shape?.ready
+                        // delete bound values from data graph, otherwise validation would not work correctly
+                        if (this.config.attributes.valuesSubject) {
+                            this.removeFromDataGraph(DataFactory.namedNode(this.config.attributes.valuesSubject))
+                        }
+                        await this.validate(true)
+                        this.refreshClassInstanceEditors()
                     } else if (this.config.queryMode) {
                         await this.shape.ready
                         await this.queryController?.initialize()
@@ -422,6 +423,15 @@ export class ShaclForm extends HTMLElement {
     private assertNotQueryMode(method: string) {
         if (this.config.queryMode) {
             throw new Error(`${method}() is not available in query mode; use getQuery()`)
+        }
+    }
+
+    private refreshClassInstanceEditors() {
+        if (!this.shape || !this.config.editMode) {
+            return
+        }
+        for (const property of this.form.querySelectorAll<ShaclProperty>('shacl-property')) {
+            property.refreshClassInstances()
         }
     }
 

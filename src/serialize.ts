@@ -1,4 +1,4 @@
-import { DataFactory, NamedNode, Writer, Quad, Literal, Prefixes } from 'n3'
+import { BlankNode, DataFactory, NamedNode, Writer, Quad, Literal, Prefixes } from 'n3'
 import { FRACTIONAL_DATATYPES, PREFIX_XSD, RDF_PREDICATE_TYPE, PREFIX_SHACL, XSD_DATATYPE_STRING } from './constants.js'
 import { Editor } from './theme.js'
 import { NodeObject } from 'jsonld'
@@ -46,7 +46,7 @@ function serializeJsonld(quads: Quad[]): string {
     return JSON.stringify(triples)
 }
 
-export function toRDF(editor: Editor): NamedNode | Literal | undefined {
+export function toRDF(editor: Editor): NamedNode | BlankNode | Literal | undefined {
     let languageOrDatatype: NamedNode<string> | string | undefined = editor.shaclDatatype
     // prefer value from dataset over editor value (this is used by rdfs:label substitution for term values)
     let value: number | string = editor.dataset.value || editor.value
@@ -60,7 +60,9 @@ export function toRDF(editor: Editor): NamedNode | Literal | undefined {
         return undefined
     }
     if (value) {
-        if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
+        if (editor.dataset.class && value.startsWith('_:')) {
+            return DataFactory.blankNode(value.substring(2))
+        } else if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
             return DataFactory.namedNode(value.substring(1, value.length - 1))
         } else if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
             return DataFactory.namedNode(value)

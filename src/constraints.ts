@@ -1,12 +1,12 @@
 import { BlankNode, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node.js'
-import { ShaclProperty, createPropertyInstance } from './property.js'
+import { createPropertyInstance, ShaclProperty } from './property.js'
 import { Config } from './config.js'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY, SHACL_PREDICATE_NODE } from './constants.js'
 import { findLabel, removePrefixes } from './util.js'
 import { Editor, InputListEntry } from './theme.js'
-import { cloneProperty, mergeQuads } from './property-template.js'
+import { aggregatedMaxCount, cloneProperty, mergeQuads } from './property-template.js'
 import { prefixes } from './rdf-loader.js'
 
 
@@ -84,10 +84,10 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                 // if no label found, but one of the quads has a sh:node predicate, try to find the label for the referenced node shape
                 for (const quad of quads) {
                     if (quad.predicate.equals(SHACL_PREDICATE_NODE)) {
-                        label = findLabel(config.store.getQuads(quad.object, null, null, null), config.languages)
+                        label ||= findLabel(config.store.getQuads(quad.object, null, null, null), config.languages)
                     }
                 }
-                optionElements.push({ label: label || (removePrefixes(quads[0].predicate.value, prefixes) + ' = ' + removePrefixes(quads[0].object.value, prefixes)), value: i.toString() })
+                optionElements.push({ label: label || (removePrefixes(quads[0].predicate.value, prefixes) + ' = ' + removePrefixes(quads[0].object.value, prefixes)), value: (values.length - 1).toString() })
             }
         }
         const editor = config.theme.createListEditor(context.template.label + '?', null, false, optionElements, context.template)
@@ -96,17 +96,20 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         select.onchange = async () => {
             if (select.value) {
                 const merged = mergeQuads(cloneProperty(context.template), values[parseInt(select.value)])
+                merged.or = undefined
+                merged.xone = undefined
                 if (config.queryMode) {
                     const { activatePropertyConstraintOption } = await import('./query/mode.js')
                     await activatePropertyConstraintOption(merged, context, constraintElement)
                     return
                 }
-                const instance = await createPropertyInstance(merged, undefined, true)
-                const label = instance.querySelector(':scope > label')
-                if (label) {
-                    label.classList.add('persistent')
+                if (aggregatedMaxCount(context.template) > 1) {
+                    constraintElement.replaceWith(await createPropertyInstance(merged, undefined, true, false, context.parent))
+                    return
                 }
-                constraintElement.replaceWith(instance)
+                const property = new ShaclProperty(merged, context.parent)
+                context.replaceWith(property)
+                await property.updateControls()
             }
         }
         constraintElement.appendChild(editor)

@@ -1,5 +1,7 @@
-import { expect } from '@open-wc/testing'
+import { expect, waitUntil } from '@open-wc/testing'
 import { ShaclForm } from '../src/form'
+import type { ShaclNode } from '../src/node'
+import type { ShaclProperty } from '../src/property'
 import { bind, expectIsomorphic, expectValid } from './util'
 import '../src/form'
 
@@ -53,6 +55,246 @@ describe('test value binding', () => {
             await expectValid(form, shapesQuads)
             expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
         }
+    }).timeout(4000)
+
+    it('keeps sh:class choices synchronized with generated nodes', async () => {
+        await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:property [
+                    sh:path :people ;
+                    sh:node :PersonShape ;
+                    sh:minCount 1 ;
+                    sh:maxCount 2
+                ] ;
+                sh:property [
+                    sh:path :activity ;
+                    sh:node :ActivityShape ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1
+                ] .
+
+            :PersonShape a sh:NodeShape ;
+                sh:targetClass :Agent .
+
+            :ActivityShape a sh:NodeShape ;
+                sh:property [
+                    sh:path :associatedWith ;
+                    sh:class :Agent ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1
+                ] .`,
+            shapeSubject
+        )
+
+        const renderRoot = form.shadowRoot ?? form
+        const properties = Array.from(renderRoot.querySelectorAll<ShaclProperty>('shacl-property'))
+        const people = properties.find(property => property.template.path === 'http://example.org/people')!
+        const associatedWith = properties.find(property => property.template.path === 'http://example.org/associatedWith')!
+        const generatedPeople = () => Array.from(people.querySelectorAll<ShaclNode>(':scope > .property-instance > shacl-node'))
+        const choices = () => Array.from(associatedWith.querySelectorAll<HTMLElement>(':scope > .property-instance > .editor > ul li'))
+
+        expect(generatedPeople()).to.have.length(1)
+        expect(choices().map(choice => choice.dataset.value)).to.deep.equal([generatedPeople()[0].nodeId.id])
+
+        const editor = associatedWith.querySelector<HTMLElement & { value: string }>(':scope > .property-instance > .editor')!
+        editor.value = generatedPeople()[0].nodeId.id
+        const selected = form.toRDF().getObjects(null, 'http://example.org/associatedWith', null)[0]
+        expect(selected.termType).to.equal('BlankNode')
+        expect(selected.value).to.equal(generatedPeople()[0].nodeId.value)
+
+        let changed = awaitNextFormChange(form)
+        ;(people.querySelector(':scope > .add-button-wrapper > .add-button') as HTMLElement).click()
+        await changed
+        expect(generatedPeople()).to.have.length(2)
+        expect(choices().map(choice => choice.dataset.value)).to.have.members(generatedPeople().map(node => node.nodeId.id))
+
+        const secondPerson = people.querySelectorAll<HTMLElement>(':scope > .property-instance')[1]
+        changed = awaitNextFormChange(form)
+        ;(secondPerson.querySelector(':scope > .remove-button-wrapper > .remove-button') as HTMLElement).click()
+        await changed
+        expect(generatedPeople()).to.have.length(1)
+        expect(choices().map(choice => choice.dataset.value)).to.deep.equal([generatedPeople()[0].nodeId.id])
+    }).timeout(4000)
+
+    it('links a person from an earlier sh:or property instance', async () => {
+        await bind(form, `
+            ${prefixes}
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:property [
+                    sh:path :attribution ;
+                    sh:node :AttributionShape ;
+                    sh:minCount 1 ;
+                    sh:maxCount 2
+                ] .
+
+            :AttributionShape a sh:NodeShape ;
+                sh:targetClass :Attribution ;
+                sh:property [
+                    sh:path :agent ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1 ;
+                    sh:or (
+                        [ sh:class :Person ; sh:node :PersonShape ; rdfs:label "Person" ]
+                        [ sh:class :Organisation ; sh:node :OrganisationShape ; rdfs:label "Organisation" ]
+                    )
+                ] .
+
+            :PersonShape a sh:NodeShape ;
+                sh:targetClass :Person ;
+                sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+            :OrganisationShape a sh:NodeShape ;
+                sh:targetClass :Organisation ;
+                sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:maxCount 1 ] .`,
+            shapeSubject, `
+            ${prefixes}
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+            <${valuesSubject}> :attribution _:first .
+            _:first a :Attribution ; :agent _:jane .
+            _:jane a :Person ; rdfs:label "Jane Doe" .`,
+            valuesSubject
+        )
+
+        const renderRoot = form.shadowRoot ?? form
+        const attribution = Array.from(renderRoot.querySelectorAll<ShaclProperty>('shacl-property'))
+            .find(property => property.template.path === 'http://example.org/attribution')!
+        ;(attribution.querySelector(':scope > .add-button-wrapper > .add-button') as HTMLElement).click()
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        const agentProperties = Array.from(renderRoot.querySelectorAll<ShaclProperty>('shacl-property'))
+            .filter(property => property.template.path === 'http://example.org/agent')
+        expect(agentProperties).to.have.length(2)
+        const secondAgent = agentProperties[1]
+        const chooser = secondAgent.querySelector<HTMLSelectElement>(':scope > .shacl-or-constraint .editor')!
+        const chooserOptions = Array.from(chooser.querySelectorAll<HTMLElement>(':scope > ul > li'))
+        expect(chooserOptions.map(option => option.innerText)).to.deep.equal(['Person', 'Organisation'])
+
+        chooser.value = chooserOptions[0].dataset.value!
+        await chooser.onchange!(new Event('change'))
+        const selectedAgent = Array.from(renderRoot.querySelectorAll<ShaclProperty>('shacl-property'))
+            .filter(property => property.template.path === 'http://example.org/agent')[1]
+        expect(selectedAgent.querySelector(':scope > .add-button-wrapper > .link-button')).to.exist
+        expect(selectedAgent.querySelector(':scope > .add-button-wrapper > .add-button')).to.exist
+        ;(selectedAgent.querySelector(':scope > .add-button-wrapper > .link-button') as HTMLElement).click()
+        await waitUntil(() => renderRoot.querySelector('.link-chooser .link-option'))
+        const linkOption = Array.from(renderRoot.querySelectorAll<HTMLElement>('.link-chooser .link-option'))
+            .find(option => option.innerText === 'Jane Doe')!
+        linkOption.click()
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        const graph = form.toRDF()
+        const attributions = graph.getObjects(null, 'http://example.org/attribution', null)
+        expect(attributions).to.have.length(2)
+        const agents = attributions.map(subject => graph.getObjects(subject, 'http://example.org/agent', null)[0])
+        expect(agents[0].equals(agents[1])).to.be.true
+        const linkedNode = selectedAgent.querySelector('shacl-node[part~="linked-node"]')!
+        expect(linkedNode).to.exist
+        expect(linkedNode.querySelector('.ref-link')?.textContent).to.equal('Jane Doe')
+    }).timeout(4000)
+
+    it('offers ResourceLinkProvider entities in an sh:or chooser', async () => {
+        const providerForm = document.createElement('shacl-form') as ShaclForm
+        providerForm.dataset.generateNodeShapeReference = ''
+        document.body.appendChild(providerForm)
+        providerForm.setResourceLinkProvider({
+            lazyLoad: false,
+            listConformingResources: async shapeIds => {
+                expect(shapeIds).to.deep.equal(['http://example.org/PersonShape'])
+                return { 'http://example.org/PersonShape': ['http://example.org/alice'] }
+            },
+            loadResources: async resourceIds => {
+                expect(resourceIds).to.deep.equal(['http://example.org/alice'])
+                return [{
+                    resourceId: 'http://example.org/alice',
+                    resourceRDF: `${prefixes} @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+                        :alice a :Person ; rdfs:label "External Alice" .`
+                }]
+            }
+        })
+
+        await bind(providerForm, `
+            ${prefixes}
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:property [
+                    sh:path :agent ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1 ;
+                    sh:or (
+                        [ sh:class :Person ; sh:node :PersonShape ; rdfs:label "Person" ]
+                        [ sh:class :Organisation ; sh:node :OrganisationShape ; rdfs:label "Organisation" ]
+                    )
+                ] .
+            :PersonShape a sh:NodeShape ; sh:targetClass :Person .
+            :OrganisationShape a sh:NodeShape ; sh:targetClass :Organisation .`,
+            shapeSubject
+        )
+
+        const renderRoot = providerForm.shadowRoot ?? providerForm
+        const chooser = renderRoot.querySelector<HTMLSelectElement>('.shacl-or-constraint .editor')!
+        const chooserOptions = Array.from(chooser.querySelectorAll<HTMLElement>(':scope > ul > li'))
+        expect(chooserOptions.map(option => option.innerText)).to.deep.equal(['Person', 'Organisation'])
+        chooser.value = chooserOptions[0].dataset.value!
+        await chooser.onchange!(new Event('change'))
+        const selectedAgent = renderRoot.querySelector<ShaclProperty>('shacl-property')!
+        expect(selectedAgent.querySelector(':scope > .add-button-wrapper > .link-button')).to.exist
+        expect(selectedAgent.querySelector(':scope > .add-button-wrapper > .add-button')).to.exist
+        ;(selectedAgent.querySelector(':scope > .add-button-wrapper > .link-button') as HTMLElement).click()
+        await new Promise(resolve => setTimeout(resolve, 0))
+        const linkOption = Array.from(renderRoot.querySelectorAll<HTMLElement>('.link-chooser .link-option'))
+            .find(option => option.innerText === 'External Alice')!
+        linkOption.click()
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        const agent = providerForm.toRDF().getObjects(null, 'http://example.org/agent', null)[0]
+        expect(agent.termType).to.equal('NamedNode')
+        expect(agent.value).to.equal('http://example.org/alice')
+        providerForm.remove()
+    }).timeout(4000)
+
+    it('loads lazy ResourceLinkProvider entities from an sh:or chooser', async () => {
+        const providerForm = document.createElement('shacl-form') as ShaclForm
+        document.body.appendChild(providerForm)
+        providerForm.setResourceLinkProvider({
+            lazyLoad: true,
+            listConformingResources: async () => ({
+                'http://example.org/PersonShape': ['http://example.org/bob']
+            }),
+            loadResources: async () => [{
+                resourceId: 'http://example.org/bob',
+                resourceRDF: `${prefixes} @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+                    :bob a :Person ; rdfs:label "External Bob" .`
+            }]
+        })
+        await bind(providerForm, `
+            ${prefixes}
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:property [
+                    sh:path :agent ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1 ;
+                    sh:or ([ sh:class :Person ; sh:node :PersonShape ; rdfs:label "Person" ])
+                ] .
+            :PersonShape a sh:NodeShape ; sh:targetClass :Person .`,
+            shapeSubject
+        )
+
+        const renderRoot = providerForm.shadowRoot ?? providerForm
+        const chooser = renderRoot.querySelector<HTMLSelectElement>('.shacl-or-constraint .editor')!
+        const personOption = chooser.querySelector<HTMLElement>(':scope > ul > li')!
+        expect(personOption.innerText).to.equal('Person')
+        chooser.value = personOption.dataset.value!
+        await chooser.onchange!(new Event('change'))
+        const selectedAgent = renderRoot.querySelector<ShaclProperty>('shacl-property')!
+        ;(selectedAgent.querySelector(':scope > .add-button-wrapper > .link-button') as HTMLElement).click()
+        await waitUntil(() => renderRoot.querySelector('.link-chooser .link-option'))
+        const options = Array.from(renderRoot.querySelectorAll<HTMLElement>('.link-chooser .link-option')).map(option => option.innerText)
+        expect(options).to.deep.equal(['External Bob'])
+        providerForm.remove()
     }).timeout(4000)
 
     it('rdf:langString with sh:languageIn binding', async () => {
@@ -416,3 +658,7 @@ describe('test value binding', () => {
         autoForm.remove()
     })
 })
+
+function awaitNextFormChange(form: ShaclForm) {
+    return new Promise<void>(resolve => form.addEventListener('change', () => resolve(), { once: true }))
+}

@@ -2,9 +2,9 @@ import { BlankNode, DataFactory, Literal, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node.js'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints.js'
-import { focusFirstInputElement } from './util.js'
+import { findInstancesOf, focusFirstInputElement } from './util.js'
 import { aggregatedMaxCount, aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template.js'
-import { Editor, fieldFactory } from './theme.js'
+import { Editor, fieldFactory, InputListEntry } from './theme.js'
 import { toRDF } from './serialize.js'
 import { findPlugin } from './plugin.js'
 import { DATA_GRAPH } from './constants.js'
@@ -142,6 +142,41 @@ export class ShaclProperty extends HTMLElement {
         return this.querySelectorAll(PROPERTY_INSTANCE_SELECTOR).length
     }
 
+    refreshClassInstances() {
+        if (!this.template.class || this.template.hasValue || !this.template.config.editMode) {
+            return
+        }
+
+        for (const instance of this.querySelectorAll<HTMLElement>(':scope > .property-instance, :scope > .collapsible > .property-instance')) {
+            const editor = instance.querySelector<Editor>(':scope > .editor')
+            if (!editor || editor.dataset.class !== this.template.class.value) {
+                continue
+            }
+
+            const currentValue = toRDF(editor)
+            const entries = findInstancesOf(this.template.class, this.template)
+            if (currentValue && !containsEntry(entries, currentValue)) {
+                // Keep a selected value visible even if its source node was removed.
+                // Validation can then flag the stale reference without silently losing it.
+                entries.push({ value: currentValue, children: [] })
+            }
+            const signature = entriesSignature(entries)
+            if (editor.dataset.classInstances === signature) {
+                continue
+            }
+
+            const replacement = this.template.config.theme.createListEditor(
+                this.template.label,
+                currentValue ?? null,
+                aggregatedMinCount(this.template) > 0,
+                entries,
+                this.template
+            ).querySelector<Editor>('.editor')!
+            replacement.dataset.classInstances = signature
+            editor.replaceWith(replacement)
+        }
+    }
+
     hasRecursiveNodeShape() {
         const ancestorShapeIds = new Set<string>()
         this.parent.ancestorShapeIds.forEach(id => ancestorShapeIds.add(id))
@@ -221,6 +256,9 @@ export class ShaclProperty extends HTMLElement {
             if (instance) {
                 instance.classList.add('fadeIn')
                 await this.updateControls()
+                if (this.template.nodeShapes.size) {
+                    this.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }))
+                }
                 setTimeout(() => {
                     focusFirstInputElement(instance)
                     instance.classList.remove('fadeIn')
@@ -230,6 +268,21 @@ export class ShaclProperty extends HTMLElement {
         wrapper.appendChild(addButton)
         return wrapper
     }
+}
+
+function containsEntry(entries: InputListEntry[], value: Term): boolean {
+    return entries.some(entry =>
+        (typeof entry.value !== 'string' && entry.value.equals(value)) ||
+        containsEntry(entry.children ?? [], value)
+    )
+}
+
+function entriesSignature(entries: InputListEntry[]): string {
+    return JSON.stringify(entries.map(entry => [
+        typeof entry.value === 'string' ? entry.value : `${entry.value.termType}:${entry.value.value}`,
+        entry.label,
+        entriesSignature(entry.children ?? [])
+    ]))
 }
 
 export async function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false, parentNode?: ShaclNode): Promise<HTMLElement> {
