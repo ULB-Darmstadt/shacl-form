@@ -1,5 +1,5 @@
 # SHACL Form Generator
-An HTML5 web component to edit and view [RDF](https://www.w3.org/RDF/) data that conform to [SHACL shapes](https://www.w3.org/TR/shacl/).
+An HTML5 web component to edit, view and query [RDF](https://www.w3.org/RDF/) data that conform to [SHACL shapes](https://www.w3.org/TR/shacl/).
 
 ## [See demo here](https://ulb-darmstadt.github.io/shacl-form/)
 
