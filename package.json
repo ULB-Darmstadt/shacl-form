@@ -49,6 +49,7 @@
     ],
     "scripts": {
         "dev": "vite serve ./demo --host",
+        "build-demo": "vite build -c ./vite.config.demo.ts",
         "build": "npm run clean && tsc && npm run build-lib && npm run build-sparql && npm run build-bundle && npm run build-plugins",
         "preview": "vite preview",
         "test": "web-test-runner --config test/config.js",
