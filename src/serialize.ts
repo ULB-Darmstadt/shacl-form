@@ -60,11 +60,16 @@ export function toRDF(editor: Editor): NamedNode | BlankNode | Literal | undefin
         return undefined
     }
     if (value) {
-        if (editor.dataset.class && value.startsWith('_:')) {
-            return DataFactory.blankNode(value.substring(2))
-        } else if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
+        if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'BlankNodeOrIRI' || editor.dataset.nodeKind === PREFIX_SHACL + 'BlankNode') {
+            if (value.startsWith('_:')) {
+                return DataFactory.blankNode(value.substring(2))
+            } else if (typeof value === 'string' && !value.startsWith('<') && !value.includes('://')) {
+                return DataFactory.blankNode(value)
+            }
+        }
+        if (value.startsWith('<') && value.endsWith('>') && value.indexOf(':') > -1) {
             return DataFactory.namedNode(value.substring(1, value.length - 1))
-        } else if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI') {
+        } else if (editor.dataset.class || editor.dataset.nodeKind === PREFIX_SHACL + 'IRI' || editor.dataset.nodeKind === PREFIX_SHACL + 'BlankNodeOrIRI') {
             return DataFactory.namedNode(value)
         } else if (editor.dataset.link) {
             return JSON.parse(editor.dataset.link)
