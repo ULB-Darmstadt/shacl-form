@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.3.1] - 2026-07-27
+
 ### Added
 
 - Add opt-in `data-preserve-unmapped-values` support for editing a SHACL-defined
@@ -372,7 +374,8 @@ time of release.
 
 - Establish the initial package build, publishing setup, and demonstration site.
 
-[Unreleased]: https://github.com/ULB-Darmstadt/shacl-form/compare/v3.3.0...HEAD
+[Unreleased]: https://github.com/ULB-Darmstadt/shacl-form/compare/v3.3.1...HEAD
+[3.3.1]: https://github.com/ULB-Darmstadt/shacl-form/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/ULB-Darmstadt/shacl-form/compare/v3.2.1...v3.3.0
 [3.2.1]: https://github.com/ULB-Darmstadt/shacl-form/compare/v3.2.0...v3.2.1
 [3.2.0]: https://github.com/ULB-Darmstadt/shacl-form/compare/v3.1.0...v3.2.0
