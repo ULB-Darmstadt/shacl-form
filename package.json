@@ -1,6 +1,6 @@
 {
     "name": "@ulb-darmstadt/shacl-form",
-    "version": "3.2.1",
+    "version": "3.3.0",
     "description": "SHACL form generator",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -86,7 +86,7 @@
         "vite": "^8.1.5"
     },
     "peerDependencies": {
-        "@ro-kit/ui-widgets": "^1.0.50",
+        "@ro-kit/ui-widgets": "^1.0.51",
         "jsonld": "^9.0.0",
         "leaflet": "^1.9.4",
         "leaflet-editable": "^1.3.2",
