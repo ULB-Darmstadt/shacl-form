@@ -57,6 +57,42 @@ describe('test value binding', () => {
         }
     }).timeout(4000)
 
+    it('binds and serializes every RDF object term type and SHACL node-kind union', async () => {
+        const cases = [
+            { nodeKind: 'IRI', value: '<urn:example:iri>' },
+            { nodeKind: 'BlankNode', value: '_:blank' },
+            { nodeKind: 'Literal', value: '"plain literal"' },
+            { nodeKind: 'Literal', value: '"language literal"@en' },
+            { nodeKind: 'Literal', value: '"42"^^xsd:integer' },
+            { nodeKind: 'BlankNodeOrIRI', value: '<urn:example:blank-or-iri>' },
+            { nodeKind: 'BlankNodeOrIRI', value: '_:blankOrIri' },
+            { nodeKind: 'BlankNodeOrLiteral', value: '_:blankOrLiteral' },
+            { nodeKind: 'BlankNodeOrLiteral', value: '"blank or literal"' },
+            { nodeKind: 'IRIOrLiteral', value: '<urn:example:iri-or-literal>' },
+            { nodeKind: 'IRIOrLiteral', value: '"iri or literal"@de' }
+        ]
+
+        for (const { nodeKind, value } of cases) {
+            const [shapesQuads, inputQuads] = await bind(form, `
+                ${prefixes}
+                <${shapeSubject}> a sh:NodeShape ;
+                    sh:property [
+                        sh:path :path ;
+                        sh:nodeKind sh:${nodeKind} ;
+                        sh:minCount 1 ;
+                        sh:maxCount 1
+                    ] .`,
+                shapeSubject, `
+                ${prefixes}
+                <${valuesSubject}> :path ${value} .`,
+                valuesSubject
+            )
+
+            await expectValid(form, shapesQuads)
+            expectIsomorphic(inputQuads, form.toRDF().getQuads(null, null, null, null))
+        }
+    }).timeout(4000)
+
     it('keeps sh:class choices synchronized with generated nodes', async () => {
         await bind(form, `
             ${prefixes}

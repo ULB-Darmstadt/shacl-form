@@ -2,10 +2,10 @@ import { Term } from '@rdfjs/types'
 import { aggregatedMinCount, ShaclPropertyTemplate } from './property-template.js'
 import { Editor, InputListEntry, Theme } from './theme.js'
 import { FRACTIONAL_DATATYPES, PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI, XSD_DATATYPE_BOOLEAN } from './constants.js'
-import { DataFactory, Literal, NamedNode } from 'n3'
-import { Term as N3Term } from 'n3'
+import { BlankNode, DataFactory, Literal, NamedNode } from 'n3'
 import { RokitButton, RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
 import { findLabel, formatXsdDateTimeValueForInput, formatXsdDateValueForInput } from './util.js'
+import { bindEditorTerm, bindEditorTerms, rdfTermId } from './editor.js'
 
 const css = `
 .editor:not([type='checkbox']) { border: 1px solid var(--shacl-border-color, #DDD); }
@@ -22,6 +22,7 @@ export class DefaultTheme extends Theme {
     }
 
     createDefaultTemplate(label: string, value: Term | null, required: boolean, editor: Editor, template?: ShaclPropertyTemplate): HTMLElement {
+        const boundTerm = value ?? template?.defaultValue ?? null
         editor.id = `e${this.idCtr++}`
         editor.classList.add('editor')
         editor.setAttribute('part', 'editor')
@@ -45,8 +46,7 @@ export class DefaultTheme extends Theme {
             if (template) {
                 const label = findLabel(template.config.store.getQuads(value, null, null, null), template.config.languages)
                 if (label) {
-                    // replace value by label and set real value as data-link
-                    editor.dataset.value = '<' + value.value + '>'
+                    // Display the label while retaining the RDF term on the editor.
                     value = DataFactory.literal(label)
                 }
             }
@@ -55,7 +55,12 @@ export class DefaultTheme extends Theme {
             editor.disabled = true
         }
 
-        const defaultValue = value?.value || template?.defaultValue?.value || ''
+        let defaultValue = value?.value || template?.defaultValue?.value || ''
+        if (value instanceof BlankNode) {
+            defaultValue = value.id
+        } else if (value instanceof NamedNode && template?.nodeKind?.value === PREFIX_SHACL + 'IRIOrLiteral') {
+            defaultValue = `<${value.value}>`
+        }
         if (template?.datatype?.equals(XSD_DATATYPE_BOOLEAN)) {
             editor.checked = value?.value === 'true' || template?.defaultValue?.value === 'true'
         } else if (editor.type === 'file') {
@@ -65,6 +70,7 @@ export class DefaultTheme extends Theme {
         } else {
             editor.value = defaultValue
         }
+        bindEditorTerm(editor, boundTerm)
 
         const labelElem = document.createElement('label')
         labelElem.htmlFor = editor.id
@@ -115,6 +121,7 @@ export class DefaultTheme extends Theme {
             } else {
                 console.error('unable to parse xsd date literal', value)
             }
+            bindEditorTerm(editor, value)
         }
         return result
     }
@@ -177,6 +184,7 @@ export class DefaultTheme extends Theme {
             langChooser.value = value.language
         }
         editor.dataset.lang = langChooser.value
+        bindEditorTerm(editor, value ?? template.defaultValue)
         editor.appendChild(langChooser)
         return result
     }
@@ -193,6 +201,7 @@ export class DefaultTheme extends Theme {
         result.querySelector(':scope label')?.classList.remove('required')
         if (value instanceof Literal) {
             editor.checked = value.value === 'true'
+            bindEditorTerm(editor, value)
         }
         return result
     }
@@ -253,6 +262,7 @@ export class DefaultTheme extends Theme {
         editor.dense = this.dense
         const result = this.createDefaultTemplate(label, null, required, editor, template)
         const ul = document.createElement('ul')
+        const terms: Term[] = []
         let isFlatList = true
 
         const appendListEntry = (entry: InputListEntry, parent: HTMLUListElement) => {
@@ -261,10 +271,8 @@ export class DefaultTheme extends Theme {
                 li.dataset.value = entry.value
                 li.innerText = entry.label ? entry.label : entry.value
             } else {
-                li.dataset.value = (entry.value as N3Term).id
-                if (entry.value instanceof NamedNode) {
-                    li.dataset.value = '<' + li.dataset.value + '>'
-                }
+                li.dataset.value = rdfTermId(entry.value)
+                terms.push(entry.value)
                 li.innerText = entry.label ? entry.label : entry.value.value
             }
             parent.appendChild(li)
@@ -286,12 +294,11 @@ export class DefaultTheme extends Theme {
         }
 
         editor.appendChild(ul)
+        bindEditorTerms(editor, terms)
         value = value ?? template?.defaultValue ?? null
         if (value) {
-            editor.value = (value as N3Term).id
-            if (value instanceof NamedNode) {
-                editor.value = '<' + editor.value + '>'
-            }
+            editor.value = rdfTermId(value)
+            bindEditorTerm(editor, value)
         }
         return result
     }

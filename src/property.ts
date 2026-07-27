@@ -1,4 +1,4 @@
-import { BlankNode, DataFactory, Literal, NamedNode, Quad, Store } from 'n3'
+import { BlankNode, DataFactory, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node.js'
 import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints.js'
@@ -10,6 +10,7 @@ import { findPlugin } from './plugin.js'
 import { DATA_GRAPH } from './constants.js'
 import { RokitButton, RokitCollapsible } from '@ro-kit/ui-widgets'
 import { createLinker } from './linker.js'
+import { bindEditorTerm } from './editor.js'
 
 const ADD_BUTTON_SELECTOR = ':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper'
 const PROPERTY_INSTANCE_SELECTOR = ':scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance'
@@ -328,18 +329,9 @@ export async function createPropertyInstance(template: ShaclPropertyTemplate, va
     }
 
     if (value && !template.config.editMode) {
-        // in view mode, still enable RDF serialization of the form
-        if (value instanceof Literal) {
-            instance.dataset.value = value.value
-            if (value.language.length > 0) {
-                instance.dataset.lang = value.language
-            } else {
-                (instance as Editor).shaclDatatype = value.datatype
-            }
-        } else {
-            // assuming NamedNodes here
-            instance.dataset.value = '<' + value.value + '>'
-        }
+        // In view mode there is no input element, so retain the bound RDF term
+        // directly on the property instance for lossless serialization.
+        bindEditorTerm(instance as Editor, value)
     }
 
     instance.dataset.path = template.path

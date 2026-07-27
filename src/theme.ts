@@ -5,7 +5,22 @@ import { createInputListEntries, findInstancesOf, findLabel, isURL } from './uti
 import { aggregatedMinCount, ShaclPropertyTemplate } from './property-template.js'
 import css from './styles.css?raw'
 
-export type Editor = HTMLElement & { value: string, type?: string, shaclDatatype?: NamedNode<string>, binaryData?: string, checked?: boolean, disabled?: boolean }
+export type Editor = HTMLElement & {
+    value: string
+    type?: string
+    shaclDatatype?: NamedNode<string>
+    binaryData?: string
+    checked?: boolean
+    disabled?: boolean
+    rdfTerm?: Term
+    rdfTermState?: {
+        value: string
+        language?: string
+        checked?: boolean
+        binaryData?: string
+    }
+    rdfTerms?: Map<string, Term>
+}
 export type InputListEntry = { value: Term | string, label?: string, children?: InputListEntry[] }
 
 export abstract class Theme {
