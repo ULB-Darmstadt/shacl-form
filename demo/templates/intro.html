@@ -1,0 +1,62 @@
+<p>
+  <a href="https://github.com/ULB-Darmstadt/shacl-form">&lt;shacl-form&gt;</a> is an HTML5 web component that generates forms from <a href="https://www.w3.org/TR/shacl/">SHACL shapes</a> for entering conforming RDF data.
+  See the <a href="https://github.com/ULB-Darmstadt/shacl-form">README</a> for all attributes, methods, and supported RDF formats.
+  Basic example:
+</p>
+<pre>
+  <code>
+&lt;html&gt;
+  &lt;head&gt;
+      &lt;!-- either load the complete bundle from CDN or install the typescript module via "npm install @ulb-darmstadt/shacl-form" --&gt;
+      &lt;script src="https://cdn.jsdelivr.net/npm/@ulb-darmstadt/shacl-form/dist/bundle.js" type="module"&gt;&lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;!-- SHACL shapes can be defined on the attribute 'data-shapes'
+    or can be loaded by setting attribute 'data-shapes-url' --&gt;
+    &lt;shacl-form data-shapes="
+      @prefix sh: &lt;http://www.w3.org/ns/shacl#&gt; .
+      @prefix rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt; .
+      @prefix ex: &lt;http://example.org#&gt; .
+
+      ex:ExampleShape
+        a sh:NodeShape, rdfs:Class ;
+        sh:property [
+          sh:name 'my value' ;
+          sh:path ex:exampleValue ;
+          sh:maxCount 3 ;
+        ] .
+    "&gt;&lt;/shacl-form&gt;
+
+    &lt;script&gt;
+      const form = document.querySelector("shacl-form")
+      form.addEventListener('change', event => {
+        // check if form validates according to the SHACL shapes
+        if (event.detail?.valid) {
+          // get data graph as RDF triples and
+          // log them to the browser console
+          const triples = form.serialize()
+          console.log('entered form data', triples)
+          // store the data somewhere, e.g. in a triple store
+        }
+      })
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+  </code>
+</pre>
+<fieldset style="max-width: 400px">
+  <legend>Result of the above</legend>
+  <shacl-form data-shapes="
+    @prefix sh: <http://www.w3.org/ns/shacl#> .
+    @prefix ex: <http://example.org#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+    ex:ExampleShape
+      a sh:NodeShape, rdfs:Class ;
+      sh:property [
+        sh:name 'my value' ;
+        sh:path ex:exampleValue ;
+        sh:maxCount 3 ;
+      ] .
+  "></shacl-form>
+</fieldset>

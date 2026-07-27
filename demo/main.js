@@ -4,16 +4,17 @@ import { SparqlQueryBuilder } from '../src/query/sparql.ts'
 import datatypesUrl from './datatypes.ttl?url'
 import complexExampleUrl from './complex-example.ttl?url'
 import complexExampleDataUrl from './complex-example-data.ttl?url'
+import { initDemoRouter } from './router.js'
 
 registerPlugin(new LeafletPlugin({ datatype: 'http://www.opengis.net/ont/geosparql#wktLiteral' }))
 
-// Template scripts are executed when their demo section is opened. Expose the
-// query builder here so those classic scripts use the same locally built module
-// graph as the rest of the demo.
-window.SparqlQueryBuilder = SparqlQueryBuilder
-window.demoAssets = Object.freeze({
-  datatypes: datatypesUrl,
-  complexExample: complexExampleUrl,
-  complexExampleData: complexExampleDataUrl
+initDemoRouter({
+  assets: {
+    datatypes: datatypesUrl,
+    complexExample: complexExampleUrl,
+    complexExampleData: complexExampleDataUrl
+  },
+  SparqlQueryBuilder
 })
+
 window.dispatchEvent(new Event('demo-ready'))

@@ -1,0 +1,8 @@
+<p class="mb-1">
+  Query mode turns SHACL properties into search filters and emits a backend-neutral query for SPARQL, Solr, or other search backends. Facets are optional. See the <a href="https://github.com/ULB-Darmstadt/shacl-form/blob/main/src/query/query-mode.md">query mode guide</a> for details.
+</p>
+<div class="wrapper">
+  <fieldset><legend>SHACL shapes input to the query form</legend><pre id="shacl-shape-input"></pre></fieldset>
+  <fieldset><legend>Generated query form</legend><shacl-form id="shacl-form" data-mode="query" data-collapse="open"></shacl-form></fieldset>
+  <fieldset id="shacl-output"><legend>Backend-neutral query and generated SPARQL</legend><pre></pre></fieldset>
+</div>
