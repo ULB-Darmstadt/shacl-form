@@ -3,6 +3,7 @@ import { DataFactory } from 'n3'
 import { ShaclForm } from '../src/form'
 import { loadGraphs } from '../src/graph-loader'
 import { awaitFormLoaded } from './util'
+import type { ShaclProperty } from '../src/property'
 import '../src/form'
 
 const RDF_TYPE = DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')
@@ -82,6 +83,72 @@ describe('test rdf url resolver', () => {
                 IMPORTED_CLASS,
                 DataFactory.namedNode(SECOND_IMPORT)
             )).to.equal(1)
+        } finally {
+            form.remove()
+        }
+    })
+
+    it('scopes imported class instances to the declaring shape subtree', async () => {
+        const form = document.createElement('shacl-form') as ShaclForm
+        form.dataset.shapes = `
+            @prefix : <http://example.org/> .
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+            @prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+            :global a owl:Class .
+
+            :RootShape a sh:NodeShape ;
+                sh:property [
+                    sh:path :firstPath ;
+                    sh:class owl:Class ;
+                    owl:imports <${FIRST_IMPORT}>
+                ] ;
+                sh:property [
+                    sh:path :secondPath ;
+                    sh:class owl:Class ;
+                    owl:imports <${SECOND_IMPORT}>
+                ] .
+        `
+        form.dataset.shapeSubject = 'http://example.org/RootShape'
+        form.setRdfUrlResolver(async (url) => {
+            if (url === FIRST_IMPORT) {
+                return `
+                    @prefix : <http://example.org/> .
+                    @prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+                    <${FIRST_IMPORT}> owl:imports <${SECOND_IMPORT}> .
+                    :first a owl:Class .
+                `
+            }
+            if (url === SECOND_IMPORT) {
+                return `
+                    @prefix : <http://example.org/> .
+                    @prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+                    :second a owl:Class .
+                `
+            }
+            throw new Error(`unexpected import URL: ${url}`)
+        })
+
+        document.body.appendChild(form)
+        try {
+            await awaitFormLoaded(form)
+            const properties = Array.from(form.form.querySelectorAll<ShaclProperty>('shacl-property'))
+            const optionValues = (path: string) => Array.from(
+                properties.find(property => property.template.path === `http://example.org/${path}`)!
+                    .querySelectorAll<HTMLElement>('.editor > ul li')
+            ).map(option => option.dataset.value).sort()
+
+            expect(optionValues('firstPath')).to.deep.equal([
+                'http://example.org/first',
+                'http://example.org/global',
+                'http://example.org/second'
+            ])
+            expect(optionValues('secondPath')).to.deep.equal([
+                'http://example.org/global',
+                'http://example.org/second'
+            ])
         } finally {
             form.remove()
         }

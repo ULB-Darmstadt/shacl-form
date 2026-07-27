@@ -250,7 +250,7 @@ Besides `data-shapes` and `data-shapes-url`, `shacl-form` can enrich the shapes 
 
 ### Use of SHACL sh:class
 
-When a property shape has an `sh:class`, `shacl-form` scans all available graphs for matching instances so users can choose from them. `rdfs:subClassOf` is also considered when building the list of class instances.
+When a property shape has an `sh:class`, `shacl-form` scans the shapes, data, and current-values graphs plus any `owl:imports` graphs visible in that shape subtree. Imports declared on sibling subtrees remain isolated. `rdfs:subClassOf` is also considered when building the list of class instances.
 
 `shacl-form` also supports class instance hierarchies modelled with `skos:broader` and/or `skos:narrower`. This is illustrated by the "Subject classification" property in the [example](https://ulb-darmstadt.github.io/shacl-form/#edit-mode).
 
