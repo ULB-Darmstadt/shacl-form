@@ -457,6 +457,210 @@ describe('test value binding', () => {
         })
     }
 
+    it('does not show a valid marker for an ORCID ID that violates sh:pattern', async () => {
+        await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :path ;
+                sh:datatype xsd:string ;
+                sh:pattern "^https://orcid.org/\\\\d{4}-\\\\d{4}-\\\\d{4}-\\\\d{4}$" ;
+                sh:maxCount 1 ;
+            ] .`,
+            shapeSubject
+        )
+
+        const renderRoot = form.shadowRoot ?? form
+        const editor = renderRoot.querySelector('.editor') as HTMLElement & {
+            inputElement: HTMLInputElement
+            validity: ValidityState
+        }
+        const propertyInstance = editor.parentElement!
+        propertyInstance.classList.add('valid')
+
+        editor.inputElement.value = 'invalid'
+        editor.inputElement.dispatchEvent(new Event('input', { bubbles: true }))
+        expect(editor.validity.patternMismatch).to.be.true
+
+        const validation = form.validate(true)
+        expect(propertyInstance.classList.contains('valid')).to.be.false
+        expect(propertyInstance.classList.contains('invalid')).to.be.true
+        await validation
+        expect(propertyInstance.classList.contains('invalid')).to.be.true
+        expect(propertyInstance.querySelector<HTMLElement>('.validation-error')?.title.split('\n')).to.have.lengthOf(2)
+    })
+
+    it('prefers an explicit sh:message over the native validation message', async () => {
+        await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :path ;
+                sh:datatype xsd:string ;
+                sh:pattern "^valid$" ;
+                sh:message "Enter a valid identifier" ;
+                sh:maxCount 1 ;
+            ] .`,
+            shapeSubject
+        )
+
+        const renderRoot = form.shadowRoot ?? form
+        const editor = renderRoot.querySelector('.editor') as HTMLElement & {
+            inputElement: HTMLInputElement
+        }
+        editor.inputElement.value = 'invalid'
+        editor.inputElement.dispatchEvent(new Event('input', { bubbles: true }))
+
+        await form.validate(true)
+        expect(editor.parentElement?.querySelector<HTMLElement>('.validation-error')?.title).to.equal('Enter a valid identifier')
+    })
+
+    it('marks duplicate languages invalid through nested sh:node validation results', async () => {
+        await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:node :DatasetShape .
+            :DatasetShape a sh:NodeShape ;
+                sh:property [
+                    sh:path :name ;
+                    sh:datatype <http://www.w3.org/1999/02/22-rdf-syntax-ns#langString> ;
+                    sh:uniqueLang true ;
+                    sh:minCount 1 ;
+                    sh:maxCount 2
+                ] .`,
+            shapeSubject, `
+            ${prefixes}
+            <${valuesSubject}> :name "First"@en, "Second"@en .`,
+            valuesSubject
+        )
+
+        const report = await form.validate()
+        const renderRoot = form.shadowRoot ?? form
+        const instances = renderRoot.querySelectorAll<HTMLElement>(".property-instance[data-path='http://example.org/name']")
+
+        expect(report.conforms).to.be.false
+        expect(instances).to.have.lengthOf(2)
+        for (const instance of instances) {
+            expect(instance.classList.contains('valid')).to.be.false
+            expect(instance.classList.contains('invalid')).to.be.true
+            expect(instance.querySelector<HTMLElement>('.validation-error')?.title).to.contain('used more than once')
+        }
+    })
+
+    it('focuses a cleared required list editor and shows its validation message on submit', async () => {
+        const submitForm = document.createElement('shacl-form') as ShaclForm
+        submitForm.dataset.generateNodeShapeReference = ''
+        submitForm.dataset.submitButton = ''
+        document.body.appendChild(submitForm)
+
+        try {
+            await bind(submitForm, `
+                ${prefixes}
+                <${shapeSubject}> a sh:NodeShape ;
+                sh:property [
+                    sh:path :license ;
+                    sh:name "License" ;
+                    sh:nodeKind sh:IRI ;
+                    sh:in ( :license1 :license2 ) ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1 ;
+                ] .`,
+                shapeSubject, `
+                ${prefixes}
+                <${valuesSubject}> :license :license1 .
+                `,
+                valuesSubject
+            )
+
+            const renderRoot = submitForm.shadowRoot ?? submitForm
+            const editor = renderRoot.querySelector('.editor') as HTMLElement & {
+                input: HTMLElement & { inputElement: HTMLInputElement, shadowRoot: ShadowRoot }
+                selectItem(item: null, cacheValue?: boolean, userInteraction?: boolean): void
+                updateComplete: Promise<boolean>
+                value: string
+            }
+            editor.selectItem(null, true, true)
+            await editor.updateComplete
+            expect(editor.value).to.equal('')
+
+            ;(renderRoot.querySelector('.submit-button') as HTMLElement).click()
+            const propertyInstance = editor.parentElement!
+            await waitUntil(() =>
+                propertyInstance.classList.contains('invalid') &&
+                propertyInstance.querySelector('.validation-error') !== null &&
+                editor.input.shadowRoot.activeElement === editor.input.inputElement
+            )
+
+            expect(propertyInstance.querySelector<HTMLElement>('.validation-error')?.title).not.to.equal('')
+        } finally {
+            submitForm.remove()
+        }
+    })
+
+    it('serializes overlapping validation runs', async () => {
+        await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+            sh:property [
+                sh:path :path ;
+                sh:datatype xsd:string ;
+            ] .`,
+            shapeSubject
+        )
+
+        const originalValidator = form.config.validator
+        let activeValidations = 0
+        let maxActiveValidations = 0
+        let validationCalls = 0
+        form.config.validator = {
+            validate: async () => {
+                validationCalls++
+                activeValidations++
+                maxActiveValidations = Math.max(maxActiveValidations, activeValidations)
+                await new Promise(resolve => setTimeout(resolve, 20))
+                activeValidations--
+                return { conforms: true, results: [] }
+            }
+        } as typeof originalValidator
+
+        try {
+            await Promise.all([form.validate(), form.validate()])
+            expect(validationCalls).to.equal(2)
+            expect(maxActiveValidations).to.equal(1)
+        } finally {
+            form.config.validator = originalValidator
+        }
+    })
+
+    it('aligns node shape validation markers with the first line of the node', async () => {
+        await bind(form, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:node :RequiredShape ;
+                sh:property [
+                    sh:path :label ;
+                    sh:datatype xsd:string ;
+                    sh:minCount 1 ;
+                    sh:maxCount 1
+                ] .
+            :RequiredShape a sh:NodeShape ;
+                sh:class :RequiredClass .`,
+            shapeSubject, `
+            ${prefixes}
+            <${valuesSubject}> :label "value" .`,
+            valuesSubject
+        )
+
+        const report = await form.validate()
+        const renderRoot = form.shadowRoot ?? form
+        const node = renderRoot.querySelector<HTMLElement>(`shacl-node[data-node-id='${valuesSubject}']`)!
+        const marker = node.querySelector<HTMLElement>(':scope > .validation-error.node')!
+
+        expect(report.conforms).to.be.false
+        expect(marker).to.exist
+        expect(marker.getBoundingClientRect().top).to.be.greaterThan(node.getBoundingClientRect().top + 4)
+    })
+
     it('xsd:dateTime binding preserves timezone offsets without shifting wall-clock time', async () => {
         const value = '"2026-06-03T10:30:00+02:00"^^xsd:dateTime'
         const [shapesQuads, inputQuads] = await bind(form, `

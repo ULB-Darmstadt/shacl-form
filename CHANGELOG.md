@@ -12,6 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Add opt-in `data-preserve-unmapped-values` support for editing a SHACL-defined
   projection without discarding unrelated triples from the original values dataset.
 
+### Fixed
+
+- Vertically align labels and field and node-shape validation markers with
+  `@ro-kit/ui-widgets` controls while keeping multiline fields aligned with
+  their first text line.
+- Respect editor constraint validity when displaying field state, so values that
+  violate `sh:pattern` are marked invalid instead of receiving a valid marker.
+- Show and merge native editor and SHACL validation messages, prefer an explicit
+  `sh:message` over the native message, and focus the actual input of an invalid
+  select when submission is blocked.
+- Serialize overlapping validation runs and prevent stale results from
+  overwriting the latest field state.
+- Apply nested validation results from composite constraints such as `sh:node`
+  to their affected fields, including `sh:uniqueLang` violations.
+- Keep initially empty required widget inputs invalid for form submission while
+  deferring their initial error styling, and synchronize pattern and select
+  validity across value and constraint changes.
+
 ## [3.3.0] - 2026-07-27
 
 ### Added

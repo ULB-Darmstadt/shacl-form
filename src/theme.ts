@@ -12,6 +12,8 @@ export type Editor = HTMLElement & {
     binaryData?: string
     checked?: boolean
     disabled?: boolean
+    validity?: ValidityState
+    validationMessage?: string
     rdfTerm?: Term
     rdfTermState?: {
         value: string

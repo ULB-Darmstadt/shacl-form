@@ -3,16 +3,17 @@ import type { ShaclProperty } from './property.js'
 import { Config } from './config.js'
 import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin.js'
 import { Store, NamedNode, DataFactory, BlankNode, Literal } from 'n3'
-import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants.js'
+import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_MESSAGE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants.js'
 import { Editor, Theme } from './theme.js'
 import { serialize } from './serialize.js'
-import { RokitCollapsible } from '@ro-kit/ui-widgets'
+import { RokitCollapsible, RokitSelect } from '@ro-kit/ui-widgets'
 import { mergeOverriddenProperties, ShaclNodeTemplate } from './node-template.js'
 import { findConformsToShapeSubject, findConformsToValuesSubject, loadGraphs } from './graph-loader.js'
 import { prefixes } from './rdf-loader.js'
 import { loadUnresolvedValues } from './linker.js'
 import { findBestMatchingLiteral } from './util.js'
 import type { Query, QueryFacetProvider } from './query/index.js'
+import type { Term } from '@rdfjs/types'
 
 type QueryController = {
     stylesheet: CSSStyleSheet
@@ -42,6 +43,8 @@ export class ShaclForm extends HTMLElement {
     initDebounceTimeout: ReturnType<typeof setTimeout> | undefined
     private styleElement: HTMLStyleElement | null = null
     private queryController?: QueryController
+    private validationQueue: Promise<void> = Promise.resolve()
+    private validationGeneration = 0
 
     constructor() {
         super()
@@ -176,14 +179,15 @@ export class ShaclForm extends HTMLElement {
                                             // form and data graph are valid, so fire submit event
                                             this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
                                         } else {
-                                            // focus first invalid element
-                                            const invalidEditor = this.form.querySelector(':scope .invalid > .editor')
-                                            if (invalidEditor) {
-                                                (invalidEditor as HTMLElement).focus()
-                                            } else {
-                                                this.form.querySelector(':scope .invalid')?.scrollIntoView()
-                                            }
+                                            this.focusFirstInvalidElement()
                                         }
+                                    })
+                                } else {
+                                    // Native validation bubbles are unreliable for
+                                    // form-associated controls with nested shadow roots.
+                                    // Render the SHACL message and focus the real control.
+                                    this.validate().then(() => {
+                                        this.focusFirstInvalidElement(true)
                                     })
                                 }
                             })
@@ -239,6 +243,24 @@ export class ShaclForm extends HTMLElement {
             if (!this.contains(this.form)) {
                 this.prepend(this.form)
             }
+        }
+    }
+
+    private focusFirstInvalidElement(reportValidity = false) {
+        const invalidEditor = this.form.querySelector(':scope .invalid > .editor') as Editor & {
+            reportValidity?: () => boolean
+        } | null
+        if (invalidEditor) {
+            if (reportValidity) {
+                invalidEditor.reportValidity?.()
+            }
+            if (invalidEditor instanceof RokitSelect) {
+                invalidEditor.input.inputElement.focus()
+            } else {
+                invalidEditor.focus()
+            }
+        } else {
+            this.form.querySelector(':scope .invalid')?.scrollIntoView()
         }
     }
 
@@ -435,15 +457,22 @@ export class ShaclForm extends HTMLElement {
     /* Returns the validation report */
     public async validate(ignoreEmptyValues = false): Promise<ValidationReport> {
         this.assertNotQueryMode('validate')
+        const validationGeneration = ++this.validationGeneration
         for (const elem of this.form.querySelectorAll(':scope .validation-error')) {
             elem.remove()
         }
-        for (const elem of this.form.querySelectorAll(':scope .property-instance')) {
-            elem.classList.remove('invalid')
-            if (((elem.querySelector(':scope > .editor')) as Editor)?.value) {
+        for (const elem of this.form.querySelectorAll<HTMLElement>(':scope .property-instance')) {
+            const editor = elem.querySelector(':scope > .editor') as Editor | null
+            const hasValue = Boolean(editor?.value)
+            const hasEditorValidityError = editor?.validity?.valid === false && (hasValue || !ignoreEmptyValues)
+            elem.classList.toggle('invalid', hasEditorValidityError)
+            if (hasValue && !hasEditorValidityError) {
                 elem.classList.add('valid')
             } else {
                 elem.classList.remove('valid')
+            }
+            if (hasEditorValidityError && editor?.validationMessage) {
+                this.appendValidationErrorDisplay(elem, editor.validationMessage)
             }
         }
         for (const btn of this.form.querySelectorAll('.add-button-wrapper')) {
@@ -466,12 +495,23 @@ export class ShaclForm extends HTMLElement {
         }
 
         const rootShape = this.shape
-        const promise = new Promise<ValidationReport>((resolve) => {
+        const runValidation = () => new Promise<ValidationReport>((resolve) => {
             this.config.store.deleteGraph(this.config.valuesGraphId || '').on('end', async () => {
                 rootShape.toRDF(this.config.store, undefined, this.config.attributes.generateNodeShapeReference)
                 try {
                     const report = await this.config.validator.validate({ dataset: this.config.store, terms: [rootShape.nodeId] }, [{ terms: [rootShape.template.id] }])
-                    for (const result of report.results) {
+                    if (validationGeneration !== this.validationGeneration) {
+                        resolve(report)
+                        return
+                    }
+                    const validationResults = [...report.results]
+                    for (let resultIndex = 0; resultIndex < validationResults.length; resultIndex++) {
+                        const result = validationResults[resultIndex]
+                        // Composite constraints such as sh:node expose the
+                        // actionable property violations as nested results.
+                        // Walk those too so fields are not left with a valid
+                        // marker merely because their violation is wrapped.
+                        validationResults.push(...(result.results ?? []))
                         if (result.focusNode?.ptrs?.length) {
                             for (const ptr of result.focusNode.ptrs) {
                                 const focusNode = ptr._term
@@ -509,7 +549,7 @@ export class ShaclForm extends HTMLElement {
                                                 let parent: HTMLElement | null = invalidElement.parentElement!
                                                 parent.classList.add('invalid')
                                                 parent.classList.remove('valid')
-                                                parent.appendChild(this.createValidationErrorDisplay(result))
+                                                this.appendValidationErrorDisplay(parent, result)
                                                 do {
                                                     if (parent instanceof RokitCollapsible) {
                                                         parent.open = true
@@ -537,6 +577,8 @@ export class ShaclForm extends HTMLElement {
                 }
             })
         })
+        const promise = this.validationQueue.then(runValidation, runValidation)
+        this.validationQueue = promise.then(() => undefined, () => undefined)
         return promise
     }
 
@@ -553,6 +595,39 @@ export class ShaclForm extends HTMLElement {
         for (const property of this.form.querySelectorAll<ShaclProperty>('shacl-property')) {
             property.refreshClassInstances()
         }
+    }
+
+    private appendValidationErrorDisplay(parent: HTMLElement, validationResult?: unknown, clazz?: string) {
+        const messageElement = this.createValidationErrorDisplay(validationResult, clazz)
+        const existing = parent.querySelector<HTMLElement>(':scope > .validation-error')
+        if (!existing) {
+            parent.appendChild(messageElement)
+            return
+        }
+        if (messageElement.title && this.hasExplicitShaclMessage(validationResult)) {
+            existing.title = messageElement.title
+            return
+        }
+        if (messageElement.title && !existing.title.split('\n').includes(messageElement.title)) {
+            existing.title = existing.title ? `${existing.title}\n${messageElement.title}` : messageElement.title
+        }
+    }
+
+    private hasExplicitShaclMessage(validationResult: unknown) {
+        if (typeof validationResult !== 'object' || validationResult === null) {
+            return false
+        }
+        const result = validationResult as {
+            shape?: { message?: Term[], ptr?: { terms?: Term[] } }
+            source?: Term[]
+        }
+        if (result.shape?.message?.length) {
+            return true
+        }
+        const messageSubjects = [...(result.shape?.ptr?.terms ?? []), ...(result.source ?? [])]
+        return messageSubjects.some(subject =>
+            this.config.store.countQuads(subject, SHACL_PREDICATE_MESSAGE, null, null) > 0
+        )
     }
 
     private createValidationErrorDisplay(validatonResult?: unknown, clazz?: string): HTMLElement {

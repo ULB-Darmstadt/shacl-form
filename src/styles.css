@@ -40,7 +40,7 @@ textarea.editor { resize: vertical; }
 .lang-chooser { border: 0; background-color: #e9e9ed; padding: 2px 4px; align-self: flex-start; }
 .validation-error { position: absolute; left: calc(var(--label-width) - 1em); top: 50%; transform: translateY(-50%); color: var(--shacl-error-color); cursor: help; }
 .validation-error::before { content: '\26a0' }
-.validation-error.node { left: -1em; top: auto; transform: none; }
+.validation-error.node { left: -1em; top: calc(4px + 0.45em); transform: none; }
 .property-instance:has(> .editor:is(textarea, rokit-textarea)).valid::before,
 .property-instance:has(> .editor:is(textarea, rokit-textarea)) > .validation-error {
     top: calc(4px + 0.45em);
