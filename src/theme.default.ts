@@ -9,7 +9,8 @@ import { bindEditorTerm, bindEditorTerms, rdfTermId } from './editor.js'
 
 const css = `
 .editor:not([type='checkbox']) { border: 1px solid var(--shacl-border-color, #DDD); }
-.property-instance label { display: inline-flex; word-break: break-word; line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
+.property-instance label { display: inline-flex; align-self: center; word-break: break-word; line-height: 1em; padding-right: 1em; flex-shrink: 0; position: relative; }
+.property-instance:has(> .editor:is(textarea, rokit-textarea)) > label { align-self: flex-start; padding-top: 0.45em; }
 .property-instance:not(:first-child) > label:not(.persistent) { visibility: hidden; max-height: 0; }
 .mode-edit .property-instance label { width: var(--label-width); }
 `
