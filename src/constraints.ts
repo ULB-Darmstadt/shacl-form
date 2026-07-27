@@ -1,16 +1,22 @@
 import { BlankNode, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node.js'
-import { createPropertyInstance, ShaclProperty } from './property.js'
+import { appendRemoveButton, createPropertyInstance, ShaclProperty } from './property.js'
 import { Config } from './config.js'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE, SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS, SHACL_PREDICATE_NODE_KIND, SHACL_OBJECT_IRI, SHACL_PREDICATE_PROPERTY, SHACL_PREDICATE_NODE } from './constants.js'
 import { findLabel, removePrefixes } from './util.js'
 import { Editor, InputListEntry } from './theme.js'
-import { aggregatedMaxCount, cloneProperty, mergeQuads } from './property-template.js'
+import { aggregatedMaxCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template.js'
 import { prefixes } from './rdf-loader.js'
 
 
-export function createShaclOrConstraint(options: Term[], context: ShaclNode | ShaclProperty, config: Config): HTMLElement {
+export function createShaclOrConstraint(
+    options: Term[],
+    context: ShaclNode | ShaclProperty,
+    config: Config,
+    predicate?: string,
+    propertyTemplate?: ShaclPropertyTemplate
+): HTMLElement {
     const constraintElement = document.createElement('div')
     constraintElement.classList.add('shacl-or-constraint')
     constraintElement.setAttribute('part', 'constraint')
@@ -95,7 +101,7 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
         const select = editor.querySelector('.editor') as Editor
         select.onchange = async () => {
             if (select.value) {
-                const merged = mergeQuads(cloneProperty(context.template), values[parseInt(select.value)])
+                const merged = mergeQuads(cloneProperty(propertyTemplate ?? context.template), values[parseInt(select.value)])
                 merged.or = undefined
                 merged.xone = undefined
                 if (config.queryMode) {
@@ -103,10 +109,17 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
                     await activatePropertyConstraintOption(merged, context, constraintElement)
                     return
                 }
-                if (aggregatedMaxCount(context.template) > 1) {
-                    constraintElement.replaceWith(await createPropertyInstance(merged, undefined, true, false, context.parent))
+                if (predicate || aggregatedMaxCount(context.template) > 1) {
+                    const instance = await createPropertyInstance(merged, undefined, true, false, context.parent)
+                    instance.dataset.path = context.template.path
+                    if (predicate) {
+                        instance.dataset.predicate = predicate
+                    }
+                    constraintElement.replaceWith(instance)
+                    instance.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }))
                     return
                 }
+                merged.pathAlternatives = undefined
                 const property = new ShaclProperty(merged, context.parent)
                 context.replaceWith(property)
                 await property.updateControls()
@@ -116,6 +129,53 @@ export function createShaclOrConstraint(options: Term[], context: ShaclNode | Sh
     }
 
     return constraintElement
+}
+
+export function createAlternativePathConstraint(
+    property: ShaclProperty,
+    value?: Term,
+    linked?: boolean,
+    forceRemovable = false
+): HTMLElement {
+    const constraint = document.createElement('div')
+    constraint.classList.add('alternative-path-constraint')
+    constraint.setAttribute('part', 'constraint')
+    constraint.dataset.path = property.template.path
+    const options: InputListEntry[] = property.template.pathAlternatives!.map((path, index) => ({
+        label: removePrefixes(path, prefixes),
+        value: index.toString()
+    }))
+    const wrapper = property.template.config.theme.createListEditor(
+        `${property.template.label}: path`,
+        null,
+        false,
+        options,
+        property.template
+    )
+    wrapper.setAttribute('part', 'constraint-editor')
+    const select = wrapper.querySelector<Editor>('.editor')!
+    select.onchange = async () => {
+        if (select.value === '') {
+            return
+        }
+        const predicate = property.template.pathAlternatives![parseInt(select.value)]
+        // A path selected by the user must remain reversible even when the
+        // property's cardinality would normally hide its remove control.
+        const instance = await property.addPropertyInstance(value, linked, true, predicate, false)
+        if (instance) {
+            constraint.replaceWith(instance)
+            instance.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }))
+        }
+    }
+    constraint.appendChild(wrapper)
+    appendRemoveButton(
+        constraint,
+        property.template.label,
+        property.template.config.theme.dense,
+        property.template.config.hierarchyColorsStyleSheet !== undefined,
+        forceRemovable
+    )
+    return constraint
 }
 
 export function resolveShaclOrConstraintOnProperty(subjects: Term[], value: Term, config: Config): Quad[] {

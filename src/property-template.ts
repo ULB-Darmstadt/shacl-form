@@ -14,7 +14,23 @@ export const mappers: Record<string, (template: ShaclPropertyTemplate, term: Ter
         const literal = term as Literal; template.description = prioritizeByLanguage(template.config.languages, template.description, literal)
     },
     [`${PREFIX_SHACL}path`]: (template, term) => {
-        template.path = term.value
+        if (term.termType === 'NamedNode') {
+            template.path = term.value
+            return
+        }
+        const pathQuads = template.config.store.getQuads(term, null, null, null)
+        const alternativePathQuads = pathQuads.filter(quad => quad.predicate.value === `${PREFIX_SHACL}alternativePath`)
+        if (pathQuads.length !== 1 || alternativePathQuads.length !== 1) {
+            console.warn('ignoring unsupported or malformed SHACL property path', term.value)
+            return
+        }
+        const alternatives = template.config.lists[alternativePathQuads[0].object.value]
+        if (!alternatives || alternatives.length < 2 || alternatives.some(alternative => alternative.termType !== 'NamedNode')) {
+            console.warn('ignoring sh:alternativePath without at least two predicate IRI members', term.value)
+            return
+        }
+        template.pathAlternatives = alternatives.map(alternative => alternative.value)
+        template.path = template.pathAlternatives[0]
     },
     [`${PREFIX_SHACL}group`]: (template, term) => {
         template.group = (term as NamedNode).id
@@ -135,6 +151,8 @@ export class ShaclPropertyTemplate {
     name: Literal | undefined
     description: Literal | undefined
     path: string | undefined
+    pathAlternatives: string[] | undefined
+    pathAlternativeBranches: Record<string, ShaclPropertyTemplate> | undefined
     node: NamedNode | undefined
     group: string | undefined
     class: NamedNode | undefined
@@ -196,6 +214,12 @@ export function cloneProperty(template: ShaclPropertyTemplate) {
     if (template.languageIn) {
         copy.languageIn = [...template.languageIn]
     }
+    if (template.pathAlternatives) {
+        copy.pathAlternatives = [...template.pathAlternatives]
+    }
+    if (template.pathAlternativeBranches) {
+        copy.pathAlternativeBranches = { ...template.pathAlternativeBranches }
+    }
     if (template.or) {
         copy.or = [...template.or]
     }
@@ -212,7 +236,9 @@ export function mergeQuads(template: ShaclPropertyTemplate, quads: Quad[]) {
     // provide best fitting label for UI
     template.label = template.name?.value || findLabel(quads, template.config.languages)
     if (!template.label) {
-        template.label = template.path ? removePrefixes(template.path, prefixes) : 'unknown'
+        template.label = template.pathAlternatives
+            ? template.pathAlternatives.map(path => removePrefixes(path, prefixes)).join(' / ')
+            : template.path ? removePrefixes(template.path, prefixes) : 'unknown'
     }
     return template
 }
@@ -259,6 +285,10 @@ export function mergeProperty(target: ShaclPropertyTemplate, source: ShaclProper
                     continue
                 } else if (key === 'node' && discardSourceNodes) {
                     continue
+                } else if (key === 'pathAlternatives') {
+                    // Same-path properties are keyed by the complete path expression.
+                    // Retain the target's ordered alternatives instead of concatenating them.
+                    continue
                 } else if (Array.isArray(sourceValue)) {
                     const targetValue = t[key]
                     if (Array.isArray(targetValue)) {
@@ -278,6 +308,17 @@ export function mergeProperty(target: ShaclPropertyTemplate, source: ShaclProper
     if (target.name) {
         target.label = target.name.value
     }
+}
+
+export function propertyPathKey(template: ShaclPropertyTemplate): string | undefined {
+    if (template.pathAlternatives) {
+        return `alternative:${JSON.stringify(template.pathAlternatives)}`
+    }
+    return template.path
+}
+
+export function propertyPathSegment(template: ShaclPropertyTemplate): string | string[] {
+    return template.pathAlternatives ? [...template.pathAlternatives] : template.path!
 }
 
 // sh:node normally describes the nested form to render. When a same-path sibling

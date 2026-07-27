@@ -1,11 +1,12 @@
 import { expect } from '@open-wc/testing'
 import { DataFactory } from 'n3'
 import { ShaclForm } from '../src/form'
+import type { ShaclProperty } from '../src/property'
 import { isRangeQueryField, Query, QueryEditor, QueryFacetProvider } from '../src/query'
 import { awaitFormLoaded, bind } from './util'
 import { RokitInput, RokitSelect, RokitSlider } from '@ro-kit/ui-widgets'
 
-const hasPath = (field: { path: string[] }, predicate: string) => field.path[field.path.length - 1] === predicate
+const hasPath = (field: { path: (string | string[])[] }, predicate: string) => field.path[field.path.length - 1] === predicate
 
 const shapes = `
 @prefix sh: <http://www.w3.org/ns/shacl#> .
@@ -53,6 +54,31 @@ describe('query mode', () => {
         expect(query.criteria[2].field.path).to.deep.equal(['http://example.org/child', 'http://example.org/name'])
         expect(query.criteria[1].min?.value).to.equal('1990')
         expect(query.criteria[1].max?.value).to.equal('2020')
+    })
+
+    it('represents alternative paths as union segments without showing a path chooser', async () => {
+        await bind(form, `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/> .
+ex:Root a sh:NodeShape ;
+  sh:property [
+    sh:path [ sh:alternativePath ( ex:title ex:name ) ] ;
+    sh:name "Title or name"
+  ] .
+`, 'http://example.org/Root')
+        const editor = form.form.querySelector<QueryEditor>('.query-editor')!
+        const input = editor.querySelector<RokitInput>('.query-value')!
+        input.value = 'bridge'
+
+        const criterion = form.getQuery().criteria[0]
+        expect(criterion.field.path).to.deep.equal([[
+            'http://example.org/title',
+            'http://example.org/name'
+        ]])
+        expect(criterion.field.shapePath).to.deep.equal([
+            editor.closest<ShaclProperty>('shacl-property')!.template.id.value
+        ])
+        expect(form.form.querySelector('.alternative-path-constraint')).to.be.null
     })
 
     it('distinguishes qualified branches that share the same RDF path', async () => {

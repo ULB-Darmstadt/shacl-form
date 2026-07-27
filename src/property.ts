@@ -1,9 +1,9 @@
 import { BlankNode, DataFactory, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node.js'
-import { createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints.js'
+import { createAlternativePathConstraint, createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints.js'
 import { findInstancesOf, focusFirstInputElement } from './util.js'
-import { aggregatedMaxCount, aggregatedMinCount, cloneProperty, mergeQuads, ShaclPropertyTemplate } from './property-template.js'
+import { aggregatedMaxCount, aggregatedMinCount, cloneProperty, mergeProperty, mergeQuads, ShaclPropertyTemplate } from './property-template.js'
 import { Editor, fieldFactory, InputListEntry } from './theme.js'
 import { toRDF } from './serialize.js'
 import { findPlugin } from './plugin.js'
@@ -13,7 +13,7 @@ import { createLinker } from './linker.js'
 import { bindEditorTerm } from './editor.js'
 
 const ADD_BUTTON_SELECTOR = ':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper'
-const PROPERTY_INSTANCE_SELECTOR = ':scope > .property-instance, :scope > .shacl-or-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance'
+const PROPERTY_INSTANCE_SELECTOR = ':scope > .property-instance, :scope > .shacl-or-constraint, :scope > .alternative-path-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance, :scope > .collapsible > .alternative-path-constraint'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
@@ -52,7 +52,9 @@ export class ShaclProperty extends HTMLElement {
             let valuesContainHasValue = false
             if (valueSubject) {
                 // for linked resource, get values in all graphs, otherwise only from data graph
-                let values = this.template.config.store.getQuads(valueSubject, this.template.path, null, this.parent.linked ? null : DATA_GRAPH)
+                let values = (this.template.pathAlternatives ?? [this.template.path]).flatMap(path =>
+                    this.template.config.store.getQuads(valueSubject, path, null, this.parent.linked ? null : DATA_GRAPH)
+                )
                 if (multiValuedPath) {
                     // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
                     values = await this.filterValidValues(values, valueSubject)
@@ -63,7 +65,12 @@ export class ShaclProperty extends HTMLElement {
                         this.template.config.store.delete(value)
                     }
                     // if value is not in data graph or has loaded via ResourceLinkProvider, then it is a linked resource
-                    await this.addPropertyInstance(value.object, !DATA_GRAPH.equals(value.graph) || this.template.config.providedResources[value.object.value] !== undefined, this.template.config.providedResources[value.object.value] !== undefined)
+                    await this.addPropertyInstance(
+                        value.object,
+                        !DATA_GRAPH.equals(value.graph) || this.template.config.providedResources[value.object.value] !== undefined,
+                        this.template.config.providedResources[value.object.value] !== undefined,
+                        value.predicate.value
+                    )
                     if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                         valuesContainHasValue = true
                     }
@@ -83,29 +90,52 @@ export class ShaclProperty extends HTMLElement {
         await initializeQueryProperty(this)
     }
 
-    async addPropertyInstance(value?: Term, linked?: boolean, forceRemovable = false): Promise<HTMLElement | undefined> {
+    async addPropertyInstance(value?: Term, linked?: boolean, forceRemovable = false, predicate?: string, insert = true): Promise<HTMLElement | undefined> {
         let instance: HTMLElement | undefined
-        if (this.template.or?.length || this.template.xone?.length) {
-            const options = this.template.or?.length ? this.template.or : this.template.xone as Term[]
-            let resolved = false
-            if (value) {
-                const resolvedOptions = resolveShaclOrConstraintOnProperty(options, value, this.template.config)
-                if (resolvedOptions.length) {
-                    const merged = mergeQuads(cloneProperty(this.template), resolvedOptions)
-                    instance = await createPropertyInstance(merged, value, !this.parent.linked, this.parent.linked, this.parent)
-                    resolved = true
-                }
-            }
-            // prevent creating constraint chooser in view mode
-            if (!resolved && this.template.config.editMode) {
-                instance = createShaclOrConstraint(options, this, this.template.config)
-                appendRemoveButton(instance, '', this.template.config.theme.dense, this.template.config.hierarchyColorsStyleSheet !== undefined)
+        if (this.template.pathAlternatives && !predicate) {
+            if (this.template.config.editMode) {
+                instance = createAlternativePathConstraint(this, value, linked, forceRemovable)
             }
         } else {
-            instance = await createPropertyInstance(this.template, value, forceRemovable, linked || this.parent.linked, this.parent)
+            const alternativeBranch = predicate ? this.template.pathAlternativeBranches?.[predicate] : undefined
+            const effectiveTemplate = predicate && (predicate !== this.template.path || alternativeBranch)
+                ? cloneProperty(this.template)
+                : this.template
+            if (predicate) {
+                effectiveTemplate.path = predicate
+            }
+            if (alternativeBranch) {
+                mergeProperty(effectiveTemplate, alternativeBranch, true)
+                effectiveTemplate.label = alternativeBranch.name?.value || alternativeBranch.label || effectiveTemplate.label
+            }
+            if (effectiveTemplate.or?.length || effectiveTemplate.xone?.length) {
+                const options = effectiveTemplate.or?.length ? effectiveTemplate.or : effectiveTemplate.xone as Term[]
+                let resolved = false
+                if (value) {
+                    const resolvedOptions = resolveShaclOrConstraintOnProperty(options, value, effectiveTemplate.config)
+                    if (resolvedOptions.length) {
+                        const merged = mergeQuads(cloneProperty(effectiveTemplate), resolvedOptions)
+                        instance = await createPropertyInstance(merged, value, !this.parent.linked, this.parent.linked, this.parent)
+                        resolved = true
+                    }
+                }
+                // prevent creating constraint chooser in view mode
+                if (!resolved && effectiveTemplate.config.editMode) {
+                    instance = createShaclOrConstraint(options, this, effectiveTemplate.config, predicate, effectiveTemplate)
+                    appendRemoveButton(instance, '', effectiveTemplate.config.theme.dense, effectiveTemplate.config.hierarchyColorsStyleSheet !== undefined, forceRemovable)
+                }
+            } else {
+                instance = await createPropertyInstance(effectiveTemplate, value, forceRemovable, linked || this.parent.linked, this.parent)
+            }
         }
         if (instance) {
-            this.container.insertBefore(instance, this.querySelector(ADD_BUTTON_SELECTOR))
+            instance.dataset.path = this.template.path
+            if (predicate) {
+                instance.dataset.predicate = predicate
+            }
+            if (insert) {
+                this.container.insertBefore(instance, this.querySelector(ADD_BUTTON_SELECTOR))
+            }
         }
         return instance
     }
@@ -191,8 +221,8 @@ export class ShaclProperty extends HTMLElement {
     }
 
     toRDF(graph: Store, subject: NamedNode | BlankNode) {
-        const pathNode = DataFactory.namedNode(this.template.path!)
-        for (const instance of this.querySelectorAll(':scope > .property-instance, :scope > .collapsible > .property-instance')) {
+        for (const instance of this.querySelectorAll<HTMLElement>(':scope > .property-instance, :scope > .collapsible > .property-instance')) {
+            const pathNode = DataFactory.namedNode(instance.dataset.predicate ?? this.template.path!)
             if (instance.firstChild instanceof ShaclNode) {
                 const shapeSubject = instance.firstChild.toRDF(graph)
                 graph.addQuad(subject, pathNode, shapeSubject, this.template.config.valuesGraphId)
@@ -338,7 +368,7 @@ export async function createPropertyInstance(template: ShaclPropertyTemplate, va
     return instance
 }
 
-function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean, colorize: boolean, forceRemovable = false) {
+export function appendRemoveButton(instance: HTMLElement, label: string, dense: boolean, colorize: boolean, forceRemovable = false) {
     const wrapper = createRemoveButtonWrapper(colorize)
     const removeButton = new RokitButton()
     removeButton.classList.add('remove-button', 'clear')

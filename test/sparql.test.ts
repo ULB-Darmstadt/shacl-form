@@ -21,6 +21,28 @@ describe('SPARQL query support', () => {
         expect(sparql).to.contain('ORDER BY ASC(?root)\nLIMIT 10\nOFFSET 20')
     })
 
+    it('emits alternative property-path segments', () => {
+        const alternativeField: QueryField = {
+            id: 'alternative',
+            path: [[
+                'http://example.org/title',
+                'http://example.org/name'
+            ], 'http://example.org/label']
+        }
+        const alternativeQuery: Query = {
+            rootShapeId: 'http://example.org/Shape',
+            criteria: [{
+                field: alternativeField,
+                operator: 'equals',
+                value: DataFactory.literal('value')
+            }]
+        }
+
+        const sparql = new SparqlQueryBuilder().buildWhere(alternativeQuery)
+        expect(sparql).to.include('?root (<http://example.org/title>|<http://example.org/name>) ?criterion_0_0 .')
+        expect(sparql).to.include('?criterion_0_0 <http://example.org/label> ?value_0 .')
+    })
+
     it('restricts language-tagged text criteria to their language', () => {
         const languageQuery: Query = {
             ...query,

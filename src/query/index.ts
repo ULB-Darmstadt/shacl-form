@@ -1,9 +1,11 @@
 import { Term } from '@rdfjs/types'
 import { RANGE_DATATYPES } from '../constants.js'
 
+export type QueryPathSegment = string | string[]
+
 export type QueryField = {
     id: string
-    path: string[]
+    path: QueryPathSegment[]
     shapePath?: string[]
     datatype?: string
 }

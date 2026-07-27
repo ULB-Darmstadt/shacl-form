@@ -278,6 +278,33 @@ When binding an existing data graph to the form, the constraint is resolved base
 - For RDF literals, an `sh:or` option with a matching `sh:datatype` is chosen
 - For blank nodes or named nodes, the `rdf:type` is matched with a node shape having a corresponding `sh:targetClass` or with a property shape having a corresponding `sh:class`. If there is no `rdf:type` but a `sh:nodeKind` of `sh:IRI`, the node id is used as the value
 
+### SHACL alternative paths
+
+`<shacl-form>` supports `sh:alternativePath` lists whose members are predicate IRIs:
+
+```turtle
+sh:property [
+  sh:path [ sh:alternativePath ( schema:name foaf:name ) ] ;
+  sh:name "Name"
+] .
+```
+
+Values using any listed predicate are displayed in the same property and retain
+their original predicates when serialized. When adding a value, the form first
+asks which predicate to use. Predicate-specific plugins are resolved against
+that selected or loaded predicate. Query mode represents the alternatives as a
+single union path without showing the predicate chooser.
+
+An alternative property may be accompanied by one direct-path sibling property
+for each listed predicate. When those siblings do not define independent
+cardinality constraints, they are treated as branch descriptors: only the
+alternative chooser is initially rendered, and the selected sibling supplies
+editor constraints such as `sh:nodeKind`, `sh:datatype`, and its label. Siblings
+with their own cardinality remain independent properties.
+
+Nested sequence, inverse, and repetition paths inside `sh:alternativePath` are
+not currently supported.
+
 ### Linking existing data
 
 When a node shape has a `sh:targetClass` and any available graph contains instances of that class, those instances can be linked in the corresponding SHACL property. The generated data graph contains only a reference to the linked instance, not its full triples.

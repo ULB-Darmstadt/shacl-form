@@ -22,12 +22,14 @@ shacl-property:not(:has(>.collapsible)), shacl-property>.collapsible::part(conte
 shacl-property:not(.may-add) > .add-button-wrapper, shacl-property:not(.may-add) > .collapsible > .add-button-wrapper { display: none; }
 shacl-property:not(.may-remove) > .property-instance > .remove-button-wrapper > .remove-button:not(.persistent) { visibility: hidden; }
 shacl-property:not(.may-remove) > .collapsible > .property-instance > .remove-button-wrapper > .remove-button:not(.persistent) { visibility: hidden; }
-shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button-wrapper > .remove-button:not(.persistent) { visibility: hidden; }
+shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button-wrapper > .remove-button:not(.persistent),
+shacl-property:not(.may-remove) > .alternative-path-constraint > .remove-button-wrapper > .remove-button:not(.persistent),
+shacl-property:not(.may-remove) > .collapsible > .alternative-path-constraint > .remove-button-wrapper > .remove-button:not(.persistent) { visibility: hidden; }
 .mode-view .shacl-group:not(:has(shacl-property)) { display: none; }
-.property-instance, .shacl-or-constraint { display: flex; align-items: flex-start; padding: 4px 0; width: 100%; position: relative; }
-.shacl-or-constraint > div { display: flex; align-items: flex-start; }
-.shacl-or-constraint > div:first-child { flex-grow: 1 }
-.shacl-or-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
+.property-instance, .shacl-or-constraint, .alternative-path-constraint { display: flex; align-items: flex-start; padding: 4px 0; width: 100%; position: relative; }
+.shacl-or-constraint > div, .alternative-path-constraint > div { display: flex; align-items: flex-start; }
+.shacl-or-constraint > div:first-child, .alternative-path-constraint > div:first-child { flex-grow: 1 }
+.shacl-or-constraint label, .alternative-path-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
 .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
 .property-instance.linked label:after, label.linked:after { content: '\1F517'; font-size: 0.6em; position: absolute; top: 3px; right: 3px; }
 .mode-edit .property-instance label.required::before, .add-button-wrapper.required > .add-button::before, .add-button-wrapper.required > .link-button::before { color: var(--shacl-error-color); content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; }

@@ -1,7 +1,7 @@
 import { DataFactory, Literal, NamedNode } from 'n3'
 import { Term } from '@rdfjs/types'
 import { DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE } from '../constants.js'
-import { isRangeQueryField, QueryFacet, QueryFacetRequest, QueryField, QueryFacetProvider, Query } from './index.js'
+import { isRangeQueryField, QueryFacet, QueryFacetRequest, QueryField, QueryFacetProvider, Query, QueryPathSegment } from './index.js'
 
 export type SparqlDatasetScope =
     | { type: 'default' }
@@ -160,11 +160,14 @@ export class SparqlQueryBuilder {
         })
     }
 
-    private pathPattern(path: string[], targetVariable: string, prefix: string): string {
+    private pathPattern(path: QueryPathSegment[], targetVariable: string, prefix: string): string {
         let subject = ROOT_VARIABLE
-        return path.map((predicate, index) => {
+        return path.map((segment, index) => {
             const object = index === path.length - 1 ? targetVariable : `?${prefix}_${index}`
-            const triple = `${subject} ${termToSparql(DataFactory.namedNode(predicate))} ${object} .`
+            const predicate = Array.isArray(segment)
+                ? `(${segment.map(path => termToSparql(DataFactory.namedNode(path))).join('|')})`
+                : termToSparql(DataFactory.namedNode(segment))
+            const triple = `${subject} ${predicate} ${object} .`
             subject = object
             return triple
         }).join('\n')

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Support predicate-only `sh:alternativePath` property paths in edit, view, and
+  query modes, including per-value predicate selection, branch-specific
+  companion property constraints, and SPARQL unions.
+
 ### Fixed
 
 - Keep an explicitly configured scalar editor such as `sh:in` when a separate

@@ -370,16 +370,27 @@ export class ShaclForm extends HTMLElement {
                                 if (result.path?.length) {
                                     const path = result.path[0].predicates[0]
                                     // try to find most specific editor elements first
-                                    let invalidElements = this.form.querySelectorAll(`
-                                        :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
-                                        :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor,
-                                        :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .property-instance[data-path='${path.id}'] > .editor,
-                                        :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'] > .editor`)
+                                    const editorSelector = (attribute: 'data-path' | 'data-predicate') => `
+                                        :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .property-instance[${attribute}='${path.id}'] > .editor,
+                                        :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .shacl-group > .property-instance[${attribute}='${path.id}'] > .editor,
+                                        :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .property-instance[${attribute}='${path.id}'] > .editor,
+                                        :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .shacl-group > .property-instance[${attribute}='${path.id}'] > .editor`
+                                    let invalidElements = this.form.querySelectorAll(editorSelector('data-path'))
+                                    if (invalidElements.length === 0) {
+                                        invalidElements = this.form.querySelectorAll(editorSelector('data-predicate'))
+                                    }
                                     if (invalidElements.length === 0) {
                                         // if no editors found, select respective node. this will be the case for node shape violations.
                                         invalidElements = this.form.querySelectorAll(`
                                             :scope [data-node-id='${focusNode.id}']  > shacl-property > .property-instance[data-path='${path.id}'],
-                                            :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .property-instance[data-path='${path.id}']`)
+                                            :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'],
+                                            :scope [data-node-id='${focusNode.id}']  > shacl-property > .alternative-path-constraint[data-path='${path.id}'],
+                                            :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .alternative-path-constraint[data-path='${path.id}']`)
+                                    }
+                                    if (invalidElements.length === 0) {
+                                        invalidElements = this.form.querySelectorAll(`
+                                            :scope [data-node-id='${focusNode.id}']  > shacl-property > .property-instance[data-predicate='${path.id}'],
+                                            :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .property-instance[data-predicate='${path.id}']`)
                                     }
 
                                     for (const invalidElement of invalidElements) {

@@ -2,7 +2,7 @@ import type { Literal, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
 import { OWL_PREDICATE_IMPORTS, PREFIX_DCTERMS, PREFIX_RDFS, PREFIX_SHACL, SHACL_PREDICATE_CLASS } from './constants.js'
 import { Config } from './config.js'
-import { mergeProperty, mergeQuads as mergePropertyQuads, ShaclPropertyTemplate } from './property-template.js'
+import { mergeProperty, mergeQuads as mergePropertyQuads, propertyPathKey, ShaclPropertyTemplate } from './property-template.js'
 import { prioritizeByLanguage } from './util.js'
 
 const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void> = {
@@ -16,20 +16,21 @@ const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void>
     },
     [`${PREFIX_SHACL}property`]: (template, term) => {
         const property = template.config.getPropertyTemplate(term, template)
-        if (property.path) {
-            let array = template.properties[property.path]
+        const pathKey = propertyPathKey(property)
+        if (pathKey) {
+            let array = template.properties[pathKey]
             if (!array) {
                 array = []
-                template.properties[property.path] = array
+                template.properties[pathKey] = array
             }
             if (property.qualifiedValueShape) {
                 array.push(property)
             } else {
                 // merge properties with same path and no qualifiedValueShape into one single property
                 let existingProperty: ShaclPropertyTemplate | undefined
-                for (let i = 0; i < template.properties[property.path].length && !existingProperty; i++) {
-                    if (!template.properties[property.path][i].qualifiedValueShape) {
-                        existingProperty = template.properties[property.path][i]
+                for (let i = 0; i < template.properties[pathKey].length && !existingProperty; i++) {
+                    if (!template.properties[pathKey][i].qualifiedValueShape) {
+                        existingProperty = template.properties[pathKey][i]
                     }
                 }
                 if (existingProperty) {
@@ -74,7 +75,7 @@ export class ShaclNodeTemplate {
     or?: Term[]
     xone?: Term[]
     extendedShapes: Set<ShaclNodeTemplate> = new Set()
-    properties: Record<string, ShaclPropertyTemplate[]> = {} // sh:path -> sh:property
+    properties: Record<string, ShaclPropertyTemplate[]> = {} // complete sh:path expression -> sh:property
     owlImports: Set<NamedNode> = new Set()
     merged = false
     config: Config
@@ -93,7 +94,50 @@ export function mergeQuads(template: ShaclNodeTemplate, quads: Quad[]) {
     for (const quad of quads) {
         mappers[quad.predicate.id]?.call(template, template, quad.object)
     }
+    foldAlternativePathBranches(template)
     return template
+}
+
+// A common shapes-graph pattern combines one aggregate alternative path
+// (typically carrying min/max cardinality) with one direct-path property per
+// alternative (carrying the editor-specific constraints). When every
+// alternative has exactly one companion without independent cardinality, fold
+// those companions into the alternative property instead of rendering all
+// three controls independently.
+function foldAlternativePathBranches(node: ShaclNodeTemplate) {
+    const alternatives = Object.values(node.properties)
+        .flat()
+        .filter(property => property.pathAlternatives?.length)
+    const foldedDirectPaths = new Set<string>()
+
+    for (const alternative of alternatives) {
+        const branches: Record<string, ShaclPropertyTemplate> = {}
+        const complete = alternative.pathAlternatives!.every(path => {
+            const candidates = node.properties[path]
+            if (candidates?.length !== 1 || hasIndependentCardinality(candidates[0])) {
+                return false
+            }
+            branches[path] = candidates[0]
+            return true
+        })
+        if (!complete) {
+            continue
+        }
+        alternative.pathAlternativeBranches = branches
+        alternative.pathAlternatives!.forEach(path => foldedDirectPaths.add(path))
+    }
+
+    for (const path of foldedDirectPaths) {
+        delete node.properties[path]
+    }
+}
+
+function hasIndependentCardinality(template: ShaclPropertyTemplate) {
+    return template.minCount !== undefined ||
+        template.maxCount !== undefined ||
+        template.qualifiedMinCount !== undefined ||
+        template.qualifiedMaxCount !== undefined ||
+        template.qualifiedValueShape !== undefined
 }
 
 // merges overridden properties with the same sh:path on the upmost suitable parent.
@@ -106,7 +150,8 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
     node.merged = true
     for (const props of Object.values(node.properties)) {
         for (const prop of props) {
-            const [chain, maxCountIsOne] = buildPropertyChain(node, prop.path!)
+            const pathKey = propertyPathKey(prop)!
+            const [chain, maxCountIsOne] = buildPropertyChain(node, pathKey)
             const hasQualifiedProperty = chain.some(property => property.qualifiedValueShape !== undefined)
             const qualifiedSpecialization = isStrictQualifiedPropertySpecializationChain(chain)
             const mayMerge = hasQualifiedProperty ? qualifiedSpecialization : maxCountIsOne
@@ -116,7 +161,7 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
                 for (let i = chain.length - 2; i >= 0; i--) {
                     const source = chain[i]
                     const inheritedQualifiedShape = qualifiedSpecialization ? target.qualifiedValueShape : undefined
-                    delete source.parent.properties[source.path!]
+                    delete source.parent.properties[propertyPathKey(source)!]
                     mergeProperty(target, source, true)
                     // the more specific qualified shape already renders its inherited shape through
                     // sh:node/sh:and. keeping both in nodeShapes would render the ancestor twice.

@@ -2,7 +2,7 @@ import type { ShaclForm } from '../form.js'
 import { ShaclNode } from '../node.js'
 import { ShaclProperty, createRemoveButtonWrapper } from '../property.js'
 import { createShaclOrConstraint } from '../constraints.js'
-import { cloneProperty, mergeQuads, ShaclPropertyTemplate } from '../property-template.js'
+import { cloneProperty, mergeQuads, propertyPathSegment, ShaclPropertyTemplate } from '../property-template.js'
 import { findPlugin } from '../plugin.js'
 import { createQueryEditor } from './editor.js'
 import type { Query, QueryEditor, QueryFacet } from './index.js'
@@ -164,7 +164,7 @@ export async function initializeQueryProperty(property: ShaclProperty): Promise<
         }
         const context = property.parent.queryContext ?? { path: [], shapePath: [] }
         const node = new ShaclNode(shape, undefined, template.nodeKind, template.label, false, ancestorShapeIds, {
-            path: [...context.path, template.path!],
+            path: [...context.path, propertyPathSegment(template)],
             shapePath: [...context.shapePath, queryShapePathSegment(template)]
         })
         const instance = document.createElement('div')
@@ -183,7 +183,7 @@ function createQueryLeaf(template: ShaclPropertyTemplate, parent: ShaclNode): Qu
     const context = parent.queryContext ?? { path: [], shapePath: [] }
     const field = {
         id: `qf${(nextQueryFieldId++).toString(36)}`,
-        path: [...context.path, template.path!],
+        path: [...context.path, propertyPathSegment(template)],
         shapePath: [...context.shapePath, queryShapePathSegment(template)],
         datatype: template.datatype?.value
     }
@@ -250,5 +250,5 @@ function resolveNumericAlternative(template: ShaclPropertyTemplate): ShaclProper
 }
 
 function queryShapePathSegment(template: ShaclPropertyTemplate): string {
-    return template.qualifiedValueShape ? template.id.value : template.path!
+    return template.qualifiedValueShape || template.pathAlternatives ? template.id.value : template.path!
 }

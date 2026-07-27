@@ -51,17 +51,19 @@ type QueryCriterion = {
 
 type QueryField = {
   id: string
-  path: string[]
+  path: QueryPathSegment[]
   shapePath?: string[]
   datatype?: string
 }
+
+type QueryPathSegment = string | string[]
 ```
 
 - `rootShapeId` identifies the selected root node shape.
 - `targetClass` is its `sh:targetClass`, when present.
 - `criteria` contains only controls with an active value. An empty form therefore has an empty array.
 - `field.id` is an opaque, form-generated identifier. Use it to correlate a field with facet results; do not derive backend meaning from it.
-- `field.path` is the complete RDF predicate path from the root resource to the value. A nested field can therefore have a path such as `[ex:author, ex:name]`.
+- `field.path` is the complete RDF predicate path from the root resource to the value. A nested field can therefore have a path such as `[ex:author, ex:name]`. An array-valued segment represents `sh:alternativePath`, for example `[[ex:father, ex:mother], ex:name]`.
 - `field.shapePath` identifies the property-shape branch. It distinguishes qualified or alternative branches that have the same RDF predicate path.
 - `field.datatype` is the field's datatype IRI when the shape supplies one.
 
@@ -239,7 +241,7 @@ For each refresh, the provider builds one request containing a `UNION` branch fo
 - Discrete fields are grouped by value. Bucket counts and the total field count use `COUNT(DISTINCT ?root)`.
 - Numeric and temporal fields return `COUNT(DISTINCT ?root)`, `MIN(?facetValue)`, and `MAX(?facetValue)`.
 - `bucketLimit` is applied independently to each discrete field.
-- Nested `field.path` values become a sequence of triple patterns from `?root` to the facet value.
+- Nested `field.path` values become a sequence of triple patterns from `?root` to the facet value. Array-valued segments become SPARQL alternative paths such as `(<father>|<mother>)`.
 
 Because all active criteria are included, facet results describe the already-filtered result set. This includes a criterion on the field currently being faceted.
 

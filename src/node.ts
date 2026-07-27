@@ -9,6 +9,7 @@ import { Config } from './config.js'
 import { ShaclNodeTemplate, mergeOverriddenProperties } from './node-template.js'
 import { ShaclPropertyTemplate } from './property-template.js'
 import { findLabel } from './util.js'
+import type { QueryPathSegment } from './query/index.js'
 
 export class ShaclNode extends HTMLElement {
     nodeId: NamedNode | BlankNode
@@ -206,7 +207,7 @@ function insertInOrder(container: HTMLElement, element: HTMLElement, order = 0) 
 }
 
 export type QueryPathContext = {
-    path: string[]
+    path: QueryPathSegment[]
     shapePath: string[]
 }
 
