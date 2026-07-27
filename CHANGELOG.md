@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-07-27
+
 ### Added
 
 - Support predicate-only `sh:alternativePath` property paths in edit, view, and
