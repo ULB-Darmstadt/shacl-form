@@ -89,6 +89,7 @@ data-values-url | When `data-values` is not set, load RDF triples from this URL
 data-values-subject | Subject (IRI or blank node id) for generated data. If not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is used to find the root node in the data graph. When exactly one `dcterms:conformsTo` statement exists in the loaded data graph, its subject is used automatically. For the selected subject, a `dcterms:conformsTo` object that is a known `sh:NodeShape` is used as the root shape before falling back to `rdf:type` / `sh:targetClass`
 data-values-namespace | RDF namespace used when generating new RDF subjects. Default is empty, which yields blank nodes
 data-values-graph | If set, serialization creates a named graph with this IRI
+data-preserve-unmapped-values | If set, `toRDF()` overlays the current form values onto the complete original values dataset instead of returning only SHACL-managed values. Removed form values are replaced, unrelated triples and named graphs are retained, and blank-node subgraphs orphaned by an edit are removed
 data-language | Language for `langString` values (e.g. in `sh:name` or `rdfs:label`). Default is [`navigator.language`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/language) with fallback to [`navigator.languages`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/languages)
 data-loading | Text displayed while the component initializes. Default is `"Loading..."`
 data-ignore-owl-imports | By default, `owl:imports` URLs are fetched and merged into the shapes graph. Set this attribute to disable that behavior
@@ -111,6 +112,11 @@ data-use-shadow-root | Boolean string indicating whether `<shacl-form>` renders 
 toRDF(graph?: Store): Store
 ```
 Writes the current form values into the given graph. If no graph is provided, a new [N3 Store](https://github.com/rdfjs/N3.js#storing) is created.
+
+When `data-preserve-unmapped-values` is set, the original values dataset is added
+to the destination graph first. Original values managed by rendered SHACL fields
+are replaced with their current form values, while unmapped triples are retained.
+The default remains projection-only serialization.
 
 ```typescript
 serialize(format?: string, graph?: Store): string

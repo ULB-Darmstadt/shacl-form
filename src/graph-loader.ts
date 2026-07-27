@@ -45,7 +45,7 @@ export function findConformsToShapeSubject(store: Store, valuesSubject: string):
     }
 }
 
-export async function loadGraphs(atts: LoaderAttributes) {
+export async function loadGraphs(atts: LoaderAttributes, originalValues?: Store) {
     const ctx: LoaderContext = {
         store: new Store(),
         importedUrls: [],
@@ -59,9 +59,9 @@ export async function loadGraphs(atts: LoaderAttributes) {
         promises.push(importRDF(loadRDF({ url: atts.shapesUrl, proxy: ctx.atts.proxy, rdfUrlResolver: ctx.atts.rdfUrlResolver }), ctx, SHAPES_GRAPH))
     }
     if (atts.values) {
-        promises.push(importRDF(loadRDF({ rdf: atts.values }), ctx, DATA_GRAPH))
+        promises.push(importRDF(loadRDF({ rdf: atts.values }), ctx, DATA_GRAPH, originalValues))
     } else if (atts.valuesUrl) {
-        promises.push(importRDF(loadRDF({ url: atts.valuesUrl, proxy: ctx.atts.proxy, rdfUrlResolver: ctx.atts.rdfUrlResolver }), ctx, DATA_GRAPH))
+        promises.push(importRDF(loadRDF({ url: atts.valuesUrl, proxy: ctx.atts.proxy, rdfUrlResolver: ctx.atts.rdfUrlResolver }), ctx, DATA_GRAPH, originalValues))
     }
     await Promise.all(promises)
 
@@ -112,11 +112,12 @@ export async function loadGraphs(atts: LoaderAttributes) {
     return ctx.store
 }
 
-export async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedNode) {
+export async function importRDF(rdf: Promise<Quad[]>, ctx: LoaderContext, graph: NamedNode, originalValues?: Store) {
     const quads = await rdf
     const dependencies: Promise<void>[] = []
 
     for (const quad of quads) {
+        originalValues?.add(quad)
         // if we have quads (named graphs) in the data graph then keep the graph id if it is not the value subject
         let targetGraph = graph
         if (ctx.atts.valuesSubject && DATA_GRAPH.equals(graph)) {

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Add opt-in `data-preserve-unmapped-values` support for editing a SHACL-defined
+  projection without discarding unrelated triples from the original values dataset.
+
 ## [3.3.0] - 2026-07-27
 
 ### Added

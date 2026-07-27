@@ -23,6 +23,7 @@ export class ElementAttributes {
     valuesSubject: string | null = null
     valuesNamespace = ''
     valuesGraph: string | null = null
+    preserveUnmappedValues: string | null = null
     /**
      * @deprecated Use mode='view' instead
      */
@@ -58,6 +59,7 @@ export class Config {
     form: HTMLElement
     renderedNodes = new Set<string>()
     valuesGraphId: NamedNode | undefined
+    originalValues = new Store()
     hierarchyColorsStyleSheet: CSSStyleSheet | undefined
     private _store = new Store()
     private _theme: Theme
@@ -96,6 +98,7 @@ export class Config {
         this.providedConformingResourceIds = {}
         this.providedResources = {}
         this.providedResourceLabels = {}
+        this.originalValues = new Store()
         this._nodeTemplates = {}
         this._propertyTemplates = {}
     }

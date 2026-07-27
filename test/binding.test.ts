@@ -1,4 +1,5 @@
 import { expect, waitUntil } from '@open-wc/testing'
+import { DataFactory, Store } from 'n3'
 import { ShaclForm } from '../src/form'
 import type { ShaclNode } from '../src/node'
 import type { ShaclProperty } from '../src/property'
@@ -693,6 +694,118 @@ describe('test value binding', () => {
         expect(autoForm.shape?.template.id.value).to.equal('http://example.org/OtherShape')
         autoForm.remove()
     })
+
+    it('keeps projection-only serialization as the default', async () => {
+        const projectionForm = document.createElement('shacl-form') as ShaclForm
+        projectionForm.dataset.generateNodeShapeReference = ''
+        document.body.appendChild(projectionForm)
+        await bind(projectionForm, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:property [ sh:path :editable ; sh:maxCount 1 ] .
+        `, shapeSubject, `
+            ${prefixes}
+            <${valuesSubject}> :editable "shown" ; :hidden "discarded" .
+        `, valuesSubject)
+
+        const output = projectionForm.toRDF()
+        expect(output.getObjects(valuesSubject, 'http://example.org/editable', null)).to.have.length(1)
+        expect(output.getObjects(valuesSubject, 'http://example.org/hidden', null)).to.be.empty
+        projectionForm.remove()
+    })
+
+    it('preserves unmapped input while replacing form-managed values', async () => {
+        const preservingForm = document.createElement('shacl-form') as ShaclForm
+        preservingForm.dataset.preserveUnmappedValues = ''
+        document.body.appendChild(preservingForm)
+        await bind(preservingForm, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:targetClass :ManagedType ;
+                sh:property [ sh:path :editable ; sh:datatype xsd:string ; sh:maxCount 1 ] .
+        `, shapeSubject, `
+            ${prefixes}
+            @prefix dcterms: <http://purl.org/dc/terms/> .
+            <${valuesSubject}> a :ManagedType, :OtherType ;
+                dcterms:conformsTo <${shapeSubject}> ;
+                :editable "old" ;
+                :hidden "keep" .
+            :unrelated :value "keep" .
+            GRAPH :namedGraph { :namedSubject :value "keep" . }
+        `, valuesSubject)
+
+        const editable = Array.from(preservingForm.form.querySelectorAll<ShaclProperty>('shacl-property'))
+            .find(property => property.template.path === 'http://example.org/editable')!
+            .querySelector<HTMLElement & { value: string }>('.editor')!
+        editable.value = 'new'
+        await preservingForm.validate()
+        await preservingForm.validate()
+
+        const destination = new Store()
+        destination.addQuad(
+            DataFactory.namedNode('http://example.org/destination'),
+            DataFactory.namedNode('http://example.org/value'),
+            DataFactory.literal('keep')
+        )
+        const output = preservingForm.toRDF(destination)
+        expect(output.getObjects(valuesSubject, 'http://example.org/editable', null).map(term => term.value)).to.deep.equal(['new'])
+        expect(output.getObjects(valuesSubject, 'http://example.org/hidden', null).map(term => term.value)).to.deep.equal(['keep'])
+        expect(output.getObjects(valuesSubject, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', null).map(term => term.value))
+            .to.have.members(['http://example.org/ManagedType', 'http://example.org/OtherType'])
+        expect(output.getObjects('http://example.org/unrelated', 'http://example.org/value', null).map(term => term.value)).to.deep.equal(['keep'])
+        expect(output.getObjects('http://example.org/namedSubject', 'http://example.org/value', 'http://example.org/namedGraph').map(term => term.value))
+            .to.deep.equal(['keep'])
+        expect(output.getObjects('http://example.org/destination', 'http://example.org/value', null).map(term => term.value)).to.deep.equal(['keep'])
+        expect(preservingForm.serialize('application/trig')).to.contain('namedGraph')
+
+        editable.value = ''
+        expect(preservingForm.toRDF().getObjects(valuesSubject, 'http://example.org/editable', null)).to.be.empty
+        expect(preservingForm.toRDF().getObjects(valuesSubject, 'http://example.org/hidden', null).map(term => term.value)).to.deep.equal(['keep'])
+        preservingForm.remove()
+    }).timeout(4000)
+
+    it('prunes only blank-node subgraphs orphaned by a form edit', async () => {
+        const preservingForm = document.createElement('shacl-form') as ShaclForm
+        preservingForm.dataset.generateNodeShapeReference = ''
+        preservingForm.dataset.preserveUnmappedValues = ''
+        document.body.appendChild(preservingForm)
+        await bind(preservingForm, `
+            ${prefixes}
+            <${shapeSubject}> a sh:NodeShape ;
+                sh:property [ sh:path :child ; sh:node :ChildShape ; sh:maxCount 1 ] ;
+                sh:property [ sh:path :sharedChild ; sh:node :ChildShape ; sh:maxCount 1 ] .
+            :ChildShape a sh:NodeShape ;
+                sh:property [ sh:path :editable ; sh:maxCount 1 ] .
+        `, shapeSubject, `
+            ${prefixes}
+            <${valuesSubject}> :child _:orphan ; :sharedChild _:shared .
+            _:orphan :editable "old" ; :hidden _:orphanDetail .
+            _:orphanDetail :value "remove" .
+            _:shared :editable "old" ; :hidden _:sharedDetail .
+            _:sharedDetail :value "keep" .
+            :unrelated :alsoReferences _:shared .
+        `, valuesSubject)
+
+        const original = preservingForm.config.originalValues
+        const orphan = original.getObjects(valuesSubject, 'http://example.org/child', null)[0]
+        const orphanDetail = original.getObjects(orphan, 'http://example.org/hidden', null)[0]
+        const shared = original.getObjects(valuesSubject, 'http://example.org/sharedChild', null)[0]
+        const sharedDetail = original.getObjects(shared, 'http://example.org/hidden', null)[0]
+        for (const property of preservingForm.form.querySelectorAll<ShaclProperty>('shacl-property')) {
+            if (property.parent === preservingForm.shape &&
+                ['http://example.org/child', 'http://example.org/sharedChild'].includes(property.template.path!)) {
+                property.querySelector(':scope > .property-instance')?.remove()
+            }
+        }
+
+        const output = preservingForm.toRDF()
+        expect(output.getQuads(orphan, null, null, null)).to.be.empty
+        expect(output.getQuads(orphanDetail, null, null, null)).to.be.empty
+        expect(output.getQuads(shared, null, null, null)).not.to.be.empty
+        expect(output.getQuads(sharedDetail, null, null, null)).not.to.be.empty
+        expect(output.getObjects('http://example.org/unrelated', 'http://example.org/alsoReferences', null)[0].equals(shared)).to.be.true
+        preservingForm.remove()
+    }).timeout(4000)
 })
 
 function awaitNextFormChange(form: ShaclForm) {

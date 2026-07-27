@@ -104,7 +104,7 @@ export class ShaclForm extends HTMLElement {
                     classInstanceProvider: this.config.classInstanceProvider,
                     rdfUrlResolver: this.config.rdfUrlResolver,
                     proxy: this.config.attributes.proxy
-                })
+                }, this.config.originalValues)
                 // if we have a resource link provider, let it resolve linked resources in the data graph
                 if (this.config.resourceLinkProvider) {
                     await loadUnresolvedValues(this.config)
@@ -274,8 +274,117 @@ export class ShaclForm extends HTMLElement {
 
     public toRDF(graph = new Store()): Store {
         this.assertNotQueryMode('toRDF')
+        let removedBlankNodes: Map<string, BlankNode> | undefined
+        if (this.config.attributes.preserveUnmappedValues !== null) {
+            removedBlankNodes = this.preparePreservedOutput(graph)
+        }
         this.shape?.toRDF(graph, undefined, this.config.attributes.generateNodeShapeReference)
+        if (removedBlankNodes?.size) {
+            this.pruneOrphanedBlankNodes(graph, removedBlankNodes)
+        }
         return graph
+    }
+
+    private preparePreservedOutput(graph: Store): Map<string, BlankNode> {
+        const original = this.config.originalValues
+        const removedBlankNodes = new Map<string, BlankNode>()
+        graph.addQuads(original.getQuads(null, null, null, null))
+
+        // Replace only values represented by the rendered form. Deleting the exact
+        // original quads keeps unrelated predicates, subjects, and graph names intact.
+        for (const property of this.form.querySelectorAll<ShaclProperty>('shacl-property')) {
+            if (property.parent.linked) {
+                continue
+            }
+            for (const path of property.template.pathAlternatives ?? [property.template.path]) {
+                if (!path) {
+                    continue
+                }
+                for (const quad of original.getQuads(property.parent.nodeId, path, null, null)) {
+                    graph.delete(quad)
+                    if (quad.object.termType === 'BlankNode') {
+                        removedBlankNodes.set(quad.object.id, quad.object)
+                    }
+                }
+            }
+        }
+
+        for (const node of this.form.querySelectorAll<ShaclNode>('shacl-node:not([part~="linked-node"])')) {
+            if (!node.template.targetClass) {
+                continue
+            }
+            for (const quad of original.getQuads(node.nodeId, RDF_PREDICATE_TYPE, node.template.targetClass, null)) {
+                graph.delete(quad)
+            }
+        }
+
+        const shapeReference = this.config.attributes.generateNodeShapeReference
+        if (this.shape && shapeReference) {
+            for (const quad of original.getQuads(
+                this.shape.nodeId,
+                DataFactory.namedNode(shapeReference),
+                this.shape.template.id,
+                null
+            )) {
+                graph.delete(quad)
+            }
+        }
+        return removedBlankNodes
+    }
+
+    private pruneOrphanedBlankNodes(graph: Store, roots: Map<string, BlankNode>) {
+        const candidates = new Map(roots)
+        const pending = [...roots.values()]
+        while (pending.length) {
+            const node = pending.pop()!
+            for (const quad of graph.getQuads(node, null, null, null)) {
+                if (quad.object.termType === 'BlankNode' && !candidates.has(quad.object.id)) {
+                    candidates.set(quad.object.id, quad.object)
+                    pending.push(quad.object)
+                }
+            }
+        }
+
+        // A candidate is retained if it is still part of the rendered form or has
+        // an incoming reference from outside the candidate subgraph. Retention then
+        // propagates through its blank-node descendants.
+        const retained = new Set<string>()
+        const retainedPending: BlankNode[] = []
+        const retain = (node: BlankNode) => {
+            if (!retained.has(node.id)) {
+                retained.add(node.id)
+                retainedPending.push(node)
+            }
+        }
+        for (const node of this.form.querySelectorAll<ShaclNode>('shacl-node:not([part~="linked-node"])')) {
+            if (node.nodeId.termType === 'BlankNode' && candidates.has(node.nodeId.id)) {
+                retain(node.nodeId)
+            }
+        }
+        for (const candidate of candidates.values()) {
+            const externallyReferenced = graph.getQuads(null, null, candidate, null).some(quad =>
+                quad.subject.termType !== 'BlankNode' || !candidates.has(quad.subject.id)
+            )
+            if (externallyReferenced) {
+                retain(candidate)
+            }
+        }
+        while (retainedPending.length) {
+            const node = retainedPending.pop()!
+            for (const quad of graph.getQuads(node, null, null, null)) {
+                if (quad.object.termType === 'BlankNode' && candidates.has(quad.object.id)) {
+                    retain(quad.object)
+                }
+            }
+        }
+
+        for (const candidate of candidates.values()) {
+            if (!retained.has(candidate.id)) {
+                for (const quad of graph.getQuads(candidate, null, null, null)) {
+                    graph.delete(quad)
+                }
+            }
+        }
     }
 
     public registerPlugin(plugin: Plugin) {
