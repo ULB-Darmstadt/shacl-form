@@ -184,6 +184,12 @@ export class ShaclPropertyTemplate {
     nodeShapes: Set<ShaclNodeTemplate> = new Set()
     owlImports: Set<NamedNode> = new Set()
 
+    // When same-path qualified properties are merged into their most generic
+    // ancestor, this keeps the id of the most specific (overridden) property
+    // shape. The query layer uses it so branches the data is stored under match
+    // the property shape the values actually conform to.
+    queryShapePathId?: string
+
     id: Term
     parent: ShaclNodeTemplate
     config: Config

@@ -250,5 +250,7 @@ function resolveNumericAlternative(template: ShaclPropertyTemplate): ShaclProper
 }
 
 function queryShapePathSegment(template: ShaclPropertyTemplate): string {
-    return template.qualifiedValueShape || template.pathAlternatives ? template.id.value : template.path!
+    return template.qualifiedValueShape || template.pathAlternatives
+        ? template.queryShapePathId ?? template.id.value
+        : template.path!
 }

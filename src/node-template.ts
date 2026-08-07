@@ -158,6 +158,11 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
             if (chain.length > 1 && mayMerge) {
                 // merge properties into the last element in array (which is the topmost in the hierarchy) and remove preceding properties
                 const target = chain[chain.length - 1]
+                if (qualifiedSpecialization) {
+                    // the concrete overridden property shape identifies the branch the
+                    // data conforms to; keep it for the query layer
+                    target.queryShapePathId = chain[0].id.value
+                }
                 for (let i = chain.length - 2; i >= 0; i--) {
                     const source = chain[i]
                     const inheritedQualifiedShape = qualifiedSpecialization ? target.qualifiedValueShape : undefined

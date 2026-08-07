@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [3.3.1] - 2026-07-27
+## [3.4.1] - 2026-08-07
+
+### Fixed
+
+- Emit the most specific property shape id for qualified branches merged into
+  their generic base shape, so queries resolve to the per-quantity-kind fields
+  the indexer writes instead of a single merged Solr field.
+
+## [3.4.0] - 2026-07-27
 
 ### Added
 

@@ -110,6 +110,41 @@ ex:timeKindProperty sh:path ex:quantityKind ; sh:name "Time kind" .
         ])
     })
 
+    it('emits the specialized property shape id for merged qualified branches', async () => {
+        const mergedShapes = `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/> .
+ex:GenericConfig a sh:NodeShape ;
+  sh:property ex:genericParameterSetProperty .
+ex:genericParameterSetProperty sh:path ex:assignedParameterSet ;
+  sh:name "assigned parameter set" ;
+  sh:qualifiedValueShape ex:GenericParameterSet ;
+  sh:qualifiedMaxCount 1 .
+ex:DeviceConfig a sh:NodeShape ;
+  sh:node ex:GenericConfig ;
+  sh:property ex:deviceParameterSetProperty .
+ex:deviceParameterSetProperty sh:path ex:assignedParameterSet ;
+  sh:name "Runtime Parameter (Heating)" ;
+  sh:qualifiedValueShape ex:DeviceParameterSet ;
+  sh:qualifiedMaxCount 1 .
+ex:GenericParameterSet a sh:NodeShape ;
+  sh:property ex:genericKindProperty .
+ex:DeviceParameterSet a sh:NodeShape ;
+  sh:node ex:GenericParameterSet ;
+  sh:property ex:deviceKindProperty .
+ex:genericKindProperty sh:path ex:quantityKind ; sh:name "Generic kind" .
+ex:deviceKindProperty sh:path ex:quantityKind ; sh:name "Device kind" .
+`
+        await bind(form, mergedShapes, 'http://example.org/DeviceConfig')
+        const editor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => editor.textContent?.includes('Device kind'))!
+
+        expect(editor.queryField.shapePath).to.deep.equal([
+            'http://example.org/deviceParameterSetProperty',
+            'http://example.org/quantityKind',
+        ])
+    })
+
     it('renders one simple built-in control per field', async () => {
         await bind(form, shapes, 'http://example.org/Root')
         const title = Array.from(form.form.querySelectorAll('.query-editor')).find(editor => editor.textContent?.includes('Title'))!
