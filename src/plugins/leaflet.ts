@@ -103,7 +103,7 @@ function createEditControl(title: string, content: string, startDrawing: () => v
             const link = L.DomUtil.create('a', '', container)
             link.href = '#'
             link.title = title
-            link.innerHTML = content
+            link.textContent = content
             L.DomEvent.on(link, 'click', L.DomEvent.stop).on(link, 'click', startDrawing)
             return container
         }
@@ -170,7 +170,7 @@ export class LeafletPlugin extends Plugin {
         if (!dialog) {
             dialog = this.initEditMode(template.config.form)
         }
-        const button = template.config.theme.createButton('Open&#160;map...', false)
+        const button = template.config.theme.createButton('Open\u00a0map...', false)
         button.style.marginLeft = '5px'
         button.classList.add('open-map-button')
         button.onclick = () => {
