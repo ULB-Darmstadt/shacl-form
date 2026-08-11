@@ -77,6 +77,9 @@ export const mappers: Record<string, (template: ShaclPropertyTemplate, term: Ter
     [`${PREFIX_DASH}readonly`]: (template, term) => {
         template.readonly = term.value === 'true'
     },
+    [`${PREFIX_DASH}facet`]: (template, term) => {
+        template.facet = term.value === 'true' || term.value === '1'
+    },
     [`${PREFIX_OA}styleClass`]: (template, term) => {
         template.cssClass = term.value
     },
@@ -168,6 +171,7 @@ export class ShaclPropertyTemplate {
     maxExclusive: number | undefined
     singleLine: boolean | undefined
     readonly: boolean | undefined
+    facet: boolean | undefined
     cssClass: string | undefined
     defaultValue: Term | undefined
     pattern: string | undefined

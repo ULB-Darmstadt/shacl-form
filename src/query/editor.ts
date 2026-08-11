@@ -11,7 +11,7 @@ type Choice = { term: Term; label: string; count?: number }
 
 export function createQueryEditor(field: QueryField, template: ShaclPropertyTemplate): QueryEditor {
     const root = document.createElement('div') as unknown as QueryEditor
-    const discrete = Boolean(template.in || template.class || template.datatype?.equals(XSD_DATATYPE_BOOLEAN))
+    const discrete = Boolean(template.facet || template.in || template.class || template.datatype?.equals(XSD_DATATYPE_BOOLEAN))
     root.classList.add('query-editor')
     root.dataset.queryFieldId = field.id
     root.setAttribute('part', 'query-editor')

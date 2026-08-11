@@ -8,10 +8,11 @@ export type QueryField = {
     path: QueryPathSegment[]
     shapePath?: string[]
     datatype?: string
+    discrete?: boolean
 }
 
 export function isRangeQueryField(field: QueryField): boolean {
-    return field.datatype !== undefined && RANGE_DATATYPES.has(field.datatype)
+    return field.discrete !== true && field.datatype !== undefined && RANGE_DATATYPES.has(field.datatype)
 }
 
 export type QueryCriterion = {

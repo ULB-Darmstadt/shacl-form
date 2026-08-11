@@ -7,7 +7,7 @@ import { findPlugin } from '../plugin.js'
 import { createQueryEditor } from './editor.js'
 import type { Query, QueryEditor, QueryFacet } from './index.js'
 import queryModeCss from './mode.css?raw'
-import { FRACTIONAL_DATATYPES, NUMERIC_DATATYPES } from '../constants.js'
+import { FRACTIONAL_DATATYPES, NUMERIC_DATATYPES, SHACL_OBJECT_IRI } from '../constants.js'
 
 
 let nextQueryFieldId = 0
@@ -156,6 +156,22 @@ export async function initializeQueryProperty(property: ShaclProperty): Promise<
         property.container.appendChild(createQueryLeaf(template, property.parent))
         return
     }
+    if (template.facet === true) {
+        // dash:facet explicitly marks a structured property as a facet over the
+        // referenced resources. Render the relationship itself as a leaf rather
+        // than deriving filters from the referenced shape's text properties.
+        const reference = cloneProperty(template)
+        reference.nodeShapes = new Set()
+        for (const shape of template.nodeShapes) {
+            if (shape.targetClass) {
+                reference.class = shape.targetClass
+                break
+            }
+        }
+        reference.nodeKind ??= SHACL_OBJECT_IRI
+        property.container.appendChild(createQueryLeaf(reference, property.parent))
+        return
+    }
     for (const shape of template.nodeShapes) {
         const ancestorShapeIds = new Set(property.parent.ancestorShapeIds)
         ancestorShapeIds.add(property.parent.template.id.value)
@@ -185,7 +201,8 @@ function createQueryLeaf(template: ShaclPropertyTemplate, parent: ShaclNode): Qu
         id: `qf${(nextQueryFieldId++).toString(36)}`,
         path: [...context.path, propertyPathSegment(template)],
         shapePath: [...context.shapePath, queryShapePathSegment(template)],
-        datatype: template.datatype?.value
+        datatype: template.datatype?.value,
+        discrete: template.facet === true
     }
     const plugin = findPlugin(template.path, template.datatype?.value)
     const editor = plugin?.createQueryEditor?.(field, template) ?? createQueryEditor(field, template)

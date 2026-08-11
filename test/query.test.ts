@@ -626,4 +626,64 @@ ex:Root a sh:NodeShape ;
         expect(firstNameCriterion).to.not.be.undefined
         expect(firstNameCriterion!.field.path).to.deep.equal(['http://example.org/person', 'http://example.org/firstName'])
     })
+
+    it('renders a structured dash:facet property as a resource reference dropdown', async () => {
+        await bind(form, `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix dash: <http://datashapes.org/dash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://example.org/> .
+ex:Root a sh:NodeShape ;
+  sh:targetClass ex:Thing ;
+  sh:property [ sh:path ex:owner ; sh:name "Owner" ; sh:node ex:Person ; dash:facet true ] .
+ex:Person a sh:NodeShape ;
+  sh:targetClass ex:Human ;
+  sh:property [ sh:path ex:firstName ; sh:name "First name" ; sh:datatype xsd:string ] .
+`, 'http://example.org/Root')
+
+        const editor = form.form.querySelector<QueryEditor>('.query-editor')!
+        expect(editor).to.not.be.undefined
+        expect(editor.textContent).to.include('Owner')
+        expect(editor.querySelector('rokit-select')).to.not.be.null
+        expect(editor.querySelector('rokit-input.query-value')).to.be.null
+        expect(form.form.querySelector('.query-structure')).to.be.null
+        expect(editor.queryField.path).to.deep.equal(['http://example.org/owner'])
+    })
+
+    it('recurses into an unannotated targetClass node shape', async () => {
+        await bind(form, `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://example.org/> .
+ex:Root a sh:NodeShape ;
+  sh:targetClass ex:Thing ;
+  sh:property [ sh:path ex:part ; sh:name "Part" ; sh:node ex:Part ] .
+ex:Part a sh:NodeShape ;
+  sh:targetClass ex:PartClass ;
+  sh:property [ sh:path ex:name ; sh:name "Name" ; sh:datatype xsd:string ] .
+`, 'http://example.org/Root')
+
+        expect(form.form.querySelector('.query-structure')).to.not.be.null
+        const name = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => editor.textContent?.includes('Name'))!
+        expect(name).to.not.be.undefined
+        expect(name.queryField.path).to.deep.equal(['http://example.org/part', 'http://example.org/name'])
+    })
+
+    it('renders a scalar dash:facet property as a discrete dropdown', async () => {
+        await bind(form, `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix dash: <http://datashapes.org/dash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://example.org/> .
+ex:Root a sh:NodeShape ;
+  sh:targetClass ex:Thing ;
+  sh:property [ sh:path ex:code ; sh:name "Code" ; sh:datatype xsd:string ; dash:facet true ] .
+`, 'http://example.org/Root')
+
+        const editor = form.form.querySelector<QueryEditor>('.query-editor')!
+        expect(editor.querySelector('rokit-select')).to.not.be.null
+        expect(editor.querySelector('rokit-input.query-value')).to.be.null
+        expect(editor.queryField.discrete).to.be.true
+    })
 })
