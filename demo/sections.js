@@ -214,7 +214,7 @@ function initMps(root) {
   listenForFormChanges(form, output)
   listenForExport(form)
 
-  fetch('https://pg4aims.ulb.tu-darmstadt.de/AIMS/application-profiles/?query=&language=EN&includeDefinition=true&state=public')
+  fetch('https://aims-backend.tools.coscine.dev/AIMS/application-profiles/?query=&language=EN&includeDefinition=true&state=public')
     .then(response => response.json())
     .then(profiles => {
       const list = document.createElement('ul')
