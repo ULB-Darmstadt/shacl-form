@@ -307,7 +307,7 @@ export class DefaultTheme extends Theme {
     createButton(label: string, primary: boolean): HTMLElement {
         const button = new RokitButton()
         button.dense = this.dense
-        button.innerHTML = label
+        button.textContent = label
         if (primary) {
             button.setAttribute('primary', '')
             button.setAttribute('part', 'button primary')
