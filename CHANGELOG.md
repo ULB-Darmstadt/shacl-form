@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.4.2] - 2026-08-11
+
+### Added
+
+- Support `dash:facet` in query mode. Property shapes marked with
+  `dash:facet true` render as discrete facet dropdowns; structured properties
+  facet over their referenced resources instead of recursively exposing nested
+  fields. A referenced node shape may provide the same default for all incoming
+  properties, while `dash:facet true` or `dash:facet false` on an individual
+  property overrides that node-shape default.
+
+### Fixed
+
+- Prevent HTML and script injection through untrusted button labels by rendering
+  button content as text instead of assigning it as HTML ([#69](https://github.com/ULB-Darmstadt/shacl-form/pull/69)).
+
 ## [3.4.1] - 2026-08-07
 
 ### Fixed
