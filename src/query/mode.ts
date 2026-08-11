@@ -156,11 +156,12 @@ export async function initializeQueryProperty(property: ShaclProperty): Promise<
         property.container.appendChild(createQueryLeaf(template, property.parent))
         return
     }
-    if (template.facet === true) {
+    if (isStructuredFacet(template)) {
         // dash:facet explicitly marks a structured property as a facet over the
         // referenced resources. Render the relationship itself as a leaf rather
         // than deriving filters from the referenced shape's text properties.
         const reference = cloneProperty(template)
+        reference.facet = true
         reference.nodeShapes = new Set()
         for (const shape of template.nodeShapes) {
             if (shape.targetClass) {
@@ -193,6 +194,13 @@ export async function initializeQueryProperty(property: ShaclProperty): Promise<
         property.container.appendChild(instance)
         await node.ready
     }
+}
+
+function isStructuredFacet(template: ShaclPropertyTemplate): boolean {
+    if (template.facet !== undefined) {
+        return template.facet
+    }
+    return Array.from(template.nodeShapes).some(shape => shape.facet === true)
 }
 
 function createQueryLeaf(template: ShaclPropertyTemplate, parent: ShaclNode): QueryEditor {

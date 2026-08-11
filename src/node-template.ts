@@ -1,6 +1,6 @@
 import type { Literal, NamedNode, Quad } from 'n3'
 import { Term } from '@rdfjs/types'
-import { OWL_PREDICATE_IMPORTS, PREFIX_DCTERMS, PREFIX_RDFS, PREFIX_SHACL, SHACL_PREDICATE_CLASS } from './constants.js'
+import { OWL_PREDICATE_IMPORTS, PREFIX_DASH, PREFIX_DCTERMS, PREFIX_RDFS, PREFIX_SHACL, SHACL_PREDICATE_CLASS } from './constants.js'
 import { Config } from './config.js'
 import { mergeProperty, mergeQuads as mergePropertyQuads, propertyPathKey, ShaclPropertyTemplate } from './property-template.js'
 import { prioritizeByLanguage } from './util.js'
@@ -47,6 +47,9 @@ const mappers: Record<string, (template: ShaclNodeTemplate, term: Term) => void>
     [`${PREFIX_SHACL}targetClass`]: (template, term) => {
         template.targetClass = term as NamedNode
     },
+    [`${PREFIX_DASH}facet`]: (template, term) => {
+        template.facet = term.value === 'true' || term.value === '1'
+    },
     [`${PREFIX_SHACL}or`]: (template, term) => {
         template.or = template.config.lists[term.value]
     },
@@ -72,6 +75,7 @@ export class ShaclNodeTemplate {
     parent?: ShaclNodeTemplate | ShaclPropertyTemplate // parent is the node shape that extends this node shape or the property that conforms to this node shape
     nodeKind?: NamedNode
     targetClass?: NamedNode
+    facet?: boolean
     or?: Term[]
     xone?: Term[]
     extendedShapes: Set<ShaclNodeTemplate> = new Set()

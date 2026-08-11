@@ -686,4 +686,46 @@ ex:Root a sh:NodeShape ;
         expect(editor.querySelector('rokit-input.query-value')).to.be.null
         expect(editor.queryField.discrete).to.be.true
     })
+
+    it('uses dash:facet on a referenced node shape as the property default', async () => {
+        await bind(form, `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix dash: <http://datashapes.org/dash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://example.org/> .
+ex:Root a sh:NodeShape ;
+  sh:targetClass ex:Thing ;
+  sh:property [ sh:path ex:owner ; sh:name "Owner" ; sh:node ex:Person ] .
+ex:Person a sh:NodeShape ;
+  sh:targetClass ex:Human ;
+  dash:facet true ;
+  sh:property [ sh:path ex:firstName ; sh:name "First name" ; sh:datatype xsd:string ] .
+`, 'http://example.org/Root')
+
+        const editor = form.form.querySelector<QueryEditor>('.query-editor')!
+        expect(editor.textContent).to.include('Owner')
+        expect(editor.querySelector('rokit-select')).to.not.be.null
+        expect(form.form.querySelector('.query-structure')).to.be.null
+        expect(editor.queryField.path).to.deep.equal(['http://example.org/owner'])
+    })
+
+    it('allows dash:facet false on a property to override its node shape', async () => {
+        await bind(form, `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix dash: <http://datashapes.org/dash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://example.org/> .
+ex:Root a sh:NodeShape ;
+  sh:targetClass ex:Thing ;
+  sh:property [ sh:path ex:owner ; sh:name "Owner" ; sh:node ex:Person ; dash:facet false ] .
+ex:Person a sh:NodeShape ;
+  sh:targetClass ex:Human ;
+  dash:facet true ;
+  sh:property [ sh:path ex:firstName ; sh:name "First name" ; sh:datatype xsd:string ] .
+`, 'http://example.org/Root')
+
+        expect(form.form.querySelector('.query-structure')).to.not.be.null
+        const editor = form.form.querySelector<QueryEditor>('.query-editor')!
+        expect(editor.queryField.path).to.deep.equal(['http://example.org/owner', 'http://example.org/firstName'])
+    })
 })

@@ -170,7 +170,7 @@ export class LeafletPlugin extends Plugin {
         if (!dialog) {
             dialog = this.initEditMode(template.config.form)
         }
-        const button = template.config.theme.createButton('Open\u00a0map...', false)
+        const button = template.config.theme.createButton('Open map...', false)
         button.style.marginLeft = '5px'
         button.classList.add('open-map-button')
         button.onclick = () => {
