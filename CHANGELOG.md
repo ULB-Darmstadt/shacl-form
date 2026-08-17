@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Let the `ready` event bubble across shadow DOM boundaries so containing
+  applications can observe completed form initialization.
+
 ## [3.4.2] - 2026-08-11
 
 ### Added

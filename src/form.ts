@@ -223,7 +223,7 @@ export class ShaclForm extends HTMLElement {
             }
             // drain micro task queue before dispatching 'ready' event
             await this.shape?.ready
-            this.dispatchEvent(new Event('ready'))
+            this.dispatchEvent(new Event('ready', { bubbles: true, composed: true }))
         }, initTimeout)
     }
 
