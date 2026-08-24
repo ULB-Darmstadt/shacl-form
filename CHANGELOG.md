@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Replace the linked-resource text glyph with a larger, vertically centered
+  paperclip icon.
 - Let the `ready` event bubble across shadow DOM boundaries so containing
   applications can observe completed form initialization.
 - Keep an active range slider's domain and handle positions stable across facet
