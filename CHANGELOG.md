@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Avoid rendering linked values twice when a specific inherited property and
   its generic ancestor property use the same path.
+- Serialize `rdf:type` predicates as JSON-LD `@type` entries regardless of RDF
+  term object identity ([#70](https://github.com/ULB-Darmstadt/shacl-form/pull/70)).
 
 ## [3.4.2] - 2026-08-11
 
