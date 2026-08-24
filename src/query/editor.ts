@@ -30,6 +30,7 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
     let facet: QueryFacet | undefined
     let choices = initialChoices(template)
     let lastUsableRangeBounds: [number, number] | undefined
+    let selectionBounds: [number, number] | undefined
 
     const createChoiceRow = (selected = '') => {
         const row = document.createElement('div')
@@ -82,13 +83,16 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
         if (nextBounds && nextBounds[0] < nextBounds[1]) {
             lastUsableRangeBounds = nextBounds
         }
-        const bounds = resolveRangeBounds(nextBounds, preserved && lastUsableRangeBounds)
+        const bounds = selectionBounds ?? resolveRangeBounds(nextBounds, preserved && lastUsableRangeBounds)
         if (!bounds || bounds[0] === bounds[1]) {
             controls.append(
                 createBoundInput('Minimum', preserved?.min?.value),
                 createBoundInput('Maximum', preserved?.max?.value)
             )
             return
+        }
+        if (preserved?.min || preserved?.max) {
+            selectionBounds ??= bounds
         }
 
         const slider = new RokitSlider()
@@ -111,6 +115,7 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
         slider.dataset.active = preserved?.min || preserved?.max ? 'true' : 'false'
         slider.addEventListener('change', () => {
             slider.dataset.active = 'true'
+            selectionBounds ??= [Number(slider.min), Number(slider.max)]
         })
         controls.appendChild(slider)
     }
@@ -199,6 +204,32 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
             const value = valueToTerm(input?.value, template, language)
             return value ? [{ field, operator, value }] : []
         })
+    }
+
+    // clears the selection in place; re-rendering is left to the next setQueryFacet call,
+    // which also avoids replacing freshly created widgets before they finished initializing
+    root.clearQueryCriteria = () => {
+        if (isRangeQueryField(field)) {
+            selectionBounds = undefined
+            lastUsableRangeBounds = undefined
+            const slider = controls.querySelector<RokitSlider>('rokit-slider')
+            if (slider) {
+                slider.dataset.active = 'false'
+                slider.value = JSON.stringify([Number(slider.min), Number(slider.max)])
+            } else {
+                for (const input of controls.querySelectorAll<RokitInput>('rokit-input')) {
+                    input.value = ''
+                }
+            }
+        } else if (discrete) {
+            for (const select of controls.querySelectorAll<RokitSelect>('rokit-select')) {
+                select.value = ''
+            }
+        } else {
+            for (const input of controls.querySelectorAll<RokitInput>('.query-value')) {
+                input.value = ''
+            }
+        }
     }
 
     root.setQueryFacet = (nextFacet?: QueryFacet) => {

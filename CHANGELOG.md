@@ -7,10 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `QueryFacetProvider.invalidatedFields()` lets providers declare criteria that
+  became invalid after a query change. Invalid criteria are cleared before the
+  final query event and facet request, for example when a numeric range no
+  longer applies after changing its quantity unit.
+
 ### Changed
 
 - Let the `ready` event bubble across shadow DOM boundaries so containing
   applications can observe completed form initialization.
+- Keep an active range slider's domain and handle positions stable across facet
+  refreshes. Clearing or invalidating the range releases the domain so new
+  facet bounds can take effect.
 
 ## [3.4.2] - 2026-08-11
 

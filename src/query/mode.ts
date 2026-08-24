@@ -18,6 +18,7 @@ export class QueryModeController {
     private facetAbortController?: AbortController
     private facetRequest = 0
     private facetsApplied = false
+    private previousQuery?: Query
 
     constructor(host: ShaclForm) {
         this.host = host
@@ -64,7 +65,20 @@ export class QueryModeController {
         if (!this.host.shape) {
             return
         }
-        const query = this.getQuery()
+        const fields = Array.from(this.host.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .map(editor => editor.queryField)
+        let query = this.getQuery()
+        const provider = this.host.config.queryFacetProvider
+        if (this.previousQuery && provider?.invalidatedFields) {
+            const invalidated = new Set(provider.invalidatedFields({ previousQuery: this.previousQuery, query, fields }))
+            for (const editor of this.host.form.querySelectorAll<QueryEditor>('.query-editor')) {
+                if (invalidated.has(editor.queryField.id)) {
+                    editor.clearQueryCriteria?.()
+                }
+            }
+            query = this.getQuery()
+        }
+        this.previousQuery = query
         this.host.dispatchEvent(new CustomEvent<Query>('query', { bubbles: true, composed: true, detail: query }))
         await this.requestFacets(query)
     }

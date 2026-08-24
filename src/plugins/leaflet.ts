@@ -241,6 +241,12 @@ export class LeafletPlugin extends Plugin {
             event.stopPropagation()
             map.fitBounds(worldBounds as unknown as L.LatLngBoundsExpression, { animate: false })
         })
+        root.clearQueryCriteria = () => {
+            active = false
+            criterionWkt = undefined
+            clearButton.hidden = true
+            map.fitBounds(worldBounds as unknown as L.LatLngBoundsExpression, { animate: false })
+        }
         let pendingFacet: QueryFacet | undefined
         const facetLayer = L.featureGroup().addTo(map)
 

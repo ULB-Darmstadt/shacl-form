@@ -102,6 +102,22 @@ form.setQueryFacetProvider({
 
 The provider receives the current `query`, every queryable `field`, and an `AbortSignal`. Honor the signal when doing network work. When a criterion changes, the component emits `query`, aborts the preceding facet request, and requests fresh facets. Results from superseded requests are ignored.
 
+Providers can synchronously invalidate dependent criteria before the query is emitted or facets are requested. Return the field ids whose existing selections no longer make sense:
+
+```js
+form.setQueryFacetProvider({
+  invalidatedFields({ previousQuery, query, fields }) {
+    if (!unitChanged(previousQuery, query)) return []
+    return fields.filter(isQuantityValueField).map(field => field.id)
+  },
+  async getFacets({ query, fields, signal }) {
+    // Receives the final query after invalidated criteria have been cleared.
+  },
+})
+```
+
+The hook is not called for the initial query. It must be synchronous and free of side effects; the form owns clearing editor controls and emits only the resulting final query.
+
 Return one facet per field that the backend can describe:
 
 ```ts
@@ -126,6 +142,8 @@ type QueryFacet = {
 - `error: true` marks a field-level failure.
 
 An inactive leaf with `count: 0` is given the `query-unavailable` class and hidden by the default theme. An active field remains visible even when its count becomes zero. Structural parent branches are hidden when they contain no available leaf. The host element receives `query-facets-empty` when no filter is available and affected properties receive `query-facet-error` for field-level failures.
+
+An inactive range slider follows refreshed `min` and `max` values. Once the user selects a range, its displayed domain and handle positions remain stable across facet refreshes. Clearing or invalidating that criterion releases the domain, allowing the next facet bounds to take effect.
 
 While a query-mode component initializes, the `shacl-form` host has the `loading` attribute. If a provider is installed before initialization, the attribute remains and the configured loading text is displayed until the first facets arrive. Applications can use `shacl-form[loading]` to style both loading phases without reaching into the shadow root. Call `form.refreshQueryFacets()` after filters maintained outside the component change; it makes a new facet request without changing or emitting the query. The method is a no-op outside query mode.
 
@@ -305,10 +323,11 @@ Registered form plugins may provide `createQueryEditor(field, template)` for spe
   queryField: QueryField
   getQueryCriteria(): QueryCriterion[]
   setQueryFacet(facet?: QueryFacet): void
+  clearQueryCriteria?(): void
 }
 ```
 
-The editor should emit a bubbling `change` event when its criteria change. The component then emits the new query and refreshes facets. If no plugin supplies a query editor, the built-in editor described above is used.
+The editor should emit a bubbling `change` event when its criteria change. The component then emits the new query and refreshes facets. Implement the optional `clearQueryCriteria()` method when the editor should participate in `QueryFacetProvider.invalidatedFields()`; it must clear its selection without emitting another change event. If no plugin supplies a query editor, the built-in editor described above is used.
 
 ## Differences from edit and view modes
 

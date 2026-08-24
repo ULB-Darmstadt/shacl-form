@@ -57,10 +57,20 @@ export type QueryFacetRequest = {
 
 export interface QueryFacetProvider {
     getFacets(request: QueryFacetRequest): Promise<QueryFacet[]>
+    /** Fields whose criteria became invalid while changing from the previous query to the new query. */
+    invalidatedFields?(change: QueryChange): string[]
+}
+
+export type QueryChange = {
+    previousQuery: Query
+    query: Query
+    fields: QueryField[]
 }
 
 export type QueryEditor = HTMLElement & {
     queryField: QueryField
     getQueryCriteria: () => QueryCriterion[]
     setQueryFacet: (facet?: QueryFacet) => void
+    /** Optional so custom and plugin editors stay compatible with criterion invalidation. */
+    clearQueryCriteria?: () => void
 }

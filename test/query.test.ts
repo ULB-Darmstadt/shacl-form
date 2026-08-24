@@ -290,13 +290,17 @@ ex:Visible a sh:NodeShape ;
 
     it('uses a ro-kit range slider when facet bounds are available', async () => {
         await bind(form, shapes, 'http://example.org/Root')
+        let requests = 0
         form.setQueryFacetProvider({
-            getFacets: async request => request.fields.map(field => hasPath(field, 'http://example.org/year') ? {
-                fieldId: field.id,
-                count: 10,
-                min: DataFactory.literal('1990', DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
-                max: DataFactory.literal('2020', DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
-            } : { fieldId: field.id, count: 10 }),
+            getFacets: async request => {
+                requests++
+                return request.fields.map(field => hasPath(field, 'http://example.org/year') ? {
+                    fieldId: field.id,
+                    count: 10,
+                    min: DataFactory.literal(requests === 1 ? '1990' : '2005', DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
+                    max: DataFactory.literal(requests === 1 ? '2020' : '2015', DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
+                } : { fieldId: field.id, count: 10 })
+            },
         })
         await new Promise(resolve => setTimeout(resolve, 0))
 
@@ -305,11 +309,58 @@ ex:Visible a sh:NodeShape ;
         expect(slider.min).to.equal('1990')
         expect(slider.max).to.equal('2020')
         slider.value = '[2000,2010]'
-        slider.dataset.active = 'true'
+        slider.dispatchEvent(new Event('change', { bubbles: true }))
+        await new Promise(resolve => setTimeout(resolve, 0))
 
         const criterion = form.getQuery().criteria.find(candidate => hasPath(candidate.field, 'http://example.org/year'))!
         expect(criterion.min?.value).to.equal('2000')
         expect(criterion.max?.value).to.equal('2010')
+        const refreshed = form.form.querySelector<RokitSlider>('rokit-slider.query-range-slider')!
+        expect(refreshed.min).to.equal('1990')
+        expect(refreshed.max).to.equal('2020')
+        expect(JSON.parse(refreshed.value)).to.deep.equal([2000, 2010])
+    })
+
+    it('stabilizes an active range when bound inputs become a slider', async () => {
+        await bind(form, shapes, 'http://example.org/Root')
+        let requests = 0
+        form.setQueryFacetProvider({
+            getFacets: async request => {
+                requests++
+                return request.fields.map(field => {
+                    if (!hasPath(field, 'http://example.org/year') || requests === 1) {
+                        return { fieldId: field.id, count: 10 }
+                    }
+                    return {
+                        fieldId: field.id,
+                        count: 10,
+                        min: DataFactory.literal(requests === 2 ? '1990' : '2005', DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
+                        max: DataFactory.literal(requests === 2 ? '2020' : '2015', DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
+                    }
+                })
+            },
+        })
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        const yearEditor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => editor.textContent?.includes('Year'))!
+        const inputs = yearEditor.querySelectorAll<RokitInput>('rokit-input.query-range-bound')
+        inputs[0].value = '2000'
+        inputs[1].value = '2010'
+        inputs[1].dispatchEvent(new Event('change', { bubbles: true }))
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        let slider = yearEditor.querySelector<RokitSlider>('rokit-slider.query-range-slider')!
+        expect(slider.min).to.equal('1990')
+        expect(slider.max).to.equal('2020')
+        expect(JSON.parse(slider.value)).to.deep.equal([2000, 2010])
+
+        form.refreshQueryFacets()
+        await new Promise(resolve => setTimeout(resolve, 0))
+        slider = yearEditor.querySelector<RokitSlider>('rokit-slider.query-range-slider')!
+        expect(slider.min).to.equal('1990')
+        expect(slider.max).to.equal('2020')
+        expect(JSON.parse(slider.value)).to.deep.equal([2000, 2010])
     })
 
     it('keeps a date slider when refreshed facets collapse to one date', async () => {
@@ -338,7 +389,14 @@ ex:Visible a sh:NodeShape ;
         await new Promise(resolve => setTimeout(resolve, 0))
 
         expect(requests).to.equal(2)
-        expect(published.querySelector('rokit-slider.query-range-slider')).to.be.instanceOf(RokitSlider)
+        const refreshed = published.querySelector<RokitSlider>('rokit-slider.query-range-slider')!
+        expect(refreshed).to.be.instanceOf(RokitSlider)
+        expect(refreshed.min).to.equal(String(Date.parse('2020-01-01') / 1000))
+        expect(refreshed.max).to.equal(String(Date.parse('2024-01-01') / 1000))
+        expect(JSON.parse(refreshed.value)).to.deep.equal([
+            Date.parse('2021-01-01') / 1000,
+            Date.parse('2023-01-01') / 1000,
+        ])
         expect(published.querySelectorAll('rokit-input.query-range-bound')).to.have.length(0)
     })
 
@@ -355,6 +413,64 @@ ex:Visible a sh:NodeShape ;
         form.refreshQueryFacets()
         await new Promise(resolve => setTimeout(resolve, 0))
         expect(requests).to.equal(2)
+    })
+
+    it('clears invalidated criteria before emitting the query and requesting facets', async () => {
+        await bind(form, shapes, 'http://example.org/Root')
+        const facetQueries: Query[] = []
+        form.setQueryFacetProvider({
+            invalidatedFields: ({ previousQuery, query, fields }) => {
+                const selectedKind = (candidate: Query) => candidate.criteria.find(criterion =>
+                    hasPath(criterion.field, 'http://example.org/kind'))?.value?.value
+                if (selectedKind(previousQuery) === selectedKind(query)) {
+                    return []
+                }
+                return fields.filter(field => hasPath(field, 'http://example.org/year')).map(field => field.id)
+            },
+            getFacets: async request => {
+                facetQueries.push(request.query)
+                const kindSelected = request.query.criteria.some(criterion => hasPath(criterion.field, 'http://example.org/kind'))
+                return request.fields.map(field => hasPath(field, 'http://example.org/year') ? {
+                    fieldId: field.id,
+                    count: 10,
+                    min: DataFactory.literal(kindSelected ? '0' : '1990', DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
+                    max: DataFactory.literal(kindSelected ? '100' : '2020', DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
+                } : hasPath(field, 'http://example.org/kind') ? {
+                    fieldId: field.id,
+                    count: 2,
+                    buckets: [{ value: DataFactory.namedNode('http://example.org/A'), label: 'A label', count: 2 }],
+                } : { fieldId: field.id, count: 10 })
+            },
+        })
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        const yearEditor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => editor.textContent?.includes('Year'))!
+        const slider = yearEditor.querySelector<RokitSlider>('rokit-slider.query-range-slider')!
+        slider.value = '[2000,2010]'
+        slider.dispatchEvent(new Event('change', { bubbles: true }))
+        await new Promise(resolve => setTimeout(resolve, 0))
+        expect(form.getQuery().criteria.some(criterion => criterion.operator === 'range')).to.be.true
+
+        const requestsBeforeUnitChange = facetQueries.length
+        const emitted: Query[] = []
+        form.addEventListener('query', event => emitted.push((event as CustomEvent<Query>).detail), { once: true })
+        const kindEditor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => editor.textContent?.includes('Kind'))!
+        const select = kindEditor.querySelector<RokitSelect>('rokit-select')!
+        select.value = `${DataFactory.namedNode('http://example.org/A').termType}:http://example.org/A`
+        select.dispatchEvent(new Event('change', { bubbles: true }))
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        const resetSlider = yearEditor.querySelector<RokitSlider>('rokit-slider.query-range-slider')!
+        expect(resetSlider.dataset.active).to.equal('false')
+        const values = JSON.parse(resetSlider.value) as number[]
+        expect(values).to.deep.equal([0, 100])
+        expect(emitted).to.have.length(1)
+        expect(emitted[0].criteria.some(criterion => criterion.operator === 'range')).to.be.false
+        expect(emitted[0].criteria.some(criterion => hasPath(criterion.field, 'http://example.org/kind'))).to.be.true
+        expect(facetQueries).to.have.length(requestsBeforeUnitChange + 1)
+        expect(facetQueries.at(-1)).to.deep.equal(emitted[0])
     })
 
     it('rejects RDF APIs in query mode and keeps data-view compatibility', async () => {
