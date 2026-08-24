@@ -1,4 +1,4 @@
-import { BlankNode, DataFactory, NamedNode, Store } from 'n3'
+import { BlankNode, DataFactory, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { PREFIX_SHACL, RDF_PREDICATE_TYPE } from './constants.js'
 import { ShaclProperty } from './property.js'
@@ -18,13 +18,15 @@ export class ShaclNode extends HTMLElement {
     ready: Promise<void>
     ancestorShapeIds: Set<string>
     queryContext?: QueryPathContext
+    private readonly bindingContext: BindingContext
 
-    constructor(template: ShaclNodeTemplate, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string, linked?: boolean, ancestorShapeIds: Set<string> = new Set(), queryContext?: QueryPathContext) {
+    constructor(template: ShaclNodeTemplate, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string, linked?: boolean, ancestorShapeIds: Set<string> = new Set(), queryContext?: QueryPathContext, bindingContext = BindingContext.create()) {
         super()
         this.template = template
         this.linked = linked ?? false
         this.ancestorShapeIds = ancestorShapeIds
         this.queryContext = queryContext
+        this.bindingContext = bindingContext
         this.setAttribute('part', 'node')
         let nodeId: NamedNode | BlankNode | undefined = valueSubject
         if (!nodeId) {
@@ -83,6 +85,7 @@ export class ShaclNode extends HTMLElement {
             const ancestorShapeIds = this.ancestorShapeIds
             const currentShapeId = this.template.id.value
             const currentQueryContext = this.queryContext
+            const currentBindingContext = this.bindingContext
             this.dataset.nodeId = this.nodeId.id
             if (this.template.config.attributes.showNodeIds !== null) {
                 const div = document.createElement('div')
@@ -96,13 +99,13 @@ export class ShaclNode extends HTMLElement {
                 const childAncestorShapeIds = new Set(ancestorShapeIds)
                 childAncestorShapeIds.add(currentShapeId)
                 // first output this shape's properties and then create extended shapes. this ensures that the values graph is bound to the most specific property.
-                for (const [_, properties] of Object.entries(template.properties)) {
+                for (const properties of Object.values(template.properties)) {
                     for (const property of properties) {
                         await this.addPropertyInstance(property, valueSubject, properties.length > 1)
                     }
                 }
                 for (const shape of template.extendedShapes) {
-                    const node = new ShaclNode(shape, valueSubject, undefined, undefined, linked, childAncestorShapeIds, currentQueryContext)
+                    const node = new ShaclNode(shape, valueSubject, undefined, undefined, linked, childAncestorShapeIds, currentQueryContext, currentBindingContext.forInheritedShape())
                     this.prepend(node)
                     await node.ready
                 }
@@ -119,6 +122,16 @@ export class ShaclNode extends HTMLElement {
                     this.prepend(header)
                 }
             })()
+        }
+    }
+
+    shouldBindPropertyValue(value: Quad): boolean {
+        return !this.linked || !this.bindingContext.wasBoundByDescendant(value)
+    }
+
+    recordBoundPropertyValue(value: Quad) {
+        if (this.linked) {
+            this.bindingContext.record(value)
         }
     }
 
@@ -166,14 +179,16 @@ export class ShaclNode extends HTMLElement {
             await property.bindValues(valueSubject, multiValuedPath)
         }
 
-        // do not add empty properties (i.e. properties with no instances). This can be the case e.g. in viewer mode when there is no data for the respective property.
-        if (template.config.editMode || template.config.queryMode || property.instanceCount() > 0) {
+        // Linked nodes are read-only even inside an edit form. Treat their empty
+        // properties like view-mode properties instead of creating edit controls.
+        const editable = template.config.editMode && !this.linked
+        if (editable || template.config.queryMode || property.instanceCount() > 0) {
             if (container) {
                 insertInOrder(container, property, template.order)
             } else {
                 insertInOrder(this, property, template.order)
             }
-            if (!template.config.queryMode) {
+            if (!template.config.queryMode && !this.linked) {
                 await property.updateControls()
             }
         }
@@ -193,6 +208,35 @@ export class ShaclNode extends HTMLElement {
         if (!resolved) {
             this.appendChild(createShaclOrConstraint(options, this, config))
         }
+    }
+}
+
+export class BindingContext {
+    private readonly inheritedValues: Set<string>
+    private readonly boundValues = new Set<string>()
+
+    private constructor(inheritedValues: Iterable<string>) {
+        this.inheritedValues = new Set(inheritedValues)
+    }
+
+    static create(): BindingContext {
+        return new BindingContext([])
+    }
+
+    wasBoundByDescendant(value: Quad): boolean {
+        return this.inheritedValues.has(this.key(value))
+    }
+
+    record(value: Quad) {
+        this.boundValues.add(this.key(value))
+    }
+
+    forInheritedShape(): BindingContext {
+        return new BindingContext([...this.inheritedValues, ...this.boundValues])
+    }
+
+    private key(value: Quad): string {
+        return `${value.predicate.id}\0${value.object.id}`
     }
 }
 

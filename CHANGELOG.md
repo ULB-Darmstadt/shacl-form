@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   refreshes. Clearing or invalidating the range releases the domain so new
   facet bounds can take effect.
 
+### Fixed
+
+- Avoid rendering linked values twice when a specific inherited property and
+  its generic ancestor property use the same path.
+
 ## [3.4.2] - 2026-08-11
 
 ### Added

@@ -59,18 +59,25 @@ export class ShaclProperty extends HTMLElement {
                     // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
                     values = await this.filterValidValues(values, valueSubject)
                 }
+                // A more-specific inherited property may already have rendered this
+                // value. Linked data cannot be removed from the shared store, so
+                // exclude it explicitly before rendering the generic ancestor property.
+                values = values.filter(value => this.parent.shouldBindPropertyValue(value))
                 for (const value of values) {
                     // remove quad from data graph to prevent double binding if value is not linked
                     if (!this.parent.linked) {
                         this.template.config.store.delete(value)
                     }
                     // if value is not in data graph or has loaded via ResourceLinkProvider, then it is a linked resource
-                    await this.addPropertyInstance(
+                    const instance = await this.addPropertyInstance(
                         value.object,
                         !DATA_GRAPH.equals(value.graph) || this.template.config.providedResources[value.object.value] !== undefined,
                         this.template.config.providedResources[value.object.value] !== undefined,
                         value.predicate.value
                     )
+                    if (instance) {
+                        this.parent.recordBoundPropertyValue(value)
+                    }
                     if (this.template.hasValue && value.object.equals(this.template.hasValue)) {
                         valuesContainHasValue = true
                     }

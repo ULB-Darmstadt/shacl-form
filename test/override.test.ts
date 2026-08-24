@@ -1,5 +1,7 @@
 import { expect } from '@open-wc/testing'
+import { DataFactory } from 'n3'
 import { ShaclForm } from '../src/form'
+import { ShaclNode } from '../src/node'
 import { bind, expectIsomorphic, expectValid } from './util'
 import '../src/form'
 
@@ -166,6 +168,76 @@ describe('test property overriding', () => {
 
         const renderRoot = form.shadowRoot ?? form
         expect(renderRoot.querySelectorAll(`[data-path='http://example.org/assignedParameterSet']`).length).to.equal(2)
+    })
+
+    it('does not duplicate linked values through an inherited catch-all property', async () => {
+        const previousMode = form.dataset.mode
+        try {
+            for (const mode of ['view', 'edit'] as const) {
+                form.dataset.mode = mode
+                await bind(form, `
+                    ${prefixes}
+                    @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+                    :BaseProfile a sh:NodeShape ;
+                        sh:property [
+                            sh:path :hasPart ;
+                            sh:name "has part" ;
+                            sh:minCount 1 ;
+                        ] .
+
+                    :SpecificProfile a sh:NodeShape ;
+                        sh:node :BaseProfile ;
+                        sh:property [
+                            sh:path :hasPart ;
+                            sh:name "Part A" ;
+                            sh:qualifiedValueShape [ sh:class :A ] ;
+                            sh:qualifiedMinCount 1 ;
+                        ] , [
+                            sh:path :hasPart ;
+                            sh:name "Part B" ;
+                            sh:qualifiedValueShape [ sh:class :B ] ;
+                            sh:qualifiedMinCount 1 ;
+                        ] , [
+                            sh:path :hasPart ;
+                            sh:name "Part D" ;
+                            sh:qualifiedValueShape [ sh:class :D ] ;
+                            sh:qualifiedMinCount 1 ;
+                        ] .
+                    `,
+                    'http://example.org/SpecificProfile', `
+                    ${prefixes}
+                    @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+                    <${valuesSubject}> :hasPart :partA, :partB, :partC .
+                    :partA rdf:type :A .
+                    :partB rdf:type :B .
+                    :partC rdf:type :C .
+                    `
+                )
+
+                const root = form.shape!.template
+                const base = [...root.extendedShapes][0]
+                expect(root.properties['http://example.org/hasPart'], mode).to.have.length(3)
+                expect(base.properties['http://example.org/hasPart'], mode).to.have.length(1)
+
+                // Linked nodes read from a shared store, so binding a specific
+                // property cannot consume the value before its generic ancestor runs.
+                const rendered = new ShaclNode(root, DataFactory.namedNode(valuesSubject), undefined, undefined, true)
+                await rendered.ready
+                const instances = rendered.querySelectorAll(`[data-path='http://example.org/hasPart']`)
+                expect(instances.length, mode).to.equal(3)
+                const labels = Array.from(instances).map(instance => instance.textContent?.trim())
+                expect(labels.filter(label => label === 'Part A'), mode).to.have.length(1)
+                expect(labels.filter(label => label === 'Part B'), mode).to.have.length(1)
+                expect(labels.filter(label => label?.startsWith('has part')), mode).to.have.length(1)
+            }
+        } finally {
+            if (previousMode === undefined) {
+                delete form.dataset.mode
+            } else {
+                form.dataset.mode = previousMode
+            }
+        }
     })
 
     it('sh:qualifiedValueShape multiple override with sh:in', async () => {
