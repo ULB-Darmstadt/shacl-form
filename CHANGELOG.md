@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- range query facets with bounds min == max do not render now
+
+## [3.5.0] - 2026-08-24
+
 ### Added
 
 - `QueryFacetProvider.invalidatedFields()` lets providers declare criteria that

@@ -155,11 +155,17 @@ export class QueryModeController {
 }
 
 export async function initializeQueryProperty(property: ShaclProperty): Promise<void> {
+    const appendEditor = (editor: QueryEditor) => {
+        property.container.appendChild(editor)
+        if (editor.invalid) {
+            property.classList.add('query-unavailable')
+        }
+    }
     const template = property.template
     if (template.or?.length || template.xone?.length) {
         const numericAlternative = resolveNumericAlternative(template)
         if (numericAlternative) {
-            property.container.appendChild(createQueryLeaf(numericAlternative, property.parent))
+            appendEditor(createQueryLeaf(numericAlternative, property.parent))
             return
         }
         const options = template.or?.length ? template.or : template.xone!
@@ -167,7 +173,7 @@ export async function initializeQueryProperty(property: ShaclProperty): Promise<
         return
     }
     if (!template.nodeShapes.size) {
-        property.container.appendChild(createQueryLeaf(template, property.parent))
+        appendEditor(createQueryLeaf(template, property.parent))
         return
     }
     if (isStructuredFacet(template)) {
@@ -184,7 +190,7 @@ export async function initializeQueryProperty(property: ShaclProperty): Promise<
             }
         }
         reference.nodeKind ??= SHACL_OBJECT_IRI
-        property.container.appendChild(createQueryLeaf(reference, property.parent))
+        appendEditor(createQueryLeaf(reference, property.parent))
         return
     }
     for (const shape of template.nodeShapes) {

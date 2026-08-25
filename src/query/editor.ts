@@ -89,6 +89,7 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
                 createBoundInput('Minimum', preserved?.min?.value),
                 createBoundInput('Maximum', preserved?.max?.value)
             )
+            root.invalid = true
             return
         }
         if (preserved?.min || preserved?.max) {
@@ -101,7 +102,6 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
         slider.clearable = true
         slider.range = ''
         slider.setAttribute('range', '')
-        // slider.setAttribute('sticky', '')
         slider.min = String(bounds[0])
         slider.max = String(bounds[1])
         slider.step = String(rangeStep(template, bounds))

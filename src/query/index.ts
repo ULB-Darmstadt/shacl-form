@@ -73,4 +73,5 @@ export type QueryEditor = HTMLElement & {
     setQueryFacet: (facet?: QueryFacet) => void
     /** Optional so custom and plugin editors stay compatible with criterion invalidation. */
     clearQueryCriteria?: () => void
+    invalid?: boolean
 }
