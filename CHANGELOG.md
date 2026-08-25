@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+## [3.5.1] - 2026-08-25
+
 - range query facets with bounds min == max do not render now
 
 ## [3.5.0] - 2026-08-24
