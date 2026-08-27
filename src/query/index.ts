@@ -42,6 +42,8 @@ export type HeatmapGrid = {
 export type QueryFacet = {
     fieldId: string
     count: number
+    /** The facet cannot offer a meaningful editor, regardless of an active criterion. */
+    unavailable?: boolean
     buckets?: { value: Term; label?: string; count: number }[]
     min?: Term
     max?: Term
@@ -73,5 +75,5 @@ export type QueryEditor = HTMLElement & {
     setQueryFacet: (facet?: QueryFacet) => void
     /** Optional so custom and plugin editors stay compatible with criterion invalidation. */
     clearQueryCriteria?: () => void
-    invalid?: boolean
+    unavailable?: boolean
 }

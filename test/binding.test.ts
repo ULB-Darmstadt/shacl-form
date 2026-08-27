@@ -436,6 +436,7 @@ describe('test value binding', () => {
                 type: string
                 updateComplete: Promise<boolean>
                 value: string
+                validationMessage: string
             }
             await editor.updateComplete
             expect(editor.type).to.equal('text')
@@ -451,9 +452,22 @@ describe('test value binding', () => {
                 expect(literal?.datatype.value).to.equal(`http://www.w3.org/2001/XMLSchema#${datatype}`)
             }
 
-            editor.value = 'not a number'
+            editor.value = '1e10'
+            await editor.updateComplete
+            editor.dispatchEvent(new Event('change', { bubbles: true }))
+            const exponentLiteral = form.toRDF().getObjects(null, 'http://example.org/path', null)[0]
+            if (datatype === 'decimal') {
+                expect(exponentLiteral).to.be.undefined
+            } else {
+                expect(exponentLiteral?.value).to.equal('1e10')
+                expect(exponentLiteral?.datatype.value).to.equal(`http://www.w3.org/2001/XMLSchema#${datatype}`)
+            }
+
+            editor.inputElement.value = 'not a number'
+            editor.inputElement.dispatchEvent(new Event('input', { bubbles: true, composed: true }))
             await editor.updateComplete
             expect(editor.inputElement.checkValidity()).to.be.false
+            expect(editor.validationMessage).to.equal(`Value does not have datatype http://www.w3.org/2001/XMLSchema#${datatype}`)
         })
     }
 

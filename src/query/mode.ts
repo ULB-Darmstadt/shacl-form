@@ -121,7 +121,10 @@ export class QueryModeController {
             const active = editor.getQueryCriteria().length > 0
             editor.setQueryFacet(facet)
             const property = editor.closest('shacl-property')
-            property?.classList.toggle('query-unavailable', facet?.count === 0 && !active)
+            property?.classList.toggle(
+                'query-unavailable',
+                editor.unavailable || facet?.unavailable === true || (facet?.count === 0 && !active)
+            )
             property?.classList.toggle('query-facet-error', facet?.error === true)
         }
         const structuralProperties = Array.from(this.host.form.querySelectorAll('shacl-property')).reverse()
@@ -157,7 +160,7 @@ export class QueryModeController {
 export async function initializeQueryProperty(property: ShaclProperty): Promise<void> {
     const appendEditor = (editor: QueryEditor) => {
         property.container.appendChild(editor)
-        if (editor.invalid) {
+        if (editor.unavailable) {
             property.classList.add('query-unavailable')
         }
     }

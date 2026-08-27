@@ -84,12 +84,15 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
             lastUsableRangeBounds = nextBounds
         }
         const bounds = selectionBounds ?? resolveRangeBounds(nextBounds, preserved && lastUsableRangeBounds)
-        if (!bounds || bounds[0] === bounds[1]) {
+        root.unavailable = Boolean(bounds && bounds[0] === bounds[1])
+        if (root.unavailable) {
+            return
+        }
+        if (!bounds) {
             controls.append(
                 createBoundInput('Minimum', preserved?.min?.value),
                 createBoundInput('Maximum', preserved?.max?.value)
             )
-            root.invalid = true
             return
         }
         if (preserved?.min || preserved?.max) {
@@ -276,8 +279,9 @@ function effectiveRangeBounds(template: ShaclPropertyTemplate, facet?: QueryFace
     const facetMax = facet?.max ? termToSliderValue(facet.max, template) : undefined
     const shapeMin = template.minInclusive ?? (template.minExclusive !== undefined ? template.minExclusive + 1 : undefined)
     const shapeMax = template.maxInclusive ?? (template.maxExclusive !== undefined ? template.maxExclusive - 1 : undefined)
-    const min = facetMin === undefined ? shapeMin : shapeMin === undefined ? facetMin : Math.max(facetMin, shapeMin)
-    const max = facetMax === undefined ? shapeMax : shapeMax === undefined ? facetMax : Math.min(facetMax, shapeMax)
+    const hasFacetBounds = facetMin !== undefined && facetMax !== undefined
+    const min = hasFacetBounds ? facetMin : facetMin === undefined ? shapeMin : shapeMin === undefined ? facetMin : Math.max(facetMin, shapeMin)
+    const max = hasFacetBounds ? facetMax : facetMax === undefined ? shapeMax : shapeMax === undefined ? facetMax : Math.min(facetMax, shapeMax)
     return min !== undefined && max !== undefined && Number.isFinite(min) && Number.isFinite(max) && min <= max ? [min, max] : undefined
 }
 

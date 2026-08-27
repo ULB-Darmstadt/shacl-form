@@ -240,6 +240,29 @@ ex:deviceKindProperty sh:path ex:quantityKind ; sh:name "Device kind" .
         expect((await event).criteria[0].value?.value).to.equal('test')
     })
 
+    it('hides explicitly unavailable facets even while selected', async () => {
+        await bind(form, shapes, 'http://example.org/Root')
+        form.setQueryFacetProvider({
+            getFacets: async request => request.fields.map(field => hasPath(field, 'http://example.org/kind') ? {
+                fieldId: field.id,
+                count: 1,
+                unavailable: request.query.criteria.some(criterion => criterion.field.id === field.id),
+                buckets: [{ value: DataFactory.namedNode('http://example.org/A'), count: 1 }],
+            } : { fieldId: field.id, count: 1 }),
+        })
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        const kindEditor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => editor.textContent?.includes('Kind'))!
+        const select = kindEditor.querySelector<RokitSelect>('rokit-select')!
+        select.value = 'NamedNode:http://example.org/A'
+        select.dispatchEvent(new Event('change', { bubbles: true }))
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        expect(kindEditor.getQueryCriteria()).to.have.length(1)
+        expect(kindEditor.closest('shacl-property')?.classList.contains('query-unavailable')).to.be.true
+    })
+
     it('hides node-shape branches without an available filter down the tree', async () => {
         const nestedShapes = `
 @prefix sh: <http://www.w3.org/ns/shacl#> .
@@ -319,6 +342,33 @@ ex:Visible a sh:NodeShape ;
         expect(refreshed.min).to.equal('1990')
         expect(refreshed.max).to.equal('2020')
         expect(JSON.parse(refreshed.value)).to.deep.equal([2000, 2010])
+    })
+
+    it('hides an inactive range editor when its facet bounds are equal', async () => {
+        await bind(form, shapes, 'http://example.org/Root')
+        let max = '2020'
+        form.setQueryFacetProvider({
+            getFacets: async request => request.fields.map(field => hasPath(field, 'http://example.org/year') ? {
+                fieldId: field.id,
+                count: 1,
+                min: DataFactory.literal('2020', DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
+                max: DataFactory.literal(max, DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#integer')),
+            } : { fieldId: field.id, count: 1 }),
+        })
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        const yearEditor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => editor.textContent?.includes('Year'))!
+        const yearProperty = yearEditor.closest('shacl-property')!
+        expect(yearProperty.classList.contains('query-unavailable')).to.be.true
+        expect(yearEditor.querySelector('.query-range-bound')).to.be.null
+        expect(yearEditor.querySelector('.query-range-slider')).to.be.null
+
+        max = '2021'
+        form.refreshQueryFacets()
+        await new Promise(resolve => setTimeout(resolve, 0))
+        expect(yearProperty.classList.contains('query-unavailable')).to.be.false
+        expect(yearEditor.querySelector('rokit-slider.query-range-slider')).to.be.instanceOf(RokitSlider)
     })
 
     it('stabilizes an active range when bound inputs become a slider', async () => {
