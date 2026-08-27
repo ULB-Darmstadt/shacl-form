@@ -83,7 +83,7 @@ export function editorToTerm(editor: Editor): EditorTerm | undefined {
     if (editor.dataset.lang) {
         languageOrDatatype = editor.dataset.lang
     } else if (languageOrDatatype instanceof NamedNode && FRACTIONAL_DATATYPES.has(languageOrDatatype.value)) {
-        const normalizedValue = normalizeFractionalNumber(value)
+        const normalizedValue = normalizeFractionalNumber(value, languageOrDatatype.value)
         if (normalizedValue === undefined) {
             return undefined
         }
@@ -109,9 +109,12 @@ function parseRdfTerm(value: string): EditorTerm | undefined {
     return term instanceof NamedNode || term instanceof BlankNode || term instanceof Literal ? term : undefined
 }
 
-function normalizeFractionalNumber(value: string): string | undefined {
+function normalizeFractionalNumber(value: string, datatype: string): string | undefined {
     const normalized = value.replace(',', '.')
-    return /^[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?$/.test(normalized)
+    const pattern = datatype === PREFIX_XSD + 'decimal'
+        ? /^[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/
+        : /^[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?$/
+    return pattern.test(normalized)
         ? normalized
         : undefined
 }

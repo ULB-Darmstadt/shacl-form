@@ -239,6 +239,12 @@ export class DefaultTheme extends Theme {
             editor.updateComplete.then(() => {
                 editor.inputElement.inputMode = 'decimal'
             })
+            editor.addEventListener('input', () => {
+                editor.setCustomValidity(
+                    editor.validity.patternMismatch ? 'Value does not have datatype <' + template.datatype?.value + '>' : undefined,
+                    editor.inputElement
+                )
+            })
         }
         editor.clearable = true
         editor.dense = this.dense
