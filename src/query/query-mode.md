@@ -139,6 +139,7 @@ type QueryFacet = {
 - `count` is the number of matching root resources for which the field is available. Providers should count distinct roots when RDF joins can produce duplicates.
 - `buckets` supplies discrete RDF values, optional display labels, and counts. For a field with `sh:in`, buckets outside the shape's allowed values are discarded. An active value missing from refreshed buckets remains selectable with count zero so the user can remove it.
 - `min` and `max` supply typed bounds for numeric and temporal fields. When they form a usable interval, the two bound inputs become a range slider.
+- `unavailable: true` hides a facet that cannot offer a meaningful editor, even when it has an active criterion.
 - `error: true` marks a field-level failure.
 
 An inactive leaf with `count: 0` is given the `query-unavailable` class and hidden by the default theme. An active field remains visible even when its count becomes zero. Structural parent branches are hidden when they contain no available leaf. The host element receives `query-facets-empty` when no filter is available and affected properties receive `query-facet-error` for field-level failures.

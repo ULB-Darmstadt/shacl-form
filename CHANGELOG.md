@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+## [3.5.2] - 2026-08-27
+
+### Added
+
+- Allow query facet providers to mark a facet as unavailable even while it has
+  an active criterion.
+
+### Fixed
+
+- Show datatype-specific validation messages for malformed fractional numbers,
+  and reject exponent notation when serializing `xsd:decimal` values while
+  retaining exponent support for `xsd:float` and `xsd:double`.
+
 ## [3.5.1] - 2026-08-25
 
 - range query facets with bounds min == max do not render now

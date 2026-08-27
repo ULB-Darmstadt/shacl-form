@@ -8,6 +8,7 @@
     --shacl-row-alt-bg: #F8F8F8;
     --shacl-error-color: #C00;
     --shacl-label-width: 8em;
+    --linked-icon: url('data:image/svg+xml;utf8,<svg viewBox="-1 -1 18 18" xmlns="http://www.w3.org/2000/svg"><path d="m13.4 7.6-6.3 6.3a4 4 0 0 1-5.7-5.7l6.6-6.6a2.75 2.75 0 0 1 3.9 3.9l-6.6 6.6a1.5 1.5 0 0 1-2.1-2.1l6-6" fill="none" stroke="black" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>');
 }
 form { display:block; --label-width: var(--shacl-label-width, 8em); --caret-size: 10px; font-family: var(--shacl-font-family); font-size: var(--shacl-font-size); color: var(--shacl-text-color); background-color: var(--shacl-bg); }
 form.mode-edit { padding-left: 1em;  }
@@ -16,7 +17,7 @@ shacl-node, .collapsible::part(content) { display: flex; flex-direction: column;
 shacl-node .remove-button { margin-top: 1px; }
 shacl-node .add-button-wrapper { display: flex; width: 100%; justify-content: flex-end; gap: 20px; padding-right: 24px; color: var(--shacl-muted-color); font-size: 14px; }
 shacl-node .add-button::part(button)::before { content: '+ ' }
-shacl-node .link-button::part(button)::before { content: '🔗 '; font-size: 10px; }
+shacl-node .link-button::part(button)::before { content: ''; display: inline-block; width: 1em; height: 1em; background-color: currentColor; -webkit-mask: var(--linked-icon) center / contain no-repeat; mask: var(--linked-icon) center / contain no-repeat; }
 shacl-node h1 { font-size: 16px; border-bottom: 1px solid #AAA; margin-top: 4px; color: var(--shacl-muted-color); }
 shacl-property:not(:has(>.collapsible)), shacl-property>.collapsible::part(content) { display: flex; flex-direction: column; align-items: end; position: relative; }
 shacl-property:not(.may-add) > .add-button-wrapper, shacl-property:not(.may-add) > .collapsible > .add-button-wrapper { display: none; }
@@ -31,7 +32,7 @@ shacl-property:not(.may-remove) > .collapsible > .alternative-path-constraint > 
 .shacl-or-constraint > div:first-child, .alternative-path-constraint > div:first-child { flex-grow: 1 }
 .shacl-or-constraint label, .alternative-path-constraint label { display: inline-block; word-break: break-word; width: var(--label-width); line-height: 1em; padding-top: 0.15em; padding-right: 1em; flex-shrink: 0; position: relative; }
 .property-instance label[title] { cursor: help; text-decoration: underline dashed #AAA; }
-.property-instance.linked label:after, label.linked:after { --linked-icon: url('data:image/svg+xml;utf8,<svg viewBox="-1 -1 18 18" xmlns="http://www.w3.org/2000/svg"><path d="m13.4 7.6-6.3 6.3a4 4 0 0 1-5.7-5.7l6.6-6.6a2.75 2.75 0 0 1 3.9 3.9l-6.6 6.6a1.5 1.5 0 0 1-2.1-2.1l6-6" fill="none" stroke="black" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'); content: ''; position: absolute; top: 50%; right: 2px; width: 1.1em; height: 1.1em; transform: translateY(-50%); background-color: currentColor; -webkit-mask: var(--linked-icon) center / contain no-repeat; mask: var(--linked-icon) center / contain no-repeat; }
+.property-instance.linked label:after, label.linked:after { content: ''; position: absolute; top: 50%; right: 2px; width: 1.1em; height: 1.1em; transform: translateY(-50%); background-color: currentColor; -webkit-mask: var(--linked-icon) center / contain no-repeat; mask: var(--linked-icon) center / contain no-repeat; }
 .mode-edit .property-instance label.required::before, .add-button-wrapper.required > .add-button::before, .add-button-wrapper.required > .link-button::before { color: var(--shacl-error-color); content: '\2736'; font-size: 0.6rem; position: absolute; left: -1.4em; }
 .mode-edit .add-button-wrapper.required > .add-button::before, .add-button-wrapper.required > .link-button::before { left: -0.5em; }
 .property-instance.valid::before { content: ''; position: absolute; left: calc(var(--label-width) - 1em); top: 50%; transform: translateY(-50%); width: 0.9em; height: 0.9em; background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1024 1024" fill="green" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M866.133333 258.133333L362.666667 761.6l-204.8-204.8L98.133333 618.666667 362.666667 881.066667l563.2-563.2z"/></svg>'); }

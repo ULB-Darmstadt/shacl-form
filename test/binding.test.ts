@@ -467,7 +467,7 @@ describe('test value binding', () => {
             editor.inputElement.dispatchEvent(new Event('input', { bubbles: true, composed: true }))
             await editor.updateComplete
             expect(editor.inputElement.checkValidity()).to.be.false
-            expect(editor.validationMessage).to.equal(`Value does not have datatype http://www.w3.org/2001/XMLSchema#${datatype}`)
+            expect(editor.validationMessage).to.equal(`Value does not have datatype <http://www.w3.org/2001/XMLSchema#${datatype}>`)
         })
     }
 
