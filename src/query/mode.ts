@@ -102,9 +102,16 @@ export class QueryModeController {
             if (controller.signal.aborted || requestId !== this.facetRequest) {
                 return
             }
-            this.applyFacets(facets)
+            const initialValuesApplied = this.applyFacets(facets, !this.facetsApplied)
             this.facetsApplied = true
             this.setFacetsPending(false)
+            if (initialValuesApplied) {
+                // Facet application may have just created new custom controls.
+                // Let their first update finish before the resulting query
+                // refresh can replace them again.
+                await new Promise<void>(resolve => setTimeout(resolve, 0))
+                await this.emitQueryAndRefreshFacets()
+            }
         } catch (error) {
             if (controller.signal.aborted) {
                 return
@@ -114,12 +121,17 @@ export class QueryModeController {
         }
     }
 
-    private applyFacets(facets: QueryFacet[]): void {
+    private applyFacets(facets: QueryFacet[], applyInitialValues: boolean): boolean {
         const byField = new Map(facets.map(facet => [facet.fieldId, facet]))
+        let initialValueApplied = false
         for (const editor of Array.from(this.host.form.querySelectorAll<QueryEditor>('.query-editor'))) {
-            const facet = byField.get(editor.queryField.id)
-            const active = editor.getQueryCriteria().length > 0
-            editor.setQueryFacet(facet)
+            let facet = byField.get(editor.queryField.id)
+            if (facet?.initialValue && !applyInitialValues) {
+                facet = { ...facet, initialValue: undefined }
+            }
+            const applied = editor.setQueryFacet(facet) === true
+            initialValueApplied ||= applied
+            const active = applied || editor.getQueryCriteria().length > 0
             const property = editor.closest('shacl-property')
             property?.classList.toggle(
                 'query-unavailable',
@@ -141,6 +153,7 @@ export class QueryModeController {
             !editor.closest('shacl-property')?.classList.contains('query-unavailable')
         )
         this.host.classList.toggle('query-facets-empty', !hasAvailableFilter)
+        return initialValueApplied
     }
 
     private setFacetsPending(pending: boolean): void {
@@ -232,6 +245,7 @@ function createQueryLeaf(template: ShaclPropertyTemplate, parent: ShaclNode): Qu
         id: `qf${(nextQueryFieldId++).toString(36)}`,
         path: [...context.path, propertyPathSegment(template)],
         shapePath: [...context.shapePath, queryShapePathSegment(template)],
+        fixedValue: template.hasValue,
         datatype: template.datatype?.value,
         discrete: template.facet === true
     }

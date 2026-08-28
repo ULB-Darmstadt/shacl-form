@@ -253,7 +253,16 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
                     choices.push({ term, label: allowed.get(key)?.label ?? term.value, count: 0 })
                 }
             }
+            let initialValueApplied = false
+            if (active.size === 0 && facet.initialValue) {
+                const key = termKey(facet.initialValue)
+                if (choices.some(choice => termKey(choice.term) === key)) {
+                    active.set(key, facet.initialValue)
+                    initialValueApplied = true
+                }
+            }
             renderDiscrete([...active.keys()])
+            return initialValueApplied
         } else if (isRangeQueryField(field)) {
             const criterion = activeCriteria[0]
             renderRange(criterion ? { min: criterion.min, max: criterion.max } : undefined)
@@ -262,6 +271,7 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
                 input.value = ''
             }
         }
+        return false
     }
 
     if (isRangeQueryField(field)) {

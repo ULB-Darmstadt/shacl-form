@@ -7,6 +7,8 @@ export type QueryField = {
     id: string
     path: QueryPathSegment[]
     shapePath?: string[]
+    /** Value fixed by sh:hasValue on the property's shape. */
+    fixedValue?: Term
     datatype?: string
     discrete?: boolean
 }
@@ -44,6 +46,8 @@ export type QueryFacet = {
     count: number
     /** The facet cannot offer a meaningful editor, regardless of an active criterion. */
     unavailable?: boolean
+    /** Value selected when this field receives its first facet and has no active criterion. */
+    initialValue?: Term
     buckets?: { value: Term; label?: string; count: number }[]
     min?: Term
     max?: Term
@@ -72,7 +76,8 @@ export type QueryChange = {
 export type QueryEditor = HTMLElement & {
     queryField: QueryField
     getQueryCriteria: () => QueryCriterion[]
-    setQueryFacet: (facet?: QueryFacet) => void
+    /** Returns true when applying the facet created an initial criterion. */
+    setQueryFacet: (facet?: QueryFacet) => boolean | void
     /** Optional so custom and plugin editors stay compatible with criterion invalidation. */
     clearQueryCriteria?: () => void
     unavailable?: boolean

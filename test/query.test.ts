@@ -110,6 +110,19 @@ ex:timeKindProperty sh:path ex:quantityKind ; sh:name "Time kind" .
         ])
     })
 
+    it('exposes values fixed by sh:hasValue to facet providers', async () => {
+        await bind(form, `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/> .
+ex:Root a sh:NodeShape ;
+  sh:property [ sh:path ex:quantityKind ; sh:name "Quantity kind" ; sh:hasValue ex:Temperature ] .
+`, 'http://example.org/Root')
+        const field = form.form.querySelector<QueryEditor>('.query-editor')!.queryField
+
+        expect(field.fixedValue?.termType).to.equal('NamedNode')
+        expect(field.fixedValue?.value).to.equal('http://example.org/Temperature')
+    })
+
     it('emits the specialized property shape id for merged qualified branches', async () => {
         const mergedShapes = `
 @prefix sh: <http://www.w3.org/ns/shacl#> .
@@ -238,6 +251,56 @@ ex:deviceKindProperty sh:path ex:quantityKind ; sh:name "Device kind" .
         title.value = 'test'
         title.dispatchEvent(new Event('change', { bubbles: true }))
         expect((await event).criteria[0].value?.value).to.equal('test')
+    })
+
+    it('applies an initial facet value once and emits the resulting query', async () => {
+        await bind(form, shapes, 'http://example.org/Root')
+        let requests = 0
+        const selectedQuery = new Promise<Query>(resolve => form.addEventListener('query', event => {
+            const query = (event as CustomEvent<Query>).detail
+            if (query.criteria.some(criterion => criterion.value?.value === 'http://example.org/A')) {
+                resolve(query)
+            }
+        }))
+        form.setQueryFacetProvider({
+            getFacets: async request => {
+                requests++
+                return request.fields.map(field => hasPath(field, 'http://example.org/kind') ? {
+                    fieldId: field.id,
+                    count: 2,
+                    initialValue: DataFactory.namedNode('http://example.org/A'),
+                    buckets: [
+                        { value: DataFactory.namedNode('http://example.org/A'), label: 'A label', count: 1 },
+                        { value: DataFactory.namedNode('http://example.org/B'), label: 'B label', count: 1 },
+                    ],
+                } : { fieldId: field.id, count: 1 })
+            },
+        })
+
+        const query = await selectedQuery
+        await new Promise(resolve => setTimeout(resolve, 0))
+        const kindEditor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => editor.textContent?.includes('Kind'))!
+        const select = kindEditor.querySelector<RokitSelect>('rokit-select')!
+
+        expect(query.criteria.find(criterion => criterion.field.id === kindEditor.queryField.id)?.value?.value)
+            .to.equal('http://example.org/A')
+        expect(select.value).to.equal('NamedNode:http://example.org/A')
+        expect(requests).to.equal(2)
+
+        const clearedQuery = new Promise<Query>(resolve => form.addEventListener('query', event => {
+            const next = (event as CustomEvent<Query>).detail
+            if (!next.criteria.some(criterion => criterion.field.id === kindEditor.queryField.id)) {
+                resolve(next)
+            }
+        }))
+        select.value = ''
+        select.dispatchEvent(new Event('change', { bubbles: true }))
+        await clearedQuery
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        expect(select.value).to.equal('')
+        expect(kindEditor.getQueryCriteria()).to.have.length(0)
     })
 
     it('hides explicitly unavailable facets even while selected', async () => {

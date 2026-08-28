@@ -53,6 +53,7 @@ type QueryField = {
   id: string
   path: QueryPathSegment[]
   shapePath?: string[]
+  fixedValue?: Term
   datatype?: string
 }
 
@@ -65,6 +66,7 @@ type QueryPathSegment = string | string[]
 - `field.id` is an opaque, form-generated identifier. Use it to correlate a field with facet results; do not derive backend meaning from it.
 - `field.path` is the complete RDF predicate path from the root resource to the value. A nested field can therefore have a path such as `[ex:author, ex:name]`. An array-valued segment represents `sh:alternativePath`, for example `[[ex:father, ex:mother], ex:name]`.
 - `field.shapePath` identifies the property-shape branch. It distinguishes qualified or alternative branches that have the same RDF predicate path.
+- `field.fixedValue` is the property's `sh:hasValue`, when present. Facet providers can use this shape-fixed metadata without creating a user-selectable criterion.
 - `field.datatype` is the field's datatype IRI when the shape supplies one.
 
 All criteria are combined with logical AND and apply to the same root resource. RDF path segments describe traversal from that root; intermediate resources are not result rows.
@@ -124,6 +126,7 @@ Return one facet per field that the backend can describe:
 type QueryFacet = {
   fieldId: string
   count: number
+  initialValue?: Term
   buckets?: Array<{
     value: Term
     label?: string
@@ -137,6 +140,7 @@ type QueryFacet = {
 
 - `fieldId` must equal the corresponding `QueryField.id`.
 - `count` is the number of matching root resources for which the field is available. Providers should count distinct roots when RDF joins can produce duplicates.
+- `initialValue` pre-selects a discrete bucket when the first facets are applied and the field has no active criterion. It is ignored on later refreshes, so users can clear the selection. When an initial value is applied, the form emits the resulting query and refreshes facets once.
 - `buckets` supplies discrete RDF values, optional display labels, and counts. For a field with `sh:in`, buckets outside the shape's allowed values are discarded. An active value missing from refreshed buckets remains selectable with count zero so the user can remove it.
 - `min` and `max` supply typed bounds for numeric and temporal fields. When they form a usable interval, the two bound inputs become a range slider.
 - `unavailable: true` hides a facet that cannot offer a meaningful editor, even when it has an active criterion.

@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Changed
+## [3.6.0] - 2026-08-28
+
+### Added
+
+- Expose a property's `sh:hasValue` as `QueryField.fixedValue`, allowing facet
+  providers to use shape-fixed metadata without creating a query criterion.
+- Add `QueryFacet.initialValue` for selecting a discrete facet value when its
+  first facet response arrives. The resulting query is emitted and refreshed
+  once, while later facet responses do not reapply a value the user cleared.
 
 ## [3.5.2] - 2026-08-27
 
