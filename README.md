@@ -284,6 +284,55 @@ When binding an existing data graph to the form, the constraint is resolved base
 - For RDF literals, an `sh:or` option with a matching `sh:datatype` is chosen
 - For blank nodes or named nodes, the `rdf:type` is matched with a node shape having a corresponding `sh:targetClass` or with a property shape having a corresponding `sh:class`. If there is no `rdf:type` but a `sh:nodeKind` of `sh:IRI`, the node id is used as the value
 
+### RDF lists
+
+`<shacl-form>` supports creating and editing [RDF collections](https://www.w3.org/TR/rdf12-schema/#ch_collectionvocab) when a property with `sh:maxCount 1` points to a recursive list node shape. The outer property may additionally use `sh:class` and a resource-valued `sh:nodeKind` (`sh:IRI`, `sh:BlankNode`, or `sh:BlankNodeOrIRI`). The list shape must contain only one `rdf:first` and one `rdf:rest` property, both with `sh:minCount 1` and `sh:maxCount 1`. The `rdf:rest` property must use `sh:or` to allow either `rdf:nil` or another node with the same list shape.
+
+Directly renderable constraints on `rdf:first` determine the editor used for each list item. The flattened list editor does not apply when `rdf:first` uses `sh:or`, `sh:xone`, or `sh:hasValue`, or when the list node contains additional properties; those shapes retain the standard nested rendering. For example, this shape renders “Discrete values” as a repeatable decimal field:
+
+```turtle
+@prefix ex:  <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh:  <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:VariableShape
+  a sh:NodeShape ;
+  sh:property [
+    sh:path ex:hasDiscreteValues ;
+    sh:name "Discrete values" ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node ex:DecimalListShape
+  ] .
+
+ex:DecimalListShape
+  a sh:NodeShape ;
+  sh:property [
+    sh:path rdf:first ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:decimal
+  ] ;
+  sh:property [
+    sh:path rdf:rest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or (
+      [ sh:hasValue rdf:nil ]
+      [ sh:node ex:DecimalListShape ]
+    )
+  ] .
+```
+
+Entering `1.5`, `2.75`, and `4.0` produces an RDF collection such as:
+
+```turtle
+ex:variable ex:hasDiscreteValues ( 1.5 2.75 4.0 ) .
+```
+
+Existing collections using the same structure are flattened into item editors when bound and expanded back into `rdf:first`/`rdf:rest` triples when serialized.
+
 ### SHACL alternative paths
 
 `<shacl-form>` supports `sh:alternativePath` lists whose members are predicate IRIs:

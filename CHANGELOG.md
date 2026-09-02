@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-09-02
+
+### Added
+
+- Render recursively constrained `rdf:first`/`rdf:rest` shapes as repeatable
+  item editors and serialize their values as RDF collections.
+
 ## [3.6.0] - 2026-08-28
 
 ### Added

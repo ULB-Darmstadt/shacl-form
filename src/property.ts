@@ -1,4 +1,4 @@
-import { BlankNode, DataFactory, NamedNode, Quad, Store } from 'n3'
+import { BlankNode, DataFactory, Literal, NamedNode, Quad, Store } from 'n3'
 import { Term } from '@rdfjs/types'
 import { ShaclNode } from './node.js'
 import { createAlternativePathConstraint, createShaclOrConstraint, resolveShaclOrConstraintOnProperty } from './constraints.js'
@@ -7,10 +7,11 @@ import { aggregatedMaxCount, aggregatedMinCount, cloneProperty, mergeProperty, m
 import { Editor, fieldFactory, InputListEntry } from './theme.js'
 import { toRDF } from './serialize.js'
 import { findPlugin } from './plugin.js'
-import { DATA_GRAPH } from './constants.js'
+import { DATA_GRAPH, PREFIX_SHACL, RDF_OBJECT_NIL, RDF_PREDICATE_FIRST, RDF_PREDICATE_REST, RDF_PREDICATE_TYPE } from './constants.js'
 import { RokitButton, RokitCollapsible } from '@ro-kit/ui-widgets'
 import { createLinker } from './linker.js'
 import { bindEditorTerm } from './editor.js'
+import { v4 as uuidv4 } from 'uuid'
 
 const ADD_BUTTON_SELECTOR = ':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper'
 const PROPERTY_INSTANCE_SELECTOR = ':scope > .property-instance, :scope > .shacl-or-constraint, :scope > .alternative-path-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance, :scope > .collapsible > .alternative-path-constraint'
@@ -19,11 +20,15 @@ export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
     container: HTMLElement
     parent: ShaclNode
+    private readonly rdfListItemTemplate?: ShaclPropertyTemplate
+    private readonly rdfListNodes = new WeakMap<HTMLElement, NamedNode | BlankNode>()
+    private readonly rdfListGroups = new WeakMap<HTMLElement, string>()
 
     constructor(template: ShaclPropertyTemplate, parent: ShaclNode) {
         super()
         this.template = template
         this.parent = parent
+        this.rdfListItemTemplate = detectRdfListItemTemplate(template)
         this.container = this
         this.setAttribute('part', 'property')
         if (this.template.nodeShapes.size && this.template.config.attributes.collapse !== null && (this.template.maxCount === undefined || this.template.maxCount > 1)) {
@@ -69,12 +74,15 @@ export class ShaclProperty extends HTMLElement {
                         this.template.config.store.delete(value)
                     }
                     // if value is not in data graph or has loaded via ResourceLinkProvider, then it is a linked resource
-                    const instance = await this.addPropertyInstance(
-                        value.object,
-                        !DATA_GRAPH.equals(value.graph) || this.template.config.providedResources[value.object.value] !== undefined,
-                        this.template.config.providedResources[value.object.value] !== undefined,
-                        value.predicate.value
-                    )
+                    const linked = !DATA_GRAPH.equals(value.graph) || this.template.config.providedResources[value.object.value] !== undefined
+                    const instance = this.rdfListItemTemplate
+                        ? await this.bindRdfList(value.object, linked)
+                        : await this.addPropertyInstance(
+                            value.object,
+                            linked,
+                            this.template.config.providedResources[value.object.value] !== undefined,
+                            value.predicate.value
+                        )
                     if (instance) {
                         this.parent.recordBoundPropertyValue(value)
                     }
@@ -98,6 +106,9 @@ export class ShaclProperty extends HTMLElement {
     }
 
     async addPropertyInstance(value?: Term, linked?: boolean, forceRemovable = false, predicate?: string, insert = true): Promise<HTMLElement | undefined> {
+        if (this.rdfListItemTemplate) {
+            return this.addRdfListItem(value, linked, forceRemovable, insert)
+        }
         let instance: HTMLElement | undefined
         if (this.template.pathAlternatives && !predicate) {
             if (this.template.config.editMode) {
@@ -151,8 +162,10 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.config.editMode && !this.parent.linked && !this.querySelector(ADD_BUTTON_SELECTOR)) {
             this.container.appendChild(await this.createAddControls())
         }
-        const minCount = aggregatedMinCount(this.template)
-        const literal = this.template.nodeShapes.size === 0
+        const minCount = this.rdfListItemTemplate
+            ? (aggregatedMinCount(this.template) > 0 ? 1 : 0)
+            : aggregatedMinCount(this.template)
+        const literal = this.rdfListItemTemplate ? this.rdfListItemTemplate.nodeShapes.size === 0 : this.template.nodeShapes.size === 0
         const noLinkableResources = this.querySelector(':scope > .add-button-wrapper > .link-button, :scope > .collapsible > .add-button-wrapper > .link-button') === null
         const mayAutocreateRequiredNode = literal || !this.hasRecursiveNodeShape()
         let instanceCount = this.instanceCount()
@@ -171,7 +184,11 @@ export class ShaclProperty extends HTMLElement {
             mayRemove = !literal || instanceCount > 1
         }
 
-        const mayAdd = instanceCount < aggregatedMaxCount(this.template)
+        // sh:maxCount applies to the single list head, not to its rdf:first members.
+        const hasLinkedList = this.rdfListItemTemplate !== undefined && this.querySelector(':scope > .property-instance.linked, :scope > .collapsible > .property-instance.linked') !== null
+        const listGroupCount = new Set(instancesOf(this).map(instance => this.rdfListGroups.get(instance))).size
+        const mayAddListItem = this.rdfListItemTemplate !== undefined && !hasLinkedList && listGroupCount <= 1
+        const mayAdd = mayAddListItem || instanceCount < aggregatedMaxCount(this.template)
         this.classList.toggle('may-remove', mayRemove)
         this.classList.toggle('may-add', mayAdd)
     }
@@ -228,6 +245,10 @@ export class ShaclProperty extends HTMLElement {
     }
 
     toRDF(graph: Store, subject: NamedNode | BlankNode) {
+        if (this.rdfListItemTemplate) {
+            this.rdfListToRDF(graph, subject)
+            return
+        }
         for (const instance of this.querySelectorAll<HTMLElement>(':scope > .property-instance, :scope > .collapsible > .property-instance')) {
             const pathNode = DataFactory.namedNode(instance.dataset.predicate ?? this.template.path!)
             if (instance.firstChild instanceof ShaclNode) {
@@ -278,7 +299,10 @@ export class ShaclProperty extends HTMLElement {
         wrapper.classList.add('add-button-wrapper')
         wrapper.setAttribute('part', 'add-controls')
 
-        const linker = await createLinker(this)
+        // The generic linker creates one nested node instance and bypasses the
+        // list-item/head bookkeeping. Existing externally linked collections can
+        // still be displayed, but creating such a link is not a list editing action.
+        const linker = this.rdfListItemTemplate ? undefined : await createLinker(this)
         if (linker) {
             wrapper.appendChild(linker)
         }
@@ -306,6 +330,244 @@ export class ShaclProperty extends HTMLElement {
         wrapper.appendChild(addButton)
         return wrapper
     }
+
+    private async bindRdfList(head: Term, linked: boolean): Promise<HTMLElement | undefined> {
+        if (head.termType !== 'NamedNode' && head.termType !== 'BlankNode') {
+            return undefined
+        }
+        let current = head as unknown as NamedNode | BlankNode
+        const visited = new Set<string>()
+        let firstInstance: HTMLElement | undefined
+        while (!current.equals(RDF_OBJECT_NIL) && !visited.has(current.id)) {
+            visited.add(current.id)
+            const graph = linked ? null : DATA_GRAPH
+            const first = this.template.config.store.getQuads(current, RDF_PREDICATE_FIRST, null, graph)[0]
+            if (!first) {
+                break
+            }
+            const rest = this.template.config.store.getQuads(current, RDF_PREDICATE_REST, null, graph)[0]
+            if (!linked) {
+                this.template.config.store.delete(first)
+                if (rest) {
+                    this.template.config.store.delete(rest)
+                }
+            }
+            const instance = await this.addRdfListItem(first.object, linked, false, true, current, rdfTermKey(head))
+            firstInstance ||= instance
+            if (!rest || (rest.object.termType !== 'NamedNode' && rest.object.termType !== 'BlankNode')) {
+                break
+            }
+            current = rest.object as unknown as NamedNode | BlankNode
+        }
+        return firstInstance
+    }
+
+    private async addRdfListItem(value?: Term, linked = false, forceRemovable = false, insert = true, listNode?: NamedNode | BlankNode, listGroup?: string) {
+        const itemTemplate = cloneProperty(this.rdfListItemTemplate!)
+        itemTemplate.label = this.template.label
+        const instance = await createPropertyInstance(itemTemplate, value, forceRemovable, linked || this.parent.linked, this.parent)
+        instance.dataset.path = this.template.path
+        const existingGroup = instancesOf(this).map(existing => this.rdfListGroups.get(existing)).find(group => group !== undefined)
+        const node = listNode ?? this.createRdfListNode(existingGroup === undefined)
+        this.rdfListNodes.set(instance, node)
+        this.rdfListGroups.set(instance, listGroup ?? existingGroup ?? rdfTermKey(node))
+        if (insert) {
+            this.container.insertBefore(instance, this.querySelector(ADD_BUTTON_SELECTOR))
+        }
+        return instance
+    }
+
+    private createRdfListNode(isHead: boolean): NamedNode | BlankNode {
+        if (isHead && this.template.nodeKind?.value === `${PREFIX_SHACL}IRI`) {
+            return DataFactory.namedNode(this.template.config.attributes.valuesNamespace + uuidv4())
+        }
+        return DataFactory.blankNode()
+    }
+
+    private rdfListToRDF(graph: Store, subject: NamedNode | BlankNode) {
+        const groups = new Map<string, Array<{ instance: HTMLElement, node: NamedNode | BlankNode, value?: NamedNode | BlankNode | Literal, linked: boolean }>>()
+        for (const instance of instancesOf(this)) {
+            const node = this.rdfListNodes.get(instance) ?? DataFactory.blankNode()
+            const groupId = this.rdfListGroups.get(instance) ?? rdfTermKey(node)
+            const linked = instance.classList.contains('linked')
+            let value: NamedNode | BlankNode | Literal | undefined
+            if (!linked && instance.firstChild instanceof ShaclNode) {
+                value = instance.firstChild.toRDF(graph)
+            } else if (!linked && this.template.config.editMode) {
+                const editor = instance.querySelector<Editor>(':scope > .editor')
+                value = editor ? toRDF(editor) : undefined
+            } else if (!linked) {
+                value = toRDF(instance as Editor)
+            }
+            if (linked || value) {
+                const group = groups.get(groupId) ?? []
+                group.push({ instance, node, value, linked })
+                groups.set(groupId, group)
+            }
+        }
+        const retainedNodeIds = new Set([...groups.values()].flatMap(group => group.map(item => rdfTermKey(item.node))))
+        const retainedValues = new Map([...groups.values()].flatMap(group => group
+            .filter(item => !item.linked && item.value)
+            .map(item => [rdfTermKey(item.node), rdfTermKey(item.value!)] as const)))
+        const linkedHeadIds = new Set([...groups.values()].filter(group => group[0]?.linked).map(group => rdfTermKey(group[0].node)))
+        this.removePreservedRdfList(graph, subject, retainedNodeIds, retainedValues, linkedHeadIds)
+        for (const group of groups.values()) {
+            graph.addQuad(subject, DataFactory.namedNode(this.template.path!), group[0].node, this.template.config.valuesGraphId)
+            if (group[0].linked) {
+                continue
+            }
+            if (this.template.class) {
+                graph.addQuad(group[0].node, RDF_PREDICATE_TYPE, this.template.class, this.template.config.valuesGraphId)
+            }
+            group.forEach(({ node, value }, index) => {
+                graph.addQuad(node, RDF_PREDICATE_FIRST, value!, this.template.config.valuesGraphId)
+                graph.addQuad(node, RDF_PREDICATE_REST, group[index + 1]?.node ?? RDF_OBJECT_NIL, this.template.config.valuesGraphId)
+            })
+        }
+    }
+
+    private removePreservedRdfList(graph: Store, subject: NamedNode | BlankNode, retainedNodeIds: Set<string>, retainedValues: Map<string, string>, skippedHeadIds: Set<string>) {
+        if (this.template.config.attributes.preserveUnmappedValues === null) {
+            return
+        }
+        const original = this.template.config.originalValues
+        const heads = original.getObjects(subject, DataFactory.namedNode(this.template.path!), null)
+        const listNodes = new Map<string, NamedNode | BlankNode>()
+        const orphanedObjects: BlankNode[] = []
+        for (const head of heads) {
+            if (head.termType !== 'NamedNode' && head.termType !== 'BlankNode') {
+                continue
+            }
+            if (skippedHeadIds.has(rdfTermKey(head))) {
+                continue
+            }
+            let current = head
+            const visited = new Set<string>()
+            while (!current.equals(RDF_OBJECT_NIL) && !visited.has(current.id)) {
+                visited.add(current.id)
+                listNodes.set(rdfTermKey(current), current)
+                const rest = original.getQuads(current, RDF_PREDICATE_REST, null, null)[0]
+                for (const quad of graph.getQuads(current, RDF_PREDICATE_FIRST, null, null)) {
+                    graph.delete(quad)
+                    const retainedValue = retainedValues.get(rdfTermKey(current))
+                    if (quad.object.termType === 'BlankNode' && rdfTermKey(quad.object) !== retainedValue) {
+                        orphanedObjects.push(quad.object)
+                    }
+                }
+                for (const quad of graph.getQuads(current, RDF_PREDICATE_REST, null, null)) {
+                    graph.delete(quad)
+                }
+                if (!rest || (rest.object.termType !== 'NamedNode' && rest.object.termType !== 'BlankNode')) {
+                    break
+                }
+                current = rest.object
+            }
+        }
+        // Once first/rest arcs have been removed, an old blank list cell with no
+        // incoming references is genuinely orphaned. Remove its remaining metadata;
+        // retained cells and externally referenced cells keep theirs.
+        for (const node of listNodes.values()) {
+            if (node.termType === 'BlankNode' && !retainedNodeIds.has(rdfTermKey(node)) && graph.countQuads(null, null, node, null) === 0) {
+                for (const quad of graph.getQuads(node, null, null, null)) {
+                    graph.delete(quad)
+                    if (quad.object.termType === 'BlankNode') {
+                        orphanedObjects.push(quad.object)
+                    }
+                }
+            }
+        }
+        removeOrphanedBlankNodeSubgraphs(graph, orphanedObjects)
+    }
+}
+
+function instancesOf(property: ShaclProperty) {
+    return Array.from(property.querySelectorAll<HTMLElement>(':scope > .property-instance, :scope > .collapsible > .property-instance'))
+}
+
+function rdfTermKey(term: Pick<Term, 'termType' | 'value'>) {
+    return `${term.termType}:${term.value}`
+}
+
+function removeOrphanedBlankNodeSubgraphs(graph: Store, candidates: BlankNode[]) {
+    const visited = new Set<string>()
+    while (candidates.length) {
+        const node = candidates.pop()!
+        if (visited.has(node.id) || graph.countQuads(null, null, node, null) > 0) {
+            continue
+        }
+        visited.add(node.id)
+        for (const quad of graph.getQuads(node, null, null, null)) {
+            graph.delete(quad)
+            if (quad.object.termType === 'BlankNode') {
+                candidates.push(quad.object)
+            }
+        }
+    }
+}
+
+function detectRdfListItemTemplate(template: ShaclPropertyTemplate): ShaclPropertyTemplate | undefined {
+    if (template.maxCount !== 1 || template.nodeShapes.size !== 1 || !isSupportedRdfListNodeKind(template.nodeKind) || !hasOnlySupportedShapePredicates(template.config.store, template.id, [
+        'path', 'minCount', 'maxCount', 'node', 'nodeKind', 'class'
+    ])) {
+        return undefined
+    }
+    const listShape = [...template.nodeShapes][0]
+    const listPropertyCount = template.config.store.countQuads(listShape.id, `${PREFIX_SHACL}property`, null, null)
+    const listNodeReferences = template.config.store.getObjects(template.id, `${PREFIX_SHACL}node`, null)
+    if (listNodeReferences.length !== 1 || !listNodeReferences[0].equals(listShape.id) || listPropertyCount !== 2 || Object.keys(listShape.properties).length !== 2 || listShape.extendedShapes.size || listShape.or?.length || listShape.xone?.length || listShape.nodeKind || listShape.targetClass || !hasOnlySupportedShapePredicates(template.config.store, listShape.id, ['property'])) {
+        return undefined
+    }
+    const first = listShape.properties[RDF_PREDICATE_FIRST.value]
+    const rest = listShape.properties[RDF_PREDICATE_REST.value]
+    if (first?.length !== 1 || rest?.length !== 1 || first[0].minCount !== 1 || first[0].maxCount !== 1 || rest[0].minCount !== 1 || rest[0].maxCount !== 1) {
+        return undefined
+    }
+    if (first[0].or?.length || first[0].xone?.length || first[0].hasValue || !hasOnlySupportedShapePredicates(template.config.store, rest[0].id, [
+        'path', 'minCount', 'maxCount', 'or'
+    ])) {
+        return undefined
+    }
+    const branches = rest[0].or
+    if (branches?.length !== 2) {
+        return undefined
+    }
+    let hasNilBranch = false
+    let hasRecursiveBranch = false
+    for (const branch of branches) {
+        const quads = template.config.store.getQuads(branch, null, null, null)
+        const constraints = quads.filter(quad => quad.predicate.value.startsWith(PREFIX_SHACL) && !SHACL_METADATA_PREDICATES.has(quad.predicate.value))
+        hasNilBranch ||= constraints.length === 1 && constraints[0].predicate.value === `${PREFIX_SHACL}hasValue` && constraints[0].object.equals(RDF_OBJECT_NIL)
+        hasRecursiveBranch ||= constraints.length === 1 && constraints[0].predicate.value === `${PREFIX_SHACL}node` && constraints[0].object.equals(listShape.id)
+    }
+    return hasNilBranch && hasRecursiveBranch ? first[0] : undefined
+}
+
+function isSupportedRdfListNodeKind(nodeKind: NamedNode | undefined) {
+    return nodeKind === undefined || [
+        `${PREFIX_SHACL}IRI`,
+        `${PREFIX_SHACL}BlankNode`,
+        `${PREFIX_SHACL}BlankNodeOrIRI`
+    ].includes(nodeKind.value)
+}
+
+const SHACL_METADATA_PREDICATES = new Set([
+    `${PREFIX_SHACL}name`,
+    `${PREFIX_SHACL}description`,
+    `${PREFIX_SHACL}order`,
+    `${PREFIX_SHACL}group`,
+    `${PREFIX_SHACL}message`,
+    `${PREFIX_SHACL}severity`
+])
+
+function hasOnlySupportedShapePredicates(store: Store, subject: Term, supportedLocalNames: string[]) {
+    const supported = new Set(supportedLocalNames.map(name => PREFIX_SHACL + name))
+    // RDF types and non-SHACL annotations do not change how the specialized
+    // editor must bind or serialize the shape.
+    return store.getQuads(subject, null, null, null).every(quad =>
+        !quad.predicate.value.startsWith(PREFIX_SHACL) ||
+        supported.has(quad.predicate.value) ||
+        SHACL_METADATA_PREDICATES.has(quad.predicate.value)
+    )
 }
 
 function containsEntry(entries: InputListEntry[], value: Term): boolean {
