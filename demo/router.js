@@ -56,7 +56,10 @@ export function initDemoRouter(context) {
     if (currentNavigation !== navigation) return
 
     content.innerHTML = template
-    await initializers[section]?.(content, context)
+    const initializer = initializers[section]
+    if (initializers.hasOwnProperty(section) && typeof initializer === 'function') {
+      await initializer(content, context)
+    }
     if (currentNavigation !== navigation) return
 
     window.hljs?.highlightAll()
