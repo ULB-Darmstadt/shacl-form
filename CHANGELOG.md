@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.7.1] - 2026-09-03
+
+### Fixed
+
+- Use the owning RDF collection property's label for its `rdf:first` query
+  facet instead of displaying the raw list predicate.
+
 ## [3.7.0] - 2026-09-02
 
 ### Added

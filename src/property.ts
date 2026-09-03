@@ -505,7 +505,7 @@ function removeOrphanedBlankNodeSubgraphs(graph: Store, candidates: BlankNode[])
     }
 }
 
-function detectRdfListItemTemplate(template: ShaclPropertyTemplate): ShaclPropertyTemplate | undefined {
+export function detectRdfListItemTemplate(template: ShaclPropertyTemplate): ShaclPropertyTemplate | undefined {
     if (template.maxCount !== 1 || template.nodeShapes.size !== 1 || !isSupportedRdfListNodeKind(template.nodeKind) || !hasOnlySupportedShapePredicates(template.config.store, template.id, [
         'path', 'minCount', 'maxCount', 'node', 'nodeKind', 'class'
     ])) {

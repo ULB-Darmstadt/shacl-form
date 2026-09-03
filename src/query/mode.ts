@@ -1,6 +1,6 @@
 import type { ShaclForm } from '../form.js'
 import { ShaclNode } from '../node.js'
-import { ShaclProperty, createRemoveButtonWrapper } from '../property.js'
+import { ShaclProperty, createRemoveButtonWrapper, detectRdfListItemTemplate } from '../property.js'
 import { createShaclOrConstraint } from '../constraints.js'
 import { cloneProperty, mergeQuads, propertyPathSegment, ShaclPropertyTemplate } from '../property-template.js'
 import { findPlugin } from '../plugin.js'
@@ -186,6 +186,24 @@ export async function initializeQueryProperty(property: ShaclProperty): Promise<
         }
         const options = template.or?.length ? template.or : template.xone!
         property.container.appendChild(createShaclOrConstraint(options, property, template.config))
+        return
+    }
+    const listItemTemplate = detectRdfListItemTemplate(template)
+    if (listItemTemplate) {
+        // An RDF list (e.g. a property whose value is a rdf:first/rdf:rest
+        // chain via sh:node) is exposed as a single scalar facet. Collapse it
+        // to a leaf so the list member (rdf:first) is labelled with the owning
+        // property's name rather than the raw list predicate.
+        const context = property.parent.queryContext ?? { path: [], shapePath: [] }
+        const item = cloneProperty(listItemTemplate)
+        item.label = template.label
+        const syntheticParent = {
+            queryContext: {
+                path: [...context.path, propertyPathSegment(template)],
+                shapePath: [...context.shapePath, queryShapePathSegment(template)]
+            }
+        } as unknown as ShaclNode
+        appendEditor(createQueryLeaf(item, syntheticParent))
         return
     }
     if (!template.nodeShapes.size) {

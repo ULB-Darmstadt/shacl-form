@@ -123,6 +123,38 @@ ex:Root a sh:NodeShape ;
         expect(field.fixedValue?.value).to.equal('http://example.org/Temperature')
     })
 
+    it('collapses an RDF list property into a single labelled range facet', async () => {
+        await bind(form, `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix ex: <http://example.org/> .
+ex:Root a sh:NodeShape ;
+  sh:property [
+    sh:path ex:hasDiscreteValues ;
+    sh:name "Discrete values" ;
+    sh:maxCount 1 ;
+    sh:node ex:ListShape
+  ] .
+ex:ListShape a sh:NodeShape ;
+  sh:property [ sh:path rdf:first ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:decimal ] ;
+  sh:property [
+    sh:path rdf:rest ; sh:minCount 1 ; sh:maxCount 1 ;
+    sh:or ( [ sh:hasValue rdf:nil ] [ sh:node ex:ListShape ] )
+  ] .
+`, 'http://example.org/Root')
+        const editors = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+        expect(editors).to.have.length(1)
+        const editor = editors[0]
+        expect(editor.textContent).to.include('Discrete values')
+        expect(editor.textContent).not.to.include('rdf:first')
+        expect(editor.queryField.path).to.deep.equal([
+            'http://example.org/hasDiscreteValues',
+            'http://www.w3.org/1999/02/22-rdf-syntax-ns#first'
+        ])
+        expect(isRangeQueryField(editor.queryField)).to.be.true
+    })
+
     it('emits the specialized property shape id for merged qualified branches', async () => {
         const mergedShapes = `
 @prefix sh: <http://www.w3.org/ns/shacl#> .
