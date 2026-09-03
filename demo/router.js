@@ -17,6 +17,16 @@ const templates = {
   mps
 }
 
+const sectionInitializers = new Map([
+  ['intro', initializers.intro],
+  ['datatypes', initializers.datatypes],
+  ['edit-mode', initializers['edit-mode']],
+  ['viewer-mode', initializers['viewer-mode']],
+  ['query-mode', initializers['query-mode']],
+  ['try-your-own', initializers['try-your-own']],
+  ['mps', initializers.mps]
+])
+
 function currentSection() {
   return window.location.hash.slice(1).split('?', 1)[0]
 }
@@ -56,9 +66,11 @@ export function initDemoRouter(context) {
     if (currentNavigation !== navigation) return
 
     content.innerHTML = template
-    const initializer = initializers[section]
-    if (initializers.hasOwnProperty(section) && typeof initializer === 'function') {
-      await initializer(content, context)
+    if (sectionInitializers.has(section)) {
+      const initializer = sectionInitializers.get(section)
+      if (typeof initializer === 'function') {
+        await initializer(content, context)
+      }
     }
     if (currentNavigation !== navigation) return
 
