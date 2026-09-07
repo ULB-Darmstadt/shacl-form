@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.7.2] - 2026-09-07
+
+### Fixed
+
+- Keep a property whose `sh:node` shape declares another property with the same
+  `sh:path`; the nested branch was previously collapsed into an override chain
+  and dropped from the form.
+
 ## [3.7.1] - 2026-09-03
 
 ### Fixed

@@ -284,9 +284,14 @@ function buildPropertyChain(
         if (prop?.length === 1) {
             chain.push(prop[0])
             currentMaxCountIsOne = currentMaxCountIsOne || prop[0].maxCount === 1
+            // a property-level sh:node only continues an override chain when the referenced
+            // shape is a genuine extension of the current one; a free-standing node shape
+            // that happens to reuse the same sh:path constrains a different focus node.
             for (const node of prop[0].nodeShapes) {
-                const [_, max] = buildPropertyChain(node, path, visited, chain, currentMaxCountIsOne)
-                currentMaxCountIsOne = currentMaxCountIsOne || max
+                if (isStrictNodeShapeExtension(node, currentNode)) {
+                    const [_, max] = buildPropertyChain(node, path, visited, chain, currentMaxCountIsOne)
+                    currentMaxCountIsOne = currentMaxCountIsOne || max
+                }
             }
         }
         for (const node of currentNode.extendedShapes) {

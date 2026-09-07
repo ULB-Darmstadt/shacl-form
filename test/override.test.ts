@@ -458,4 +458,56 @@ describe('test property overriding', () => {
         expect(property?.maxLength).to.equal(20)
         expect(property?.xone).to.equal(undefined)
     })
+
+    it('keeps property whose sh:node shape declares a property with the same path (issue #72)', async () => {
+        await bind(form, `
+            ${prefixes}
+            :Dataset a sh:NodeShape ;
+                sh:property [
+                    sh:path :title ;
+                    sh:name "Title" ;
+                    sh:datatype xsd:string ;
+                    sh:minCount 1 ;
+                ] ;
+                sh:property [
+                    sh:path :creator ;
+                    sh:name "Author" ;
+                    sh:node :Author ;
+                    sh:minCount 1 ;
+                ] .
+
+            :Author a sh:NodeShape ;
+                sh:property [
+                    sh:path :creator ;
+                    sh:name "Author name" ;
+                    sh:datatype xsd:string ;
+                    sh:maxCount 1 ;
+                ] ;
+                sh:property [
+                    sh:path :orcid ;
+                    sh:name "ORCID" ;
+                    sh:datatype xsd:string ;
+                ] .
+            `,
+            'http://example.org/Dataset'
+        )
+
+        const root = form.shape!.template
+        expect(root.properties['http://example.org/title']).to.exist
+        expect(root.properties['http://example.org/creator']).to.exist
+        expect(root.properties['http://example.org/creator'].length).to.equal(1)
+
+        const creator = root.properties['http://example.org/creator'][0]
+        expect(creator.label).to.equal('Author')
+        expect(creator.nodeShapes.size).to.equal(1)
+
+        const author = [...creator.nodeShapes][0]
+        expect(author.properties['http://example.org/creator']).to.exist
+        expect(author.properties['http://example.org/creator'].length).to.equal(1)
+        expect(author.properties['http://example.org/creator'][0].label).to.equal('Author name')
+        expect(author.properties['http://example.org/orcid']).to.exist
+
+        const renderRoot = form.shadowRoot ?? form
+        expect(renderRoot.querySelector(`[data-path='http://example.org/creator']`), 'outer creator property should be rendered').to.exist
+    })
 })
