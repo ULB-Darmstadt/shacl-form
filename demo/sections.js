@@ -57,6 +57,7 @@ function listenForExport(form) {
     link.href = window.URL.createObjectURL(new Blob([form.serialize()], { type: 'text/turtle' }))
     link.download = 'metadata.ttl'
     link.click()
+    setTimeout(() => window.URL.revokeObjectURL(link.href), 0)
   })
 }
 
@@ -166,7 +167,7 @@ function initTryYourOwn(root) {
     : undefined
   if (query) {
     try {
-      shapes.value = atob(query)
+      shapes.value = decodeBase64(query)
       shapes.dispatchEvent(new Event('change'))
     } catch (error) {
       console.error(error)
@@ -175,13 +176,26 @@ function initTryYourOwn(root) {
   shapes.focus()
 }
 
+function encodeBase64(text) {
+  const bytes = new TextEncoder().encode(text)
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
+
+function decodeBase64(base64) {
+  const binary = atob(base64)
+  const bytes = Uint8Array.from(binary, char => char.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
 function buildShareLink(root, shapes) {
   const linkContainer = root.querySelector('#share-link')
   linkContainer.replaceChildren()
   if (!shapes.value) return
 
   const link = new URL(window.location.toString())
-  link.hash = `try-your-own?${btoa(shapes.value)}`
+  link.hash = `try-your-own?${encodeBase64(shapes.value)}`
   const button = document.createElement('rokit-button')
   button.innerHTML = '&#x1F4CB; Copy share link to clipboard'
   button.style.marginTop = '20px'

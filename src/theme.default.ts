@@ -4,7 +4,7 @@ import { Editor, InputListEntry, Theme } from './theme.js'
 import { FRACTIONAL_DATATYPES, PREFIX_SHACL, PREFIX_XSD, SHACL_OBJECT_IRI, XSD_DATATYPE_BOOLEAN } from './constants.js'
 import { BlankNode, DataFactory, Literal, NamedNode } from 'n3'
 import { RokitButton, RokitInput, RokitSelect, RokitTextArea } from '@ro-kit/ui-widgets'
-import { findLabel, formatXsdDateTimeValueForInput, formatXsdDateValueForInput } from './util.js'
+import { arrayBufferToBase64, findLabel, formatXsdDateTimeValueForInput, formatXsdDateValueForInput } from './util.js'
 import { bindEditorTerm, bindEditorTerms, rdfTermId } from './editor.js'
 
 const css = `
@@ -214,9 +214,9 @@ export class DefaultTheme extends Theme {
             if (editor.files?.length) {
                 e.stopPropagation()
                 const reader = new FileReader()
-                reader.readAsDataURL(editor.files[0])
+                reader.readAsArrayBuffer(editor.files[0])
                 reader.onload = () => {
-                    (editor as Editor)['binaryData'] = btoa(reader.result as string)
+                    (editor as Editor)['binaryData'] = arrayBufferToBase64(reader.result as ArrayBuffer)
                     editor.parentElement?.dispatchEvent(new Event('change', { bubbles: true }))
                 }
             } else {

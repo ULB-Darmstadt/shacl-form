@@ -1,6 +1,6 @@
 import { expect } from '@open-wc/testing'
 import { DataFactory, NamedNode, Prefixes, Store } from 'n3'
-import { extractLists, formatXsdDateTimeValueForInput, formatXsdDateValueForInput, isURL, prioritizeByLanguage, removePrefixes, serializeXsdDateTimeValue, serializeXsdDateValue } from '../src/util'
+import { arrayBufferToBase64, extractLists, formatXsdDateTimeValueForInput, formatXsdDateValueForInput, isURL, prioritizeByLanguage, removePrefixes, serializeXsdDateTimeValue, serializeXsdDateValue } from '../src/util'
 import { PREFIX_RDF } from '../src/constants'
 
 const { blankNode, literal, namedNode, quad } = DataFactory
@@ -24,6 +24,15 @@ describe('util functions', () => {
         expect(isURL('http://example.com/test')).to.be.true
         expect(isURL('ftp://example.com')).to.be.false
         expect(isURL('not a url')).to.be.false
+    })
+
+    it('base64-encodes array buffers', () => {
+        expect(arrayBufferToBase64(new TextEncoder().encode('Hello').buffer)).to.equal('SGVsbG8=')
+        expect(arrayBufferToBase64(new ArrayBuffer(0))).to.equal('')
+        expect(arrayBufferToBase64(new Uint8Array([0, 255, 128]).buffer)).to.equal('AP+A')
+
+        const large = new Uint8Array(0x10000).fill(65)
+        expect(atob(arrayBufferToBase64(large.buffer))).to.have.lengthOf(0x10000)
     })
 
     it('prioritizes literals based on language preference', () => {

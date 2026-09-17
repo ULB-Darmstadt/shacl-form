@@ -201,6 +201,16 @@ export function isURL(input: string): boolean {
     return url.protocol === 'http:' || url.protocol === 'https:'
 }
 
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer)
+    const chunkSize = 0x8000
+    let binary = ''
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+    }
+    return btoa(binary)
+}
+
 export function prioritizeByLanguage(languages: string[], text1?: Literal, text2?: Literal): Literal | undefined {
     if (text1 === undefined) {
         return text2
