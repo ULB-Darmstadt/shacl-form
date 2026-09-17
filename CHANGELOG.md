@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Encode `xsd:base64Binary` file editor values as base64 of the raw file bytes
+  instead of double-encoding the `FileReader` data URL.
+- Base64-encode the demo's share links with UTF-8 so characters outside Latin-1,
+  such as German quotation marks, no longer remove the "Copy share link to
+  clipboard" button.
+
 ## [3.7.2] - 2026-09-07
 
 ### Fixed
