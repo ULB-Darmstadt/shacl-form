@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Update `@ro-kit/ui-widgets` to 1.0.64, which keeps a bound `sh:class` value on
+  `rokit-select` when the class instance list is empty instead of clearing it
+  and emitting a spurious change event.
 - Encode `xsd:base64Binary` file editor values as base64 of the raw file bytes
   instead of double-encoding the `FileReader` data URL.
 - Base64-encode the demo's share links with UTF-8 so characters outside Latin-1,
