@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.7.3] - 2026-09-22
+
 ### Fixed
 
 - Update `@ro-kit/ui-widgets` to 1.0.64, which keeps a bound `sh:class` value on
