@@ -14,7 +14,7 @@ import {
     SHACL_PREDICATE_TARGET_CLASS,
     SHAPES_GRAPH,
     SKOS_PREDICATE_BROADER,
-    SKOS_PREDICATE_NARROWER
+    SKOS_PREDICATE_NARROWER,
 } from './constants.js'
 import { Term } from '@rdfjs/types'
 import { InputListEntry } from './theme.js'
@@ -58,8 +58,15 @@ export function findObjectByPredicate(quads: Quad[], predicate: string, prefix: 
     return candidate
 }
 
+// focuses the first editor of the given context that is actually rendered.
 export function focusFirstInputElement(context: HTMLElement) {
-    ;(context.querySelector('.editor') as HTMLElement)?.focus()
+    const editors = context.querySelectorAll<HTMLElement>('.editor')
+    for (const editor of editors) {
+        if (editor.offsetParent !== null) {
+            editor.focus()
+            return
+        }
+    }
 }
 
 export function findLabel(quads: Quad[], languages: string[]): string {
@@ -93,7 +100,7 @@ export function removePrefixes(id: string, prefixes: Prefixes): string {
 function findVisibleClassInstanceGraphs(
     context: ShaclNodeTemplate | ShaclPropertyTemplate,
     store: Store,
-    graphs = new Map<string, NamedNode | DefaultGraph>()
+    graphs = new Map<string, NamedNode | DefaultGraph>(),
 ): Array<NamedNode | DefaultGraph> {
     graphs.set(SHAPES_GRAPH.id, SHAPES_GRAPH)
     graphs.set(DATA_GRAPH.id, DATA_GRAPH)
@@ -122,11 +129,11 @@ function addImportGraph(importGraph: NamedNode, store: Store, graphs: Map<string
 }
 
 function getSubjectsFromGraphs(store: Store, predicate: NamedNode, object: NamedNode, graphs: Array<NamedNode | DefaultGraph>): Array<NamedNode | BlankNode> {
-    return graphs.flatMap(graph => store.getSubjects(predicate, object, graph) as Array<NamedNode | BlankNode>)
+    return graphs.flatMap((graph) => store.getSubjects(predicate, object, graph) as Array<NamedNode | BlankNode>)
 }
 
 function getObjectsFromGraphs(store: Store, subject: NamedNode | BlankNode, predicate: NamedNode, graphs: Array<NamedNode | DefaultGraph>): N3Term[] {
-    return graphs.flatMap(graph => store.getObjects(subject, predicate, graph) as N3Term[])
+    return graphs.flatMap((graph) => store.getObjects(subject, predicate, graph) as N3Term[])
 }
 
 export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplate): InputListEntry[] {
@@ -147,7 +154,7 @@ export function findInstancesOf(clazz: NamedNode, template: ShaclPropertyTemplat
             nodes.set(instance.id, {
                 value: instance,
                 label: findLabel(template.config.store.getQuads(instance, null, null, null), template.config.languages),
-                children: []
+                children: [],
             })
         }
 
@@ -250,12 +257,12 @@ export function formatXsdDateValueForInput(value: string) {
         }
         return {
             value: dateTimeTokens[1],
-            suffix: dateTimeTokens[5] || ''
+            suffix: dateTimeTokens[5] || '',
         }
     }
     return {
         value: tokens[1],
-        suffix: tokens[2] || ''
+        suffix: tokens[2] || '',
     }
 }
 
@@ -268,12 +275,12 @@ export function formatXsdDateTimeValueForInput(value: string) {
         }
         return {
             value: `${dateTokens[1]}T00:00:00`,
-            suffix: dateTokens[2] || ''
+            suffix: dateTokens[2] || '',
         }
     }
     return {
         value: `${tokens[1]}T${tokens[2]}:${tokens[3] || '00'}`,
-        suffix: tokens[5] || ''
+        suffix: tokens[5] || '',
     }
 }
 
@@ -321,8 +328,8 @@ export function extractLists(store: Store, { remove = false, ignoreErrors = fals
     const onError = ignoreErrors
         ? () => true
         : (node: Term, message: string) => {
-            throw new Error(`${node.value} ${message}`)
-        }
+              throw new Error(`${node.value} ${message}`)
+          }
 
     // Traverse each list from its tail
     const tails = store.getQuads(null, PREFIX_RDF + 'rest', PREFIX_RDF + 'nil', null)

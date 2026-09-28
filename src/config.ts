@@ -34,6 +34,7 @@ export class ElementAttributes {
     proxy: string | null = null
     ignoreOwlImports: string | null = null
     collapse: string | null = null
+    hideOptional: string | null = null
     hierarchyColors: string | null = null
     submitButton: string | null = null
     generateNodeShapeReference: string = DCTERMS_PREDICATE_CONFORMS_TO.value

@@ -3,7 +3,15 @@ import type { ShaclProperty } from './property.js'
 import { Config } from './config.js'
 import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin.js'
 import { Store, NamedNode, DataFactory, BlankNode, Literal } from 'n3'
-import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_MESSAGE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants.js'
+import {
+    DATA_GRAPH,
+    DCTERMS_PREDICATE_CONFORMS_TO,
+    RDF_PREDICATE_TYPE,
+    SHACL_OBJECT_NODE_SHAPE,
+    SHACL_PREDICATE_MESSAGE,
+    SHACL_PREDICATE_TARGET_CLASS,
+    SHAPES_GRAPH,
+} from './constants.js'
 import { Editor, Theme } from './theme.js'
 import { serialize } from './serialize.js'
 import { RokitCollapsible, RokitSelect } from '@ro-kit/ui-widgets'
@@ -52,17 +60,22 @@ export class ShaclForm extends HTMLElement {
         this.form = document.createElement('form')
         this.form.setAttribute('part', 'form')
         this.config = new Config(this.form)
-        this.form.addEventListener('change', ev => {
+        this.form.addEventListener('change', (ev) => {
             ev.stopPropagation()
             if (this.config.queryMode) {
                 this.queryController?.handleChange()
             } else if (this.config.editMode) {
-                this.validate(true).then(report => {
-                    this.refreshClassInstanceEditors()
-                    this.dispatchEvent(new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { 'valid': report.conforms, 'report': report } }))
-                }).catch(e => {
-                    console.warn(e)
-                })
+                this.validate(true)
+                    .then((report) => {
+                        this.refreshClassInstanceEditors()
+                        this.updateOptionalToggles()
+                        this.dispatchEvent(
+                            new CustomEvent('change', { bubbles: true, cancelable: false, composed: true, detail: { valid: report.conforms, report: report } }),
+                        )
+                    })
+                    .catch((e) => {
+                        console.warn(e)
+                    })
             }
         })
     }
@@ -97,17 +110,20 @@ export class ShaclForm extends HTMLElement {
                 // reset cached values in config
                 this.config.reset()
                 // load all data
-                this.config.store = await loadGraphs({
-                    shapes: this.config.attributes.shapes,
-                    shapesUrl: this.config.attributes.shapesUrl,
-                    values: this.config.attributes.values,
-                    valuesUrl: this.config.attributes.valuesUrl,
-                    valuesSubject: this.config.attributes.valuesSubject,
-                    loadOwlImports: this.config.attributes.ignoreOwlImports === null,
-                    classInstanceProvider: this.config.classInstanceProvider,
-                    rdfUrlResolver: this.config.rdfUrlResolver,
-                    proxy: this.config.attributes.proxy
-                }, this.config.originalValues)
+                this.config.store = await loadGraphs(
+                    {
+                        shapes: this.config.attributes.shapes,
+                        shapesUrl: this.config.attributes.shapesUrl,
+                        values: this.config.attributes.values,
+                        valuesUrl: this.config.attributes.valuesUrl,
+                        valuesSubject: this.config.attributes.valuesSubject,
+                        loadOwlImports: this.config.attributes.ignoreOwlImports === null,
+                        classInstanceProvider: this.config.classInstanceProvider,
+                        rdfUrlResolver: this.config.rdfUrlResolver,
+                        proxy: this.config.attributes.proxy,
+                    },
+                    this.config.originalValues,
+                )
                 // if we have a resource link provider, let it resolve linked resources in the data graph
                 if (this.config.resourceLinkProvider) {
                     await loadUnresolvedValues(this.config)
@@ -122,12 +138,13 @@ export class ShaclForm extends HTMLElement {
                 const rootShapeShaclSubject = this.findRootShaclShapeSubject()
                 if (rootShapeShaclSubject) {
                     // remove all previous css classes to have a defined state
-                    this.form.classList.forEach(value => {
+                    this.form.classList.forEach((value) => {
                         this.form.classList.remove(value)
                     })
                     this.form.classList.toggle('mode-edit', this.config.editMode)
                     this.form.classList.toggle('mode-view', this.config.mode === 'view')
                     this.form.classList.toggle('mode-query', this.config.queryMode)
+                    this.form.classList.toggle('hide-optional', this.config.editMode && this.config.attributes.hideOptional !== null)
                     if (this.config.queryMode) {
                         const { QueryModeController } = await import('./query/mode.js')
                         this.queryController = new QueryModeController(this)
@@ -153,7 +170,10 @@ export class ShaclForm extends HTMLElement {
                     for (const nodeTemplate of this.config.nodeTemplates) {
                         mergeOverriddenProperties(nodeTemplate)
                     }
-                    this.shape = new ShaclNode(rootTemplate, this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined)
+                    this.shape = new ShaclNode(
+                        rootTemplate,
+                        this.config.attributes.valuesSubject ? DataFactory.namedNode(this.config.attributes.valuesSubject) : undefined,
+                    )
                     this.form.appendChild(this.shape)
 
                     if (this.config.attributes.showRootShapeLabel !== null && rootTemplate.label) {
@@ -174,7 +194,7 @@ export class ShaclForm extends HTMLElement {
                                 // let browser check form validity first
                                 if (this.form.reportValidity()) {
                                     // now validate data graph
-                                    this.validate().then(report => {
+                                    this.validate().then((report) => {
                                         if (report?.conforms) {
                                             // form and data graph are valid, so fire submit event
                                             this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
@@ -201,6 +221,7 @@ export class ShaclForm extends HTMLElement {
                         }
                         await this.validate(true)
                         this.refreshClassInstanceEditors()
+                        this.updateOptionalToggles()
                     } else if (this.config.queryMode) {
                         await this.shape.ready
                         await this.queryController?.initialize()
@@ -246,10 +267,21 @@ export class ShaclForm extends HTMLElement {
         }
     }
 
+    private updateOptionalToggles() {
+        if (!this.config.editMode || this.config.attributes.hideOptional === null) {
+            return
+        }
+        for (const node of this.form.querySelectorAll<ShaclNode>('shacl-node')) {
+            node.updateOptionalToggle?.()
+        }
+    }
+
     private focusFirstInvalidElement(reportValidity = false) {
-        const invalidEditor = this.form.querySelector(':scope .invalid > .editor') as Editor & {
-            reportValidity?: () => boolean
-        } | null
+        const invalidEditor = this.form.querySelector(':scope .invalid > .editor') as
+            | (Editor & {
+                  reportValidity?: () => boolean
+              })
+            | null
         if (invalidEditor) {
             if (reportValidity) {
                 invalidEditor.reportValidity?.()
@@ -275,10 +307,14 @@ export class ShaclForm extends HTMLElement {
             return
         }
 
-        const cssText = styles.map(styleSheet => {
-            const rules = Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n')
-            return rules.replace(/:host\b/g, 'shacl-form')
-        }).join('\n')
+        const cssText = styles
+            .map((styleSheet) => {
+                const rules = Array.from(styleSheet.cssRules)
+                    .map((rule) => rule.cssText)
+                    .join('\n')
+                return rules.replace(/:host\b/g, 'shacl-form')
+            })
+            .join('\n')
 
         if (!this.styleElement) {
             this.styleElement = document.createElement('style')
@@ -342,12 +378,7 @@ export class ShaclForm extends HTMLElement {
 
         const shapeReference = this.config.attributes.generateNodeShapeReference
         if (this.shape && shapeReference) {
-            for (const quad of original.getQuads(
-                this.shape.nodeId,
-                DataFactory.namedNode(shapeReference),
-                this.shape.template.id,
-                null
-            )) {
+            for (const quad of original.getQuads(this.shape.nodeId, DataFactory.namedNode(shapeReference), this.shape.template.id, null)) {
                 graph.delete(quad)
             }
         }
@@ -384,9 +415,9 @@ export class ShaclForm extends HTMLElement {
             }
         }
         for (const candidate of candidates.values()) {
-            const externallyReferenced = graph.getQuads(null, null, candidate, null).some(quad =>
-                quad.subject.termType !== 'BlankNode' || !candidates.has(quad.subject.id)
-            )
+            const externallyReferenced = graph
+                .getQuads(null, null, candidate, null)
+                .some((quad) => quad.subject.termType !== 'BlankNode' || !candidates.has(quad.subject.id))
             if (externallyReferenced) {
                 retain(candidate)
             }
@@ -443,11 +474,13 @@ export class ShaclForm extends HTMLElement {
         if (!this.shape) {
             return { rootShapeId: '', criteria: [] }
         }
-        return this.queryController?.getQuery() ?? {
-            rootShapeId: this.shape.template.id.value,
-            targetClass: this.shape.template.targetClass?.value,
-            criteria: []
-        }
+        return (
+            this.queryController?.getQuery() ?? {
+                rootShapeId: this.shape.template.id.value,
+                targetClass: this.shape.template.targetClass?.value,
+                criteria: [],
+            }
+        )
     }
 
     public refreshQueryFacets() {
@@ -495,90 +528,100 @@ export class ShaclForm extends HTMLElement {
         }
 
         const rootShape = this.shape
-        const runValidation = () => new Promise<ValidationReport>((resolve) => {
-            this.config.store.deleteGraph(this.config.valuesGraphId || '').on('end', async () => {
-                rootShape.toRDF(this.config.store, undefined, this.config.attributes.generateNodeShapeReference)
-                try {
-                    const report = await this.config.validator.validate({ dataset: this.config.store, terms: [rootShape.nodeId] }, [{ terms: [rootShape.template.id] }])
-                    if (validationGeneration !== this.validationGeneration) {
-                        resolve(report)
-                        return
-                    }
-                    const validationResults = [...report.results]
-                    for (let resultIndex = 0; resultIndex < validationResults.length; resultIndex++) {
-                        const result = validationResults[resultIndex]
-                        // Composite constraints such as sh:node expose the
-                        // actionable property violations as nested results.
-                        // Walk those too so fields are not left with a valid
-                        // marker merely because their violation is wrapped.
-                        validationResults.push(...(result.results ?? []))
-                        if (result.focusNode?.ptrs?.length) {
-                            for (const ptr of result.focusNode.ptrs) {
-                                const focusNode = ptr._term
-                                // result.path can be empty, e.g. if a focus node does not contain a required property node
-                                if (result.path?.length) {
-                                    const path = result.path[0].predicates[0]
-                                    // try to find most specific editor elements first
-                                    const editorSelector = (attribute: 'data-path' | 'data-predicate') => `
+        const runValidation = () =>
+            new Promise<ValidationReport>((resolve) => {
+                this.config.store.deleteGraph(this.config.valuesGraphId || '').on('end', async () => {
+                    rootShape.toRDF(this.config.store, undefined, this.config.attributes.generateNodeShapeReference)
+                    try {
+                        const report = await this.config.validator.validate({ dataset: this.config.store, terms: [rootShape.nodeId] }, [
+                            { terms: [rootShape.template.id] },
+                        ])
+                        if (validationGeneration !== this.validationGeneration) {
+                            resolve(report)
+                            return
+                        }
+                        const validationResults = [...report.results]
+                        for (let resultIndex = 0; resultIndex < validationResults.length; resultIndex++) {
+                            const result = validationResults[resultIndex]
+                            // Composite constraints such as sh:node expose the
+                            // actionable property violations as nested results.
+                            // Walk those too so fields are not left with a valid
+                            // marker merely because their violation is wrapped.
+                            validationResults.push(...(result.results ?? []))
+                            if (result.focusNode?.ptrs?.length) {
+                                for (const ptr of result.focusNode.ptrs) {
+                                    const focusNode = ptr._term
+                                    // result.path can be empty, e.g. if a focus node does not contain a required property node
+                                    if (result.path?.length) {
+                                        const path = result.path[0].predicates[0]
+                                        // try to find most specific editor elements first
+                                        const editorSelector = (attribute: 'data-path' | 'data-predicate') => `
                                         :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .property-instance[${attribute}='${path.id}'] > .editor,
                                         :scope shacl-node[data-node-id='${focusNode.id}'] > shacl-property > .shacl-group > .property-instance[${attribute}='${path.id}'] > .editor,
                                         :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .property-instance[${attribute}='${path.id}'] > .editor,
                                         :scope shacl-node[data-node-id='${focusNode.id}'] > .shacl-group > shacl-property > .shacl-group > .property-instance[${attribute}='${path.id}'] > .editor`
-                                    let invalidElements = this.form.querySelectorAll(editorSelector('data-path'))
-                                    if (invalidElements.length === 0) {
-                                        invalidElements = this.form.querySelectorAll(editorSelector('data-predicate'))
-                                    }
-                                    if (invalidElements.length === 0) {
-                                        // if no editors found, select respective node. this will be the case for node shape violations.
-                                        invalidElements = this.form.querySelectorAll(`
+                                        let invalidElements = this.form.querySelectorAll(editorSelector('data-path'))
+                                        if (invalidElements.length === 0) {
+                                            invalidElements = this.form.querySelectorAll(editorSelector('data-predicate'))
+                                        }
+                                        if (invalidElements.length === 0) {
+                                            // if no editors found, select respective node. this will be the case for node shape violations.
+                                            invalidElements = this.form.querySelectorAll(`
                                             :scope [data-node-id='${focusNode.id}']  > shacl-property > .property-instance[data-path='${path.id}'],
                                             :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .property-instance[data-path='${path.id}'],
                                             :scope [data-node-id='${focusNode.id}']  > shacl-property > .alternative-path-constraint[data-path='${path.id}'],
                                             :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .alternative-path-constraint[data-path='${path.id}']`)
-                                    }
-                                    if (invalidElements.length === 0) {
-                                        invalidElements = this.form.querySelectorAll(`
+                                        }
+                                        if (invalidElements.length === 0) {
+                                            invalidElements = this.form.querySelectorAll(`
                                             :scope [data-node-id='${focusNode.id}']  > shacl-property > .property-instance[data-predicate='${path.id}'],
                                             :scope [data-node-id='${focusNode.id}']  > shacl-property > .shacl-group > .property-instance[data-predicate='${path.id}']`)
-                                    }
-
-                                    for (const invalidElement of invalidElements) {
-                                        if (invalidElement.classList.contains('editor')) {
-                                            // this is a property shape violation
-                                            if (!ignoreEmptyValues || (invalidElement as Editor).value) {
-                                                let parent: HTMLElement | null = invalidElement.parentElement!
-                                                parent.classList.add('invalid')
-                                                parent.classList.remove('valid')
-                                                this.appendValidationErrorDisplay(parent, result)
-                                                do {
-                                                    if (parent instanceof RokitCollapsible) {
-                                                        parent.open = true
-                                                    }
-                                                    parent = parent.parentElement
-                                                } while (parent)
-                                            }
-                                        } else if (!ignoreEmptyValues) {
-                                            // this is a node shape violation
-                                            invalidElement.classList.add('invalid')
-                                            invalidElement.classList.remove('valid')
-                                            invalidElement.appendChild(this.createValidationErrorDisplay(result, 'node'))
                                         }
+
+                                        for (const invalidElement of invalidElements) {
+                                            if (invalidElement.classList.contains('editor')) {
+                                                // this is a property shape violation
+                                                if (!ignoreEmptyValues || (invalidElement as Editor).value) {
+                                                    let parent: HTMLElement | null = invalidElement.parentElement!
+                                                    parent.classList.add('invalid')
+                                                    parent.classList.remove('valid')
+                                                    this.appendValidationErrorDisplay(parent, result)
+                                                    do {
+                                                        if (parent instanceof RokitCollapsible) {
+                                                            parent.open = true
+                                                        }
+                                                        // never leave a violation invisible behind data-hide-optional
+                                                        parent.classList.remove('optional-hidden')
+                                                        parent = parent.parentElement
+                                                    } while (parent)
+                                                }
+                                            } else if (!ignoreEmptyValues) {
+                                                // this is a node shape violation
+                                                invalidElement.classList.add('invalid')
+                                                invalidElement.classList.remove('valid')
+                                                invalidElement.appendChild(this.createValidationErrorDisplay(result, 'node'))
+                                            }
+                                        }
+                                    } else if (!ignoreEmptyValues) {
+                                        this.form
+                                            .querySelector(`:scope [data-node-id='${focusNode.id}']:not([part~='linked-node'])`)
+                                            ?.prepend(this.createValidationErrorDisplay(result, 'node'))
                                     }
-                                } else if (!ignoreEmptyValues) {
-                                    this.form.querySelector(`:scope [data-node-id='${focusNode.id}']:not([part~='linked-node'])`)?.prepend(this.createValidationErrorDisplay(result, 'node'))
                                 }
                             }
                         }
+                        resolve(report)
+                    } catch (e) {
+                        console.error(e)
+                        resolve({ conforms: false, results: [] })
                     }
-                    resolve(report)
-                } catch (e) {
-                    console.error(e)
-                    resolve({ conforms: false, results: [] })
-                }
+                })
             })
-        })
         const promise = this.validationQueue.then(runValidation, runValidation)
-        this.validationQueue = promise.then(() => undefined, () => undefined)
+        this.validationQueue = promise.then(
+            () => undefined,
+            () => undefined,
+        )
         return promise
     }
 
@@ -618,16 +661,14 @@ export class ShaclForm extends HTMLElement {
             return false
         }
         const result = validationResult as {
-            shape?: { message?: Term[], ptr?: { terms?: Term[] } }
+            shape?: { message?: Term[]; ptr?: { terms?: Term[] } }
             source?: Term[]
         }
         if (result.shape?.message?.length) {
             return true
         }
         const messageSubjects = [...(result.shape?.ptr?.terms ?? []), ...(result.source ?? [])]
-        return messageSubjects.some(subject =>
-            this.config.store.countQuads(subject, SHACL_PREDICATE_MESSAGE, null, null) > 0
-        )
+        return messageSubjects.some((subject) => this.config.store.countQuads(subject, SHACL_PREDICATE_MESSAGE, null, null) > 0)
     }
 
     private createValidationErrorDisplay(validatonResult?: unknown, clazz?: string): HTMLElement {
@@ -636,16 +677,17 @@ export class ShaclForm extends HTMLElement {
         if (clazz) {
             messageElement.classList.add(clazz)
         }
-        const result = (typeof validatonResult === 'object' && validatonResult !== null)
-            ? validatonResult as { message?: Array<Literal>; sourceConstraintComponent?: { value?: string } }
-            : null
+        const result =
+            typeof validatonResult === 'object' && validatonResult !== null
+                ? (validatonResult as { message?: Array<Literal>; sourceConstraintComponent?: { value?: string } })
+                : null
         if (result) {
             if (result.message?.length) {
                 messageElement.title += findBestMatchingLiteral(this.config.languages, result.message)
             } else if (result.sourceConstraintComponent?.value) {
                 messageElement.title = result.sourceConstraintComponent.value
             }
-        } else if (typeof(validatonResult) === 'string') {
+        } else if (typeof validatonResult === 'string') {
             messageElement.title = validatonResult
         }
         return messageElement
@@ -668,7 +710,9 @@ export class ShaclForm extends HTMLElement {
                 const rootConformsToShape = findConformsToShapeSubject(this.config.store, this.config.attributes.valuesSubject)
                 const rootValueSubjectTypes = this.config.store.getQuads(rootValueSubject, RDF_PREDICATE_TYPE, null, DATA_GRAPH)
                 if (rootValueSubjectTypes.length === 0) {
-                    console.warn(`value subject '${this.config.attributes.valuesSubject}' has neither ${RDF_PREDICATE_TYPE.id} nor ${DCTERMS_PREDICATE_CONFORMS_TO.id} statement`)
+                    console.warn(
+                        `value subject '${this.config.attributes.valuesSubject}' has neither ${RDF_PREDICATE_TYPE.id} nor ${DCTERMS_PREDICATE_CONFORMS_TO.id} statement`,
+                    )
                 }
                 // if dcterms:conformsTo refers to a node shape, prioritize that over targetClass resolution
                 if (rootConformsToShape) {
