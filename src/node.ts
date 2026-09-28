@@ -20,7 +20,16 @@ export class ShaclNode extends HTMLElement {
     queryContext?: QueryPathContext
     private readonly bindingContext: BindingContext
 
-    constructor(template: ShaclNodeTemplate, valueSubject: NamedNode | BlankNode | undefined, nodeKind?: NamedNode, label?: string, linked?: boolean, ancestorShapeIds: Set<string> = new Set(), queryContext?: QueryPathContext, bindingContext = BindingContext.create()) {
+    constructor(
+        template: ShaclNodeTemplate,
+        valueSubject: NamedNode | BlankNode | undefined,
+        nodeKind?: NamedNode,
+        label?: string,
+        linked?: boolean,
+        ancestorShapeIds: Set<string> = new Set(),
+        queryContext?: QueryPathContext,
+        bindingContext = BindingContext.create(),
+    ) {
         super()
         this.template = template
         this.linked = linked ?? false
@@ -61,15 +70,17 @@ export class ShaclNode extends HTMLElement {
             this.dataset.nodeId = this.nodeId.id
 
             const anchor = document.createElement('a')
-            const refId = (valueSubject.termType === 'BlankNode') ? '_:' + valueSubject.value : valueSubject.value
-            const target = Array.from(this.template.config.form.querySelectorAll<ShaclNode>('shacl-node:not([part~="linked-node"])'))
-                .find(node => node.nodeId.equals(valueSubject))
+            const refId = valueSubject.termType === 'BlankNode' ? '_:' + valueSubject.value : valueSubject.value
+            const target = Array.from(this.template.config.form.querySelectorAll<ShaclNode>('shacl-node:not([part~="linked-node"])')).find((node) =>
+                node.nodeId.equals(valueSubject),
+            )
             const graph = new Store()
             target?.toRDF(graph)
-            anchor.innerText = findLabel([
-                ...graph.getQuads(valueSubject, null, null, null),
-                ...this.template.config.store.getQuads(valueSubject, null, null, null)
-            ], this.template.config.languages) || refId
+            anchor.innerText =
+                findLabel(
+                    [...graph.getQuads(valueSubject, null, null, null), ...this.template.config.store.getQuads(valueSubject, null, null, null)],
+                    this.template.config.languages,
+                ) || refId
             anchor.classList.add('ref-link')
             anchor.onclick = () => {
                 // if anchor is clicked, scroll referenced shacl node into view
@@ -105,7 +116,16 @@ export class ShaclNode extends HTMLElement {
                     }
                 }
                 for (const shape of template.extendedShapes) {
-                    const node = new ShaclNode(shape, valueSubject, undefined, undefined, linked, childAncestorShapeIds, currentQueryContext, currentBindingContext.forInheritedShape())
+                    const node = new ShaclNode(
+                        shape,
+                        valueSubject,
+                        undefined,
+                        undefined,
+                        linked,
+                        childAncestorShapeIds,
+                        currentQueryContext,
+                        currentBindingContext.forInheritedShape(),
+                    )
                     this.prepend(node)
                     await node.ready
                 }
@@ -121,8 +141,96 @@ export class ShaclNode extends HTMLElement {
                     header.setAttribute('part', 'node-title')
                     this.prepend(header)
                 }
+                this.updateOptionalToggle()
             })()
         }
+    }
+
+    // true when this node renders an inherited shape (sh:node extension).
+    // they act as one section and need to share its toggle.
+    private isInheritedShapeNode(): boolean {
+        return this.parentElement?.tagName === 'SHACL-NODE'
+    }
+
+    // collects the properties this node's toggle is acting on: its own properties,
+    // including those in inherited shape nodes, but not those of nested nodes,
+    // which carry a toggle of their own.
+    private optionalScope(nodes: ShaclNode[] = [], properties: ShaclProperty[] = []): { nodes: ShaclNode[]; properties: ShaclProperty[] } {
+        nodes.push(this)
+        for (const property of this.querySelectorAll<ShaclProperty>(':scope > shacl-property, :scope > .shacl-group > shacl-property')) {
+            properties.push(property)
+        }
+        for (const inherited of this.querySelectorAll<ShaclNode>(':scope > shacl-node')) {
+            inherited.optionalScope(nodes, properties)
+        }
+        return { nodes, properties }
+    }
+
+    // creates this node's optional-property toggle on first call and refreshes its label and
+    // visibility afterwards. does nothing on inherited shape nodes, which share their parent's.
+    updateOptionalToggle() {
+        const config = this.template.config
+        if (!config.editMode || config.attributes.hideOptional === null || this.linked || this.isInheritedShapeNode()) {
+            return
+        }
+        const { nodes, properties } = this.optionalScope()
+        const hideable = properties.filter((property) => property.classList.contains('optional-hidden'))
+        let wrapper = this.querySelector<HTMLElement>(':scope > .optional-toggle, :scope > h1 > .optional-toggle')
+        if (!wrapper) {
+            if (!hideable.length) {
+                return
+            }
+            wrapper = this.createOptionalToggle()
+            // place the control next to this node's heading or, without one, above its content
+            const header = this.querySelector(':scope > h1')
+            const firstContent = this.querySelector(':scope > shacl-property, :scope > .shacl-group, :scope > shacl-node')
+            if (header) {
+                header.appendChild(wrapper)
+            } else if (firstContent) {
+                this.insertBefore(wrapper, firstContent)
+            } else {
+                this.appendChild(wrapper)
+            }
+            this.setOptionalCollapsed(true)
+        }
+        wrapper.hidden = hideable.length === 0
+        const collapsed = this.classList.contains('optional-collapsed')
+        const button = wrapper.querySelector<HTMLElement>('.optional-toggle-button')
+        if (button) {
+            button.textContent = `${collapsed ? 'Show' : 'Hide'} ${hideable.length} optional field${hideable.length === 1 ? '' : 's'}`
+            button.setAttribute('aria-expanded', String(!collapsed))
+        }
+        // keep inherited shape nodes in sync, so the css needs direct-child rules only
+        for (const node of nodes) {
+            node.classList.toggle('optional-collapsed', collapsed)
+        }
+    }
+
+    // applies the collapsed state to this node and every inherited shape node below it.
+    private setOptionalCollapsed(collapsed: boolean) {
+        for (const node of this.optionalScope().nodes) {
+            node.classList.toggle('optional-collapsed', collapsed)
+        }
+    }
+
+    private createOptionalToggle(): HTMLElement {
+        const wrapper = document.createElement('div')
+        wrapper.classList.add('optional-toggle')
+        wrapper.setAttribute('part', 'optional-toggle')
+
+        const button = this.template.config.theme.createButton('', false)
+        button.classList.add('optional-toggle-button')
+        button.setAttribute('text', '')
+        const existingPart = button.getAttribute('part')
+        button.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}optional-toggle-button`)
+        button.addEventListener('click', (event) => {
+            // the control lives inside the form element, so keep it from submitting
+            event.preventDefault()
+            this.setOptionalCollapsed(!this.classList.contains('optional-collapsed'))
+            this.updateOptionalToggle()
+        })
+        wrapper.appendChild(button)
+        return wrapper
     }
 
     shouldBindPropertyValue(value: Quad): boolean {
@@ -135,14 +243,16 @@ export class ShaclNode extends HTMLElement {
         }
     }
 
-    toRDF(graph: Store, subject?: NamedNode | BlankNode, generateNodeShapeReference = ''): (NamedNode | BlankNode) {
+    toRDF(graph: Store, subject?: NamedNode | BlankNode, generateNodeShapeReference = ''): NamedNode | BlankNode {
         if (!subject) {
             subject = this.nodeId
         }
         // output triples only if node is not a link
         if (!this.linked) {
-            for (const shape of this.querySelectorAll(':scope > shacl-node, :scope > .shacl-group > shacl-node, :scope > shacl-property, :scope > .shacl-group > shacl-property')) {
-                (shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
+            for (const shape of this.querySelectorAll(
+                ':scope > shacl-node, :scope > .shacl-group > shacl-node, :scope > shacl-property, :scope > .shacl-group > shacl-property',
+            )) {
+                ;(shape as ShaclNode | ShaclProperty).toRDF(graph, subject)
             }
             if (this.template.targetClass) {
                 graph.addQuad(subject, RDF_PREDICATE_TYPE, this.template.targetClass, this.template.config.valuesGraphId)
@@ -190,6 +300,7 @@ export class ShaclNode extends HTMLElement {
             }
             if (!template.config.queryMode && !this.linked) {
                 await property.updateControls()
+                property.updateOptionalVisibility()
             }
         }
     }
@@ -244,7 +355,7 @@ const elementOrders = new WeakMap<Element, number>()
 
 function insertInOrder(container: HTMLElement, element: HTMLElement, order = 0) {
     elementOrders.set(element, order)
-    const nextElement = Array.from(container.children).find(child => {
+    const nextElement = Array.from(container.children).find((child) => {
         return child !== element && (elementOrders.get(child) ?? 0) > order
     })
     container.insertBefore(element, nextElement ?? null)
