@@ -153,9 +153,9 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
     }
     node.merged = true
     for (const props of Object.values(node.properties)) {
-        for (const prop of props) {
+        for (const prop of [...props]) {
             const pathKey = propertyPathKey(prop)!
-            const [chain, maxCountIsOne] = buildPropertyChain(node, pathKey)
+            const [chain, maxCountIsOne] = buildPropertyChain(node, pathKey, new Set(), [], false, prop)
             const hasQualifiedProperty = chain.some(property => property.qualifiedValueShape !== undefined)
             const qualifiedSpecialization = isStrictQualifiedPropertySpecializationChain(chain)
             const mayMerge = hasQualifiedProperty ? qualifiedSpecialization : maxCountIsOne
@@ -170,7 +170,7 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
                 for (let i = chain.length - 2; i >= 0; i--) {
                     const source = chain[i]
                     const inheritedQualifiedShape = qualifiedSpecialization ? target.qualifiedValueShape : undefined
-                    delete source.parent.properties[propertyPathKey(source)!]
+                    removePropertyFromParent(source)
                     mergeProperty(target, source, true)
                     // the more specific qualified shape already renders its inherited shape through
                     // sh:node/sh:and. keeping both in nodeShapes would render the ancestor twice.
@@ -275,19 +275,19 @@ function buildPropertyChain(
     path: string,
     visited = new Set<string>(),
     chain: ShaclPropertyTemplate[] = [],
-    currentMaxCountIsOne = false
+    currentMaxCountIsOne = false,
+    currentProperty?: ShaclPropertyTemplate
 ): [ShaclPropertyTemplate[], boolean] {
     if (!visited.has(currentNode.id.value)) {
         visited.add(currentNode.id.value)
-        const prop = currentNode.properties[path]
-        // multiple properties on the same node/path represent separate value partitions
-        if (prop?.length === 1) {
-            chain.push(prop[0])
-            currentMaxCountIsOne = currentMaxCountIsOne || prop[0].maxCount === 1
+        const prop = currentProperty ?? findMatchingProperty(currentNode.properties[path], chain[chain.length - 1])
+        if (prop) {
+            chain.push(prop)
+            currentMaxCountIsOne = currentMaxCountIsOne || prop.maxCount === 1
             // a property-level sh:node only continues an override chain when the referenced
             // shape is a genuine extension of the current one; a free-standing node shape
             // that happens to reuse the same sh:path constrains a different focus node.
-            for (const node of prop[0].nodeShapes) {
+            for (const node of prop.nodeShapes) {
                 if (isStrictNodeShapeExtension(node, currentNode)) {
                     const [_, max] = buildPropertyChain(node, path, visited, chain, currentMaxCountIsOne)
                     currentMaxCountIsOne = currentMaxCountIsOne || max
@@ -300,4 +300,42 @@ function buildPropertyChain(
         }
     }
     return [chain, currentMaxCountIsOne]
+}
+
+// Multiple qualified properties with the same path describe separate value partitions.
+// Continue an override chain only through the unique, most-specific partition whose
+// value shape is an ancestor of the more concrete value shape already in the chain.
+function findMatchingProperty(properties: ShaclPropertyTemplate[] | undefined, child: ShaclPropertyTemplate | undefined) {
+    if (properties?.length === 1) {
+        return properties[0]
+    }
+    if (!properties?.length || !child?.qualifiedValueShape) {
+        return
+    }
+    const compatible = properties.filter(property =>
+        property.qualifiedValueShape &&
+        isStrictNodeShapeExtension(child.qualifiedValueShape!, property.qualifiedValueShape)
+    )
+    const mostSpecific = compatible.filter(property => !compatible.some(other =>
+        other !== property &&
+        isStrictNodeShapeExtension(other.qualifiedValueShape!, property.qualifiedValueShape!)
+    ))
+    if (mostSpecific.length === 1) {
+        return mostSpecific[0]
+    }
+}
+
+function removePropertyFromParent(property: ShaclPropertyTemplate) {
+    const pathKey = propertyPathKey(property)!
+    const siblings = property.parent.properties[pathKey]
+    if (!siblings) {
+        return
+    }
+    const index = siblings.indexOf(property)
+    if (index >= 0) {
+        siblings.splice(index, 1)
+    }
+    if (siblings.length === 0) {
+        delete property.parent.properties[pathKey]
+    }
 }

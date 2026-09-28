@@ -125,7 +125,7 @@ describe('test property overriding', () => {
         const genericConfig = [...root.extendedShapes][0]
         const merged = genericConfig.properties['http://example.org/assignedParameterSet'][0]
 
-        expect(root.properties['http://example.org/assignedParameterSet']).to.equal(undefined)
+        expect('http://example.org/assignedParameterSet' in root.properties).to.equal(false)
         expect(merged.label).to.equal('device parameter set')
         expect(merged.qualifiedValueShape?.id.value).to.equal('http://example.org/DeviceParameterSet')
         expect(merged.qualifiedMinCount).to.equal(2)
@@ -134,6 +134,110 @@ describe('test property overriding', () => {
 
         const renderRoot = form.shadowRoot ?? form
         expect(renderRoot.querySelectorAll(`[data-path='http://example.org/assignedParameterSet']`).length).to.equal(1)
+    })
+
+    it('merges a qualified specialization into the matching inherited value partition', async () => {
+        await bind(form, `
+            ${prefixes}
+            :GenericProcess a sh:NodeShape ;
+                sh:property [
+                    sh:path :hasEmployedTool ;
+                    sh:name "Cantilever" ;
+                    sh:qualifiedValueShape :Cantilever ;
+                    sh:qualifiedMinCount 1 ;
+                    sh:qualifiedMaxCount 1 ;
+                ] , [
+                    sh:path :hasEmployedTool ;
+                    sh:name "Generic AFM" ;
+                    sh:qualifiedValueShape :GenericAFM ;
+                    sh:qualifiedMinCount 1 ;
+                    sh:qualifiedMaxCount 1 ;
+                ] .
+
+            :NX20Process a sh:NodeShape ;
+                sh:node :GenericProcess ;
+                sh:property [
+                    sh:path :hasEmployedTool ;
+                    sh:name "Park Systems NX20" ;
+                    sh:qualifiedValueShape :NX20 ;
+                    sh:qualifiedMinCount 1 ;
+                    sh:qualifiedMaxCount 1 ;
+                ] .
+
+            :Cantilever a sh:NodeShape .
+            :GenericAFM a sh:NodeShape .
+            :NX20 a sh:NodeShape ; sh:node :GenericAFM .
+            `,
+            'http://example.org/NX20Process'
+        )
+
+        const root = form.shape!.template
+        const genericProcess = [...root.extendedShapes][0]
+        const employedTools = genericProcess.properties['http://example.org/hasEmployedTool']
+
+        expect('http://example.org/hasEmployedTool' in root.properties).to.equal(false)
+        expect(employedTools).to.have.length(2)
+        expect(employedTools.map(property => property.label)).to.have.members([
+            'Cantilever',
+            'Park Systems NX20'
+        ])
+        expect(employedTools.map(property => property.qualifiedValueShape?.id.value)).to.have.members([
+            'http://example.org/Cantilever',
+            'http://example.org/NX20'
+        ])
+
+        const renderRoot = form.shadowRoot ?? form
+        expect(renderRoot.querySelectorAll(`[data-path='http://example.org/hasEmployedTool']`).length).to.equal(2)
+    })
+
+    it('merges multiple qualified specializations without skipping sibling partitions', async () => {
+        await bind(form, `
+            ${prefixes}
+            :GenericProcess a sh:NodeShape ;
+                sh:property [
+                    sh:path :hasEmployedTool ;
+                    sh:name "Generic tool A" ;
+                    sh:qualifiedValueShape :GenericToolA ;
+                ] , [
+                    sh:path :hasEmployedTool ;
+                    sh:name "Generic tool B" ;
+                    sh:qualifiedValueShape :GenericToolB ;
+                ] .
+
+            :SpecificProcess a sh:NodeShape ;
+                sh:node :GenericProcess ;
+                sh:property [
+                    sh:path :hasEmployedTool ;
+                    sh:name "Specific tool A" ;
+                    sh:qualifiedValueShape :SpecificToolA ;
+                ] , [
+                    sh:path :hasEmployedTool ;
+                    sh:name "Specific tool B" ;
+                    sh:qualifiedValueShape :SpecificToolB ;
+                ] .
+
+            :GenericToolA a sh:NodeShape .
+            :GenericToolB a sh:NodeShape .
+            :SpecificToolA a sh:NodeShape ; sh:node :GenericToolA .
+            :SpecificToolB a sh:NodeShape ; sh:node :GenericToolB .
+            `,
+            'http://example.org/SpecificProcess'
+        )
+
+        const root = form.shape!.template
+        const genericProcess = [...root.extendedShapes][0]
+        const employedTools = genericProcess.properties['http://example.org/hasEmployedTool']
+
+        expect('http://example.org/hasEmployedTool' in root.properties).to.equal(false)
+        expect(employedTools).to.have.length(2)
+        expect(employedTools.map(property => property.label)).to.have.members([
+            'Specific tool A',
+            'Specific tool B'
+        ])
+        expect(employedTools.map(property => property.qualifiedValueShape?.id.value)).to.have.members([
+            'http://example.org/SpecificToolA',
+            'http://example.org/SpecificToolB'
+        ])
     })
 
     it('keeps qualified properties separate when their value shapes are not specializations', async () => {

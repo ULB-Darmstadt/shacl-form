@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Merge an overriding `sh:qualifiedValueShape` property into its matching
+  inherited value partition when multiple qualified properties share the same
+  `sh:path`, while preserving unrelated sibling partitions.
+
 ## [3.7.3] - 2026-09-22
 
 ### Fixed
