@@ -136,10 +136,18 @@ describe('test property overriding', () => {
         expect(renderRoot.querySelectorAll(`[data-path='http://example.org/assignedParameterSet']`).length).to.equal(1)
     })
 
-    it('merges a qualified specialization into the matching inherited value partition', async () => {
+    it('merges the NX20 qualified partition below an unqualified processing-step property', async () => {
         await bind(form, `
             ${prefixes}
+            :ProcessingStep a sh:NodeShape ;
+                sh:property [
+                    sh:path :hasEmployedTool ;
+                    sh:name "Any employed tool" ;
+                    sh:class :Tool ;
+                ] .
+
             :GenericProcess a sh:NodeShape ;
+                sh:node :ProcessingStep ;
                 sh:property [
                     sh:path :hasEmployedTool ;
                     sh:name "Cantilever" ;
@@ -173,6 +181,7 @@ describe('test property overriding', () => {
 
         const root = form.shape!.template
         const genericProcess = [...root.extendedShapes][0]
+        const processingStep = [...genericProcess.extendedShapes][0]
         const employedTools = genericProcess.properties['http://example.org/hasEmployedTool']
 
         expect('http://example.org/hasEmployedTool' in root.properties).to.equal(false)
@@ -185,9 +194,23 @@ describe('test property overriding', () => {
             'http://example.org/Cantilever',
             'http://example.org/NX20'
         ])
+        const generalTool = processingStep.properties['http://example.org/hasEmployedTool'][0]
+        expect(generalTool.label).to.equal('Any employed tool')
+        expect(generalTool.class?.value).to.equal('http://example.org/Tool')
+        expect(generalTool.qualifiedValueShape).to.equal(undefined)
+        const nx20 = employedTools.find(property => property.qualifiedValueShape?.id.value === 'http://example.org/NX20')!
+        expect([...nx20.nodeShapes].map(shape => shape.id.value)).to.deep.equal(['http://example.org/NX20'])
+        expect(nx20.queryShapePathId).to.exist
+
+        // Merging templates must leave the original SHACL constraints intact.
+        const originalProperties = form.config.store.getObjects(genericProcess.id, 'http://www.w3.org/ns/shacl#property', null)
+        expect(originalProperties).to.have.length(2)
+        expect(originalProperties.flatMap(property => form.config.store.getObjects(property, 'http://www.w3.org/ns/shacl#qualifiedValueShape', null)).map(shape => shape.value)).to.have.members([
+            'http://example.org/Cantilever', 'http://example.org/GenericAFM'
+        ])
 
         const renderRoot = form.shadowRoot ?? form
-        expect(renderRoot.querySelectorAll(`[data-path='http://example.org/hasEmployedTool']`).length).to.equal(2)
+        expect(renderRoot.querySelectorAll(`[data-path='http://example.org/hasEmployedTool']`).length).to.equal(3)
     })
 
     it('merges multiple qualified specializations without skipping sibling partitions', async () => {
@@ -238,6 +261,108 @@ describe('test property overriding', () => {
             'http://example.org/SpecificToolA',
             'http://example.org/SpecificToolB'
         ])
+    })
+
+    it('keeps ambiguous inherited qualified partitions separate', async () => {
+        await bind(form, `
+            ${prefixes}
+            :GenericProcess a sh:NodeShape ;
+                sh:property [ sh:path :tool ; sh:name "Tool A" ; sh:qualifiedValueShape :ToolA ; sh:qualifiedMinCount 1 ],
+                            [ sh:path :tool ; sh:name "Tool B" ; sh:qualifiedValueShape :ToolB ; sh:qualifiedMinCount 1 ] .
+            :SpecificProcess a sh:NodeShape ;
+                sh:node :GenericProcess ;
+                sh:property [ sh:path :tool ; sh:name "Specific tool" ;
+                    sh:qualifiedValueShape :SpecificTool ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+            :ToolA a sh:NodeShape .
+            :ToolB a sh:NodeShape .
+            :SpecificTool a sh:NodeShape ; sh:and (:ToolA :ToolB) .
+        `, 'http://example.org/SpecificProcess')
+
+        const root = form.shape!.template
+        expect(root.properties['http://example.org/tool'][0].label).to.equal('Specific tool')
+        expect([...root.extendedShapes][0].properties['http://example.org/tool'].map(property => property.label)).to.have.members(['Tool A', 'Tool B'])
+        expect(form.form.querySelectorAll('shacl-property')).to.have.length(3)
+    })
+
+    for (const parents of [':ProcessA :ProcessB', ':ProcessB :ProcessA']) {
+        it(`keeps equally matching sh:and parents separate in order ${parents}`, async () => {
+            await bind(form, `
+                ${prefixes}
+                :ProcessA a sh:NodeShape ; sh:property [ sh:path :tool ; sh:name "Tool A" ;
+                    sh:qualifiedValueShape :ToolA ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+                :ProcessB a sh:NodeShape ; sh:property [ sh:path :tool ; sh:name "Tool B" ;
+                    sh:qualifiedValueShape :ToolB ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+                :SpecificProcess a sh:NodeShape ; sh:and (${parents}) ;
+                    sh:property [ sh:path :tool ; sh:name "Specific tool" ;
+                        sh:qualifiedValueShape :SpecificTool ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+                :ToolA a sh:NodeShape . :ToolB a sh:NodeShape .
+                :SpecificTool a sh:NodeShape ; sh:and (:ToolA :ToolB) .
+            `, 'http://example.org/SpecificProcess')
+
+            const root = form.shape!.template
+            expect(root.properties['http://example.org/tool'][0].label).to.equal('Specific tool')
+            expect([...root.extendedShapes].flatMap(parent => parent.properties['http://example.org/tool']).map(property => property.label)).to.have.members(['Tool A', 'Tool B'])
+            expect(form.form.querySelectorAll('shacl-property')).to.have.length(3)
+        })
+
+        it(`merges the unique qualified parent beside a catch-all in order ${parents}`, async () => {
+            await bind(form, `
+                ${prefixes}
+                :ProcessA a sh:NodeShape ; sh:property [ sh:path :tool ; sh:name "Generic AFM" ;
+                    sh:qualifiedValueShape :GenericAFM ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+                :ProcessB a sh:NodeShape ; sh:property [ sh:path :tool ; sh:name "Any tool" ; sh:class :Tool ] .
+                :SpecificProcess a sh:NodeShape ; sh:and (${parents}) ;
+                    sh:property [ sh:path :tool ; sh:name "NX20" ; sh:qualifiedValueShape :NX20 ;
+                        sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+                :GenericAFM a sh:NodeShape . :NX20 a sh:NodeShape ; sh:node :GenericAFM .
+            `, 'http://example.org/SpecificProcess')
+
+            const root = form.shape!.template
+            expect(root.properties['http://example.org/tool']).to.equal(undefined)
+            expect([...root.extendedShapes].flatMap(parent => parent.properties['http://example.org/tool']).map(property => property.label)).to.have.members(['NX20', 'Any tool'])
+        })
+    }
+
+    it('merges a linear qualified subchain below ambiguous parents through empty shapes', async () => {
+        await bind(form, `
+            ${prefixes}
+            :ProcessA a sh:NodeShape ; sh:property [ sh:path :tool ; sh:name "Tool A" ; sh:qualifiedValueShape :ToolA ; sh:qualifiedMinCount 1 ] .
+            :ProcessB a sh:NodeShape ; sh:property [ sh:path :tool ; sh:name "Tool B" ; sh:qualifiedValueShape :ToolB ; sh:qualifiedMinCount 1 ] .
+            :BranchA a sh:NodeShape ; sh:node :ProcessA .
+            :BranchB a sh:NodeShape ; sh:node :ProcessB .
+            :MiddleProcess a sh:NodeShape ; sh:and (:BranchA :BranchB) ;
+                sh:property [ sh:path :tool ; sh:name "Middle tool" ; sh:qualifiedValueShape :MiddleTool ; sh:qualifiedMinCount 1 ] .
+            :SpecificProcess a sh:NodeShape ; sh:node :MiddleProcess ;
+                sh:property [ sh:path :tool ; sh:name "Specific tool" ; sh:qualifiedValueShape :SpecificTool ; sh:qualifiedMinCount 1 ] .
+            :ToolA a sh:NodeShape . :ToolB a sh:NodeShape .
+            :MiddleTool a sh:NodeShape ; sh:and (:ToolA :ToolB) .
+            :SpecificTool a sh:NodeShape ; sh:node :MiddleTool .
+        `, 'http://example.org/SpecificProcess')
+
+        const root = form.shape!.template
+        const middle = [...root.extendedShapes][0]
+        expect(root.properties['http://example.org/tool']).to.equal(undefined)
+        expect(middle.properties['http://example.org/tool'][0].label).to.equal('Specific tool')
+        const parents = [...middle.extendedShapes].flatMap(branch => [...branch.extendedShapes])
+        expect(parents.flatMap(parent => parent.properties['http://example.org/tool']).map(property => property.label)).to.have.members(['Tool A', 'Tool B'])
+        expect(form.form.querySelectorAll('shacl-property')).to.have.length(3)
+    })
+
+    it('still selects the most-specific qualified partition within one parent shape', async () => {
+        await bind(form, `
+            ${prefixes}
+            :GenericProcess a sh:NodeShape ;
+                sh:property [ sh:path :tool ; sh:name "General tool" ; sh:qualifiedValueShape :GeneralTool ; sh:qualifiedMinCount 1 ],
+                            [ sh:path :tool ; sh:name "AFM" ; sh:qualifiedValueShape :AFM ; sh:qualifiedMinCount 1 ] .
+            :SpecificProcess a sh:NodeShape ; sh:node :GenericProcess ;
+                sh:property [ sh:path :tool ; sh:name "NX20" ; sh:qualifiedValueShape :NX20 ; sh:qualifiedMinCount 1 ] .
+            :GeneralTool a sh:NodeShape . :AFM a sh:NodeShape ; sh:node :GeneralTool .
+            :NX20 a sh:NodeShape ; sh:node :AFM .
+        `, 'http://example.org/SpecificProcess')
+
+        const root = form.shape!.template
+        expect(root.properties['http://example.org/tool']).to.equal(undefined)
+        expect([...root.extendedShapes][0].properties['http://example.org/tool'].map(property => property.label)).to.have.members(['General tool', 'NX20'])
     })
 
     it('keeps qualified properties separate when their value shapes are not specializations', async () => {

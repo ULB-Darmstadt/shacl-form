@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.7.4] - 2026-10-09
+
 ### Fixed
 
 - Merge an overriding `sh:qualifiedValueShape` property into its matching
   inherited value partition when multiple qualified properties share the same
   `sh:path`, while preserving unrelated sibling partitions.
+- Merge qualified specialization chains below a general, unqualified ancestor
+  property, keeping that general property as a separate editor.
+- Keep equally matching qualified properties in parallel inherited shapes
+  separate, independent of the order of `sh:and` members.
 
 ## [3.7.3] - 2026-09-22
 

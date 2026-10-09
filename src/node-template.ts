@@ -155,9 +155,12 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
     for (const props of Object.values(node.properties)) {
         for (const prop of [...props]) {
             const pathKey = propertyPathKey(prop)!
-            const [chain, maxCountIsOne] = buildPropertyChain(node, pathKey, new Set(), [], false, prop)
-            const hasQualifiedProperty = chain.some(property => property.qualifiedValueShape !== undefined)
-            const qualifiedSpecialization = isStrictQualifiedPropertySpecializationChain(chain)
+            const [fullChain, maxCountIsOne] = buildPropertyChain(node, pathKey, new Set(), [], false, prop)
+            const hasQualifiedProperty = fullChain.some(property => property.qualifiedValueShape !== undefined)
+            // A general catch-all constraint above the qualified partitions must
+            // not prevent merging the concrete specialization below it.
+            const chain = hasQualifiedProperty ? getQualifiedSpecializationChain(prop) : fullChain
+            const qualifiedSpecialization = hasQualifiedProperty && chain.length > 1
             const mayMerge = hasQualifiedProperty ? qualifiedSpecialization : maxCountIsOne
             if (chain.length > 1 && mayMerge) {
                 // merge properties into the last element in array (which is the topmost in the hierarchy) and remove preceding properties
@@ -186,23 +189,60 @@ export function mergeOverriddenProperties(node: ShaclNodeTemplate) {
     }
 }
 
-function isStrictQualifiedPropertySpecializationChain(chain: ShaclPropertyTemplate[]): boolean {
-    if (chain.length < 2) {
-        return false
+// Walk qualified inheritance one step at a time. Parallel parents must be compared
+// against the same child, rather than appended to a traversal-dependent flat chain.
+function getQualifiedSpecializationChain(property: ShaclPropertyTemplate): ShaclPropertyTemplate[] {
+    if (!property.qualifiedValueShape) {
+        return []
     }
-    for (let i = 0; i < chain.length - 1; i++) {
-        const child = chain[i]
-        const parent = chain[i + 1]
-        if (
-            !child.qualifiedValueShape ||
-            !parent.qualifiedValueShape ||
-            !isStrictNodeShapeExtension(child.parent, parent.parent) ||
-            !isStrictNodeShapeExtension(child.qualifiedValueShape, parent.qualifiedValueShape)
-        ) {
-            return false
+    const chain = [property]
+    const visited = new Set<ShaclPropertyTemplate>(chain)
+    let child = property
+    while (true) {
+        const compatible = findInheritedProperties(child).filter(parent =>
+            parent.qualifiedValueShape &&
+            isStrictNodeShapeExtension(child.parent, parent.parent) &&
+            isStrictNodeShapeExtension(child.qualifiedValueShape!, parent.qualifiedValueShape)
+        )
+        const mostSpecific = compatible.filter(parent => !compatible.some(other =>
+            other !== parent &&
+            (other.parent.id.equals(parent.parent.id) || isStrictNodeShapeExtension(other.parent, parent.parent)) &&
+            isStrictNodeShapeExtension(other.qualifiedValueShape!, parent.qualifiedValueShape!)
+        ))
+        if (mostSpecific.length !== 1 || visited.has(mostSpecific[0])) {
+            break
+        }
+        child = mostSpecific[0]
+        visited.add(child)
+        chain.push(child)
+    }
+    return chain
+}
+
+// Stop each ancestry branch at its nearest declaration of the path, even when
+// that declaration is unqualified or incompatible. Do not jump over constraints.
+function findInheritedProperties(property: ShaclPropertyTemplate): ShaclPropertyTemplate[] {
+    const path = propertyPathKey(property)!
+    const pending = [
+        ...property.parent.extendedShapes,
+        ...[...property.nodeShapes].filter(shape => isStrictNodeShapeExtension(shape, property.parent))
+    ]
+    const visited = new Set<string>([property.parent.id.value])
+    const inherited: ShaclPropertyTemplate[] = []
+    while (pending.length) {
+        const shape = pending.pop()!
+        if (visited.has(shape.id.value)) {
+            continue
+        }
+        visited.add(shape.id.value)
+        const properties = shape.properties[path]
+        if (properties?.length) {
+            inherited.push(...properties)
+        } else {
+            pending.push(...shape.extendedShapes)
         }
     }
-    return true
+    return inherited
 }
 
 function isStrictNodeShapeExtension(descendant: ShaclNodeTemplate, ancestor: ShaclNodeTemplate): boolean {
