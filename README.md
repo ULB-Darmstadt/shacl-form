@@ -96,6 +96,7 @@ data-ignore-owl-imports | By default, `owl:imports` URLs are fetched and merged 
 data-view | When set, turns the component into a viewer that displays the data graph without editing
 data-mode | Explicit component mode: `edit` (default), `view`, or `query`. When omitted, the legacy `data-view` attribute continues to select viewer mode
 data-collapse | When set, `sh:group`s and properties with `sh:node` and `sh:maxCount` != 1 are rendered in a collapsible accordion. Use value `"open"` to start expanded
+data-hide-optional | [Edit mode only] When set, optional properties (aggregated `sh:minCount` of 0) without value are hidden. Every node renders its own "Show N optional fields" control above its content, toggling just that node's optional properties; nested nodes carry their own control. Hidden properties stay in their `sh:order` position, so reappear in place when shown. Properties with a value, with `sh:hasValue`, or reported as invalid are never hidden.
 data-submit-button | [Ignored when `data-view` is set] Adds a submit button. The attribute value is used as the label. `submit` events fire only when the data validates
 data-generate-node-shape-reference | When generating RDF data, adds a triple that references the root `sh:NodeShape`. Default predicate is `http://purl.org/dc/terms/conformsTo`. Set to an empty string to disable
 data-show-node-ids | Show node shape subject ids in the form

@@ -27,6 +27,15 @@ shacl-property:not(.may-remove) > .shacl-or-constraint > .remove-button-wrapper 
 shacl-property:not(.may-remove) > .alternative-path-constraint > .remove-button-wrapper > .remove-button:not(.persistent),
 shacl-property:not(.may-remove) > .collapsible > .alternative-path-constraint > .remove-button-wrapper > .remove-button:not(.persistent) { visibility: hidden; }
 .mode-view .shacl-group:not(:has(shacl-property)) { display: none; }
+.mode-edit.hide-optional shacl-node.optional-collapsed > shacl-property.optional-hidden,
+.mode-edit.hide-optional shacl-node.optional-collapsed > .shacl-group > shacl-property.optional-hidden { display: none; }
+.mode-edit.hide-optional shacl-node.optional-collapsed > .shacl-group:not(:has(> shacl-property:not(.optional-hidden))) { display: none; }
+.optional-toggle { display: flex; width: 100%; justify-content: flex-start; padding: 4px 0; color: var(--shacl-muted-color); }
+shacl-node > h1:has(> .optional-toggle:not([hidden])) { display: flex; align-items: center; gap: 1em; }
+shacl-node > h1 > .optional-toggle { width: auto; margin-left: auto; padding: 0; font-size: 14px; font-weight: normal; }
+.optional-toggle[hidden] { display: none; }
+.optional-toggle-button[aria-expanded='true']::part(button)::before { content: '\25B4  '; }
+.optional-toggle-button[aria-expanded='false']::part(button)::before { content: '\25BE  '; }
 .property-instance, .shacl-or-constraint, .alternative-path-constraint { display: flex; align-items: center; padding: 4px 0; width: 100%; position: relative; }
 .shacl-or-constraint > div, .alternative-path-constraint > div { display: flex; align-items: flex-start; }
 .shacl-or-constraint > div:first-child, .alternative-path-constraint > div:first-child { flex-grow: 1 }

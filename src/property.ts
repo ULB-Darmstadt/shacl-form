@@ -14,7 +14,8 @@ import { bindEditorTerm } from './editor.js'
 import { v4 as uuidv4 } from 'uuid'
 
 const ADD_BUTTON_SELECTOR = ':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper'
-const PROPERTY_INSTANCE_SELECTOR = ':scope > .property-instance, :scope > .shacl-or-constraint, :scope > .alternative-path-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance, :scope > .collapsible > .alternative-path-constraint'
+const PROPERTY_INSTANCE_SELECTOR =
+    ':scope > .property-instance, :scope > .shacl-or-constraint, :scope > .alternative-path-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance, :scope > .collapsible > .alternative-path-constraint'
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
@@ -23,6 +24,7 @@ export class ShaclProperty extends HTMLElement {
     private readonly rdfListItemTemplate?: ShaclPropertyTemplate
     private readonly rdfListNodes = new WeakMap<HTMLElement, NamedNode | BlankNode>()
     private readonly rdfListGroups = new WeakMap<HTMLElement, string>()
+    hasBoundValues = false
 
     constructor(template: ShaclPropertyTemplate, parent: ShaclNode) {
         super()
@@ -31,7 +33,11 @@ export class ShaclProperty extends HTMLElement {
         this.rdfListItemTemplate = detectRdfListItemTemplate(template)
         this.container = this
         this.setAttribute('part', 'property')
-        if (this.template.nodeShapes.size && this.template.config.attributes.collapse !== null && (this.template.maxCount === undefined || this.template.maxCount > 1)) {
+        if (
+            this.template.nodeShapes.size &&
+            this.template.config.attributes.collapse !== null &&
+            (this.template.maxCount === undefined || this.template.maxCount > 1)
+        ) {
             const collapsible = new RokitCollapsible()
             collapsible.classList.add('collapsible', 'shacl-group')
             collapsible.open = template.config.attributes.collapse === 'open'
@@ -57,8 +63,8 @@ export class ShaclProperty extends HTMLElement {
             let valuesContainHasValue = false
             if (valueSubject) {
                 // for linked resource, get values in all graphs, otherwise only from data graph
-                let values = (this.template.pathAlternatives ?? [this.template.path]).flatMap(path =>
-                    this.template.config.store.getQuads(valueSubject, path, null, this.parent.linked ? null : DATA_GRAPH)
+                let values = (this.template.pathAlternatives ?? [this.template.path]).flatMap((path) =>
+                    this.template.config.store.getQuads(valueSubject, path, null, this.parent.linked ? null : DATA_GRAPH),
                 )
                 if (multiValuedPath) {
                     // ignore values that do not conform to this property. this might be the case when there are multiple properties with the same sh:path in a NodeShape (i.e. sh:qualifiedValueShape).
@@ -67,22 +73,23 @@ export class ShaclProperty extends HTMLElement {
                 // A more-specific inherited property may already have rendered this
                 // value. Linked data cannot be removed from the shared store, so
                 // exclude it explicitly before rendering the generic ancestor property.
-                values = values.filter(value => this.parent.shouldBindPropertyValue(value))
+                values = values.filter((value) => this.parent.shouldBindPropertyValue(value))
                 for (const value of values) {
                     // remove quad from data graph to prevent double binding if value is not linked
                     if (!this.parent.linked) {
                         this.template.config.store.delete(value)
                     }
+                    this.hasBoundValues = true
                     // if value is not in data graph or has loaded via ResourceLinkProvider, then it is a linked resource
                     const linked = !DATA_GRAPH.equals(value.graph) || this.template.config.providedResources[value.object.value] !== undefined
                     const instance = this.rdfListItemTemplate
                         ? await this.bindRdfList(value.object, linked)
                         : await this.addPropertyInstance(
-                            value.object,
-                            linked,
-                            this.template.config.providedResources[value.object.value] !== undefined,
-                            value.predicate.value
-                        )
+                              value.object,
+                              linked,
+                              this.template.config.providedResources[value.object.value] !== undefined,
+                              value.predicate.value,
+                          )
                     if (instance) {
                         this.parent.recordBoundPropertyValue(value)
                     }
@@ -95,6 +102,7 @@ export class ShaclProperty extends HTMLElement {
                 if (this.template.hasValue && !valuesContainHasValue && !this.parent.linked) {
                     // sh:hasValue is defined in shapes graph, but does not exist in data graph, so force it
                     await this.addPropertyInstance(this.template.hasValue)
+                    this.hasBoundValues = true
                 }
             }
         }
@@ -116,9 +124,7 @@ export class ShaclProperty extends HTMLElement {
             }
         } else {
             const alternativeBranch = predicate ? this.template.pathAlternativeBranches?.[predicate] : undefined
-            const effectiveTemplate = predicate && (predicate !== this.template.path || alternativeBranch)
-                ? cloneProperty(this.template)
-                : this.template
+            const effectiveTemplate = predicate && (predicate !== this.template.path || alternativeBranch) ? cloneProperty(this.template) : this.template
             if (predicate) {
                 effectiveTemplate.path = predicate
             }
@@ -127,7 +133,7 @@ export class ShaclProperty extends HTMLElement {
                 effectiveTemplate.label = alternativeBranch.name?.value || alternativeBranch.label || effectiveTemplate.label
             }
             if (effectiveTemplate.or?.length || effectiveTemplate.xone?.length) {
-                const options = effectiveTemplate.or?.length ? effectiveTemplate.or : effectiveTemplate.xone as Term[]
+                const options = effectiveTemplate.or?.length ? effectiveTemplate.or : (effectiveTemplate.xone as Term[])
                 let resolved = false
                 if (value) {
                     const resolvedOptions = resolveShaclOrConstraintOnProperty(options, value, effectiveTemplate.config)
@@ -140,7 +146,13 @@ export class ShaclProperty extends HTMLElement {
                 // prevent creating constraint chooser in view mode
                 if (!resolved && effectiveTemplate.config.editMode) {
                     instance = createShaclOrConstraint(options, this, effectiveTemplate.config, predicate, effectiveTemplate)
-                    appendRemoveButton(instance, '', effectiveTemplate.config.theme.dense, effectiveTemplate.config.hierarchyColorsStyleSheet !== undefined, forceRemovable)
+                    appendRemoveButton(
+                        instance,
+                        '',
+                        effectiveTemplate.config.theme.dense,
+                        effectiveTemplate.config.hierarchyColorsStyleSheet !== undefined,
+                        forceRemovable,
+                    )
                 }
             } else {
                 instance = await createPropertyInstance(effectiveTemplate, value, forceRemovable, linked || this.parent.linked, this.parent)
@@ -162,11 +174,10 @@ export class ShaclProperty extends HTMLElement {
         if (this.template.config.editMode && !this.parent.linked && !this.querySelector(ADD_BUTTON_SELECTOR)) {
             this.container.appendChild(await this.createAddControls())
         }
-        const minCount = this.rdfListItemTemplate
-            ? (aggregatedMinCount(this.template) > 0 ? 1 : 0)
-            : aggregatedMinCount(this.template)
+        const minCount = this.rdfListItemTemplate ? (aggregatedMinCount(this.template) > 0 ? 1 : 0) : aggregatedMinCount(this.template)
         const literal = this.rdfListItemTemplate ? this.rdfListItemTemplate.nodeShapes.size === 0 : this.template.nodeShapes.size === 0
-        const noLinkableResources = this.querySelector(':scope > .add-button-wrapper > .link-button, :scope > .collapsible > .add-button-wrapper > .link-button') === null
+        const noLinkableResources =
+            this.querySelector(':scope > .add-button-wrapper > .link-button, :scope > .collapsible > .add-button-wrapper > .link-button') === null
         const mayAutocreateRequiredNode = literal || !this.hasRecursiveNodeShape()
         let instanceCount = this.instanceCount()
         if (instanceCount === 0 && mayAutocreateRequiredNode && (literal || (noLinkableResources && minCount > 0))) {
@@ -185,12 +196,27 @@ export class ShaclProperty extends HTMLElement {
         }
 
         // sh:maxCount applies to the single list head, not to its rdf:first members.
-        const hasLinkedList = this.rdfListItemTemplate !== undefined && this.querySelector(':scope > .property-instance.linked, :scope > .collapsible > .property-instance.linked') !== null
-        const listGroupCount = new Set(instancesOf(this).map(instance => this.rdfListGroups.get(instance))).size
+        const hasLinkedList =
+            this.rdfListItemTemplate !== undefined &&
+            this.querySelector(':scope > .property-instance.linked, :scope > .collapsible > .property-instance.linked') !== null
+        const listGroupCount = new Set(instancesOf(this).map((instance) => this.rdfListGroups.get(instance))).size
         const mayAddListItem = this.rdfListItemTemplate !== undefined && !hasLinkedList && listGroupCount <= 1
         const mayAdd = mayAddListItem || instanceCount < aggregatedMaxCount(this.template)
         this.classList.toggle('may-remove', mayRemove)
         this.classList.toggle('may-add', mayAdd)
+    }
+
+    updateOptionalVisibility() {
+        const config = this.template.config
+        if (!config.editMode || config.attributes.hideOptional === null) {
+            return
+        }
+        if (aggregatedMinCount(this.template) > 0 || this.hasBoundValues) {
+            return
+        }
+        this.classList.add('optional-hidden')
+        const existingPart = this.getAttribute('part')
+        this.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}optional-hidden`)
     }
 
     instanceCount() {
@@ -220,13 +246,9 @@ export class ShaclProperty extends HTMLElement {
                 continue
             }
 
-            const replacement = this.template.config.theme.createListEditor(
-                this.template.label,
-                currentValue ?? null,
-                aggregatedMinCount(this.template) > 0,
-                entries,
-                this.template
-            ).querySelector<Editor>('.editor')!
+            const replacement = this.template.config.theme
+                .createListEditor(this.template.label, currentValue ?? null, aggregatedMinCount(this.template) > 0, entries, this.template)
+                .querySelector<Editor>('.editor')!
             replacement.dataset.classInstances = signature
             editor.replaceWith(replacement)
         }
@@ -234,7 +256,7 @@ export class ShaclProperty extends HTMLElement {
 
     hasRecursiveNodeShape() {
         const ancestorShapeIds = new Set<string>()
-        this.parent.ancestorShapeIds.forEach(id => ancestorShapeIds.add(id))
+        this.parent.ancestorShapeIds.forEach((id) => ancestorShapeIds.add(id))
         ancestorShapeIds.add(this.parent.template.id.value)
         for (const shape of this.template.nodeShapes) {
             if (ancestorShapeIds.has(shape.id.value)) {
@@ -283,7 +305,9 @@ export class ShaclProperty extends HTMLElement {
                 dataSubjectsToValidate.push(value.object as NamedNode)
             }
         }
-        const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [{ terms: [nodeShapeToValidate] }])
+        const report = await this.template.config.validator.validate({ dataset: this.template.config.store, terms: dataSubjectsToValidate }, [
+            { terms: [nodeShapeToValidate] },
+        ])
         const invalidTerms = new Set<string>()
         for (const result of report.results) {
             const reportObject = this.template.qualifiedValueShape ? result.focusNode : result.value
@@ -291,7 +315,7 @@ export class ShaclProperty extends HTMLElement {
                 invalidTerms.add(reportObject.ptrs[0]._term.id)
             }
         }
-        return values.filter(value => !invalidTerms.has(value.object.id))
+        return values.filter((value) => !invalidTerms.has(value.object.id))
     }
 
     async createAddControls() {
@@ -367,7 +391,9 @@ export class ShaclProperty extends HTMLElement {
         itemTemplate.label = this.template.label
         const instance = await createPropertyInstance(itemTemplate, value, forceRemovable, linked || this.parent.linked, this.parent)
         instance.dataset.path = this.template.path
-        const existingGroup = instancesOf(this).map(existing => this.rdfListGroups.get(existing)).find(group => group !== undefined)
+        const existingGroup = instancesOf(this)
+            .map((existing) => this.rdfListGroups.get(existing))
+            .find((group) => group !== undefined)
         const node = listNode ?? this.createRdfListNode(existingGroup === undefined)
         this.rdfListNodes.set(instance, node)
         this.rdfListGroups.set(instance, listGroup ?? existingGroup ?? rdfTermKey(node))
@@ -385,7 +411,10 @@ export class ShaclProperty extends HTMLElement {
     }
 
     private rdfListToRDF(graph: Store, subject: NamedNode | BlankNode) {
-        const groups = new Map<string, Array<{ instance: HTMLElement, node: NamedNode | BlankNode, value?: NamedNode | BlankNode | Literal, linked: boolean }>>()
+        const groups = new Map<
+            string,
+            Array<{ instance: HTMLElement; node: NamedNode | BlankNode; value?: NamedNode | BlankNode | Literal; linked: boolean }>
+        >()
         for (const instance of instancesOf(this)) {
             const node = this.rdfListNodes.get(instance) ?? DataFactory.blankNode()
             const groupId = this.rdfListGroups.get(instance) ?? rdfTermKey(node)
@@ -405,11 +434,13 @@ export class ShaclProperty extends HTMLElement {
                 groups.set(groupId, group)
             }
         }
-        const retainedNodeIds = new Set([...groups.values()].flatMap(group => group.map(item => rdfTermKey(item.node))))
-        const retainedValues = new Map([...groups.values()].flatMap(group => group
-            .filter(item => !item.linked && item.value)
-            .map(item => [rdfTermKey(item.node), rdfTermKey(item.value!)] as const)))
-        const linkedHeadIds = new Set([...groups.values()].filter(group => group[0]?.linked).map(group => rdfTermKey(group[0].node)))
+        const retainedNodeIds = new Set([...groups.values()].flatMap((group) => group.map((item) => rdfTermKey(item.node))))
+        const retainedValues = new Map(
+            [...groups.values()].flatMap((group) =>
+                group.filter((item) => !item.linked && item.value).map((item) => [rdfTermKey(item.node), rdfTermKey(item.value!)] as const),
+            ),
+        )
+        const linkedHeadIds = new Set([...groups.values()].filter((group) => group[0]?.linked).map((group) => rdfTermKey(group[0].node)))
         this.removePreservedRdfList(graph, subject, retainedNodeIds, retainedValues, linkedHeadIds)
         for (const group of groups.values()) {
             graph.addQuad(subject, DataFactory.namedNode(this.template.path!), group[0].node, this.template.config.valuesGraphId)
@@ -426,7 +457,13 @@ export class ShaclProperty extends HTMLElement {
         }
     }
 
-    private removePreservedRdfList(graph: Store, subject: NamedNode | BlankNode, retainedNodeIds: Set<string>, retainedValues: Map<string, string>, skippedHeadIds: Set<string>) {
+    private removePreservedRdfList(
+        graph: Store,
+        subject: NamedNode | BlankNode,
+        retainedNodeIds: Set<string>,
+        retainedValues: Map<string, string>,
+        skippedHeadIds: Set<string>,
+    ) {
         if (this.template.config.attributes.preserveUnmappedValues === null) {
             return
         }
@@ -506,15 +543,29 @@ function removeOrphanedBlankNodeSubgraphs(graph: Store, candidates: BlankNode[])
 }
 
 export function detectRdfListItemTemplate(template: ShaclPropertyTemplate): ShaclPropertyTemplate | undefined {
-    if (template.maxCount !== 1 || template.nodeShapes.size !== 1 || !isSupportedRdfListNodeKind(template.nodeKind) || !hasOnlySupportedShapePredicates(template.config.store, template.id, [
-        'path', 'minCount', 'maxCount', 'node', 'nodeKind', 'class'
-    ])) {
+    if (
+        template.maxCount !== 1 ||
+        template.nodeShapes.size !== 1 ||
+        !isSupportedRdfListNodeKind(template.nodeKind) ||
+        !hasOnlySupportedShapePredicates(template.config.store, template.id, ['path', 'minCount', 'maxCount', 'node', 'nodeKind', 'class'])
+    ) {
         return undefined
     }
     const listShape = [...template.nodeShapes][0]
     const listPropertyCount = template.config.store.countQuads(listShape.id, `${PREFIX_SHACL}property`, null, null)
     const listNodeReferences = template.config.store.getObjects(template.id, `${PREFIX_SHACL}node`, null)
-    if (listNodeReferences.length !== 1 || !listNodeReferences[0].equals(listShape.id) || listPropertyCount !== 2 || Object.keys(listShape.properties).length !== 2 || listShape.extendedShapes.size || listShape.or?.length || listShape.xone?.length || listShape.nodeKind || listShape.targetClass || !hasOnlySupportedShapePredicates(template.config.store, listShape.id, ['property'])) {
+    if (
+        listNodeReferences.length !== 1 ||
+        !listNodeReferences[0].equals(listShape.id) ||
+        listPropertyCount !== 2 ||
+        Object.keys(listShape.properties).length !== 2 ||
+        listShape.extendedShapes.size ||
+        listShape.or?.length ||
+        listShape.xone?.length ||
+        listShape.nodeKind ||
+        listShape.targetClass ||
+        !hasOnlySupportedShapePredicates(template.config.store, listShape.id, ['property'])
+    ) {
         return undefined
     }
     const first = listShape.properties[RDF_PREDICATE_FIRST.value]
@@ -522,9 +573,12 @@ export function detectRdfListItemTemplate(template: ShaclPropertyTemplate): Shac
     if (first?.length !== 1 || rest?.length !== 1 || first[0].minCount !== 1 || first[0].maxCount !== 1 || rest[0].minCount !== 1 || rest[0].maxCount !== 1) {
         return undefined
     }
-    if (first[0].or?.length || first[0].xone?.length || first[0].hasValue || !hasOnlySupportedShapePredicates(template.config.store, rest[0].id, [
-        'path', 'minCount', 'maxCount', 'or'
-    ])) {
+    if (
+        first[0].or?.length ||
+        first[0].xone?.length ||
+        first[0].hasValue ||
+        !hasOnlySupportedShapePredicates(template.config.store, rest[0].id, ['path', 'minCount', 'maxCount', 'or'])
+    ) {
         return undefined
     }
     const branches = rest[0].or
@@ -535,19 +589,17 @@ export function detectRdfListItemTemplate(template: ShaclPropertyTemplate): Shac
     let hasRecursiveBranch = false
     for (const branch of branches) {
         const quads = template.config.store.getQuads(branch, null, null, null)
-        const constraints = quads.filter(quad => quad.predicate.value.startsWith(PREFIX_SHACL) && !SHACL_METADATA_PREDICATES.has(quad.predicate.value))
-        hasNilBranch ||= constraints.length === 1 && constraints[0].predicate.value === `${PREFIX_SHACL}hasValue` && constraints[0].object.equals(RDF_OBJECT_NIL)
-        hasRecursiveBranch ||= constraints.length === 1 && constraints[0].predicate.value === `${PREFIX_SHACL}node` && constraints[0].object.equals(listShape.id)
+        const constraints = quads.filter((quad) => quad.predicate.value.startsWith(PREFIX_SHACL) && !SHACL_METADATA_PREDICATES.has(quad.predicate.value))
+        hasNilBranch ||=
+            constraints.length === 1 && constraints[0].predicate.value === `${PREFIX_SHACL}hasValue` && constraints[0].object.equals(RDF_OBJECT_NIL)
+        hasRecursiveBranch ||=
+            constraints.length === 1 && constraints[0].predicate.value === `${PREFIX_SHACL}node` && constraints[0].object.equals(listShape.id)
     }
     return hasNilBranch && hasRecursiveBranch ? first[0] : undefined
 }
 
 function isSupportedRdfListNodeKind(nodeKind: NamedNode | undefined) {
-    return nodeKind === undefined || [
-        `${PREFIX_SHACL}IRI`,
-        `${PREFIX_SHACL}BlankNode`,
-        `${PREFIX_SHACL}BlankNodeOrIRI`
-    ].includes(nodeKind.value)
+    return nodeKind === undefined || [`${PREFIX_SHACL}IRI`, `${PREFIX_SHACL}BlankNode`, `${PREFIX_SHACL}BlankNodeOrIRI`].includes(nodeKind.value)
 }
 
 const SHACL_METADATA_PREDICATES = new Set([
@@ -556,36 +608,42 @@ const SHACL_METADATA_PREDICATES = new Set([
     `${PREFIX_SHACL}order`,
     `${PREFIX_SHACL}group`,
     `${PREFIX_SHACL}message`,
-    `${PREFIX_SHACL}severity`
+    `${PREFIX_SHACL}severity`,
 ])
 
 function hasOnlySupportedShapePredicates(store: Store, subject: Term, supportedLocalNames: string[]) {
-    const supported = new Set(supportedLocalNames.map(name => PREFIX_SHACL + name))
+    const supported = new Set(supportedLocalNames.map((name) => PREFIX_SHACL + name))
     // RDF types and non-SHACL annotations do not change how the specialized
     // editor must bind or serialize the shape.
-    return store.getQuads(subject, null, null, null).every(quad =>
-        !quad.predicate.value.startsWith(PREFIX_SHACL) ||
-        supported.has(quad.predicate.value) ||
-        SHACL_METADATA_PREDICATES.has(quad.predicate.value)
-    )
+    return store
+        .getQuads(subject, null, null, null)
+        .every(
+            (quad) =>
+                !quad.predicate.value.startsWith(PREFIX_SHACL) || supported.has(quad.predicate.value) || SHACL_METADATA_PREDICATES.has(quad.predicate.value),
+        )
 }
 
 function containsEntry(entries: InputListEntry[], value: Term): boolean {
-    return entries.some(entry =>
-        (typeof entry.value !== 'string' && entry.value.equals(value)) ||
-        containsEntry(entry.children ?? [], value)
-    )
+    return entries.some((entry) => (typeof entry.value !== 'string' && entry.value.equals(value)) || containsEntry(entry.children ?? [], value))
 }
 
 function entriesSignature(entries: InputListEntry[]): string {
-    return JSON.stringify(entries.map(entry => [
-        typeof entry.value === 'string' ? entry.value : `${entry.value.termType}:${entry.value.value}`,
-        entry.label,
-        entriesSignature(entry.children ?? [])
-    ]))
+    return JSON.stringify(
+        entries.map((entry) => [
+            typeof entry.value === 'string' ? entry.value : `${entry.value.termType}:${entry.value.value}`,
+            entry.label,
+            entriesSignature(entry.children ?? []),
+        ]),
+    )
 }
 
-export async function createPropertyInstance(template: ShaclPropertyTemplate, value?: Term, forceRemovable = false, linked = false, parentNode?: ShaclNode): Promise<HTMLElement> {
+export async function createPropertyInstance(
+    template: ShaclPropertyTemplate,
+    value?: Term,
+    forceRemovable = false,
+    linked = false,
+    parentNode?: ShaclNode,
+): Promise<HTMLElement> {
     let instance: HTMLElement
     if (template.nodeShapes.size) {
         instance = document.createElement('div')
