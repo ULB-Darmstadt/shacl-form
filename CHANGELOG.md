@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Include `sh:class` and `sh:targetClass` declarations from recursive
+  `owl:imports` when requesting instances from `classInstanceProvider`
+  ([#77](https://github.com/ULB-Darmstadt/shacl-form/issues/77)).
+- Run `classInstanceProvider` after fallback shapes referenced by data values
+  have loaded, so their classes are included in the request.
+
 ## [3.7.4] - 2026-10-09
 
 ### Fixed

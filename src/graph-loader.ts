@@ -65,19 +65,6 @@ export async function loadGraphs(atts: LoaderAttributes, originalValues?: Store)
     }
     await Promise.all(promises)
 
-    // conditionally load class instances
-    if (atts.classInstanceProvider) {
-        try {
-            const classes = findAllClasses(ctx.store)
-            const rdf = await atts.classInstanceProvider(classes)
-            if (rdf) {
-                await importRDF(loadRDF({ rdf }), ctx, SHAPES_GRAPH)
-            }
-        } catch (e) {
-            console.error('failed loading class instances', e)
-        }
-    }
-
     if (!atts.valuesSubject) {
         atts.valuesSubject = findConformsToValuesSubject(ctx.store) || null
     }
@@ -107,6 +94,19 @@ export async function loadGraphs(atts: LoaderAttributes, originalValues?: Store)
             await Promise.allSettled(promises)
         } catch (e) {
             console.warn(e)
+        }
+    }
+    // Load class instances after all shapes and their recursive imports are available.
+    if (atts.classInstanceProvider) {
+        try {
+            const graphs = [SHAPES_GRAPH, ...ctx.importedUrls.map(url => DataFactory.namedNode(url))]
+            const classes = findAllClasses(ctx.store, graphs)
+            const rdf = await atts.classInstanceProvider(classes)
+            if (rdf) {
+                await importRDF(loadRDF({ rdf }), ctx, SHAPES_GRAPH)
+            }
+        } catch (e) {
+            console.error('failed loading class instances', e)
         }
     }
     return ctx.store

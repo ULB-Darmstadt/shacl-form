@@ -293,13 +293,14 @@ export function serializeXsdDateTimeValue(value: string, suffix = '') {
     return `${tokens[1]}:${tokens[2] || '00'}${tokens[3] || ''}${suffix}`
 }
 
-export function findAllClasses(store: Store) {
+export function findAllClasses(store: Store, graphs: NamedNode[] = [SHAPES_GRAPH]) {
     const classes = new Set<string>()
-    for (const clazz of store.getObjects(null, SHACL_PREDICATE_CLASS, SHAPES_GRAPH)) {
-        classes.add(clazz.value)
-    }
-    for (const clazz of store.getObjects(null, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH)) {
-        classes.add(clazz.value)
+    for (const graph of graphs) {
+        for (const predicate of [SHACL_PREDICATE_CLASS, SHACL_PREDICATE_TARGET_CLASS]) {
+            for (const clazz of store.getObjects(null, predicate, graph)) {
+                classes.add(clazz.value)
+            }
+        }
     }
     return classes
 }
