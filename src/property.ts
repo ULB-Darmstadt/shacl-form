@@ -15,6 +15,15 @@ import { v4 as uuidv4 } from 'uuid'
 
 const ADD_BUTTON_SELECTOR = ':scope > .add-button-wrapper, :scope > .collapsible > .add-button-wrapper'
 const PROPERTY_INSTANCE_SELECTOR = ':scope > .property-instance, :scope > .shacl-or-constraint, :scope > .alternative-path-constraint, :scope > shacl-node, :scope > .collapsible > .property-instance, :scope > .collapsible > .alternative-path-constraint'
+const pendingAddFocus = new WeakMap<Document, symbol>()
+
+function activeElement(document: Document): Element | null {
+    let element = document.activeElement
+    while (element?.shadowRoot?.activeElement) {
+        element = element.shadowRoot.activeElement
+    }
+    return element
+}
 
 export class ShaclProperty extends HTMLElement {
     template: ShaclPropertyTemplate
@@ -314,6 +323,10 @@ export class ShaclProperty extends HTMLElement {
         const existingPart = addButton.getAttribute('part')
         addButton.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}add-button`)
         addButton.addEventListener('click', async () => {
+            const document = this.ownerDocument
+            const focusedElement = activeElement(document)
+            const focusRequest = Symbol()
+            pendingAddFocus.set(document, focusRequest)
             const instance = await this.addPropertyInstance()
             if (instance) {
                 instance.classList.add('fadeIn')
@@ -322,7 +335,11 @@ export class ShaclProperty extends HTMLElement {
                     this.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }))
                 }
                 setTimeout(() => {
-                    focusFirstInputElement(instance)
+                    if (pendingAddFocus.get(document) === focusRequest &&
+                        instance.isConnected && !instance.classList.contains('fadeOut') &&
+                        activeElement(document) === focusedElement) {
+                        focusFirstInputElement(instance)
+                    }
                     instance.classList.remove('fadeIn')
                 }, 200)
             }

@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.7.5] - 2026-10-22
+
 ### Fixed
 
+- Preserve the user's focus when it moves while adding a property instance,
+  and skip stale autofocus requests after another add or removal
+  ([#76](https://github.com/ULB-Darmstadt/shacl-form/issues/76)).
 - Include `sh:class` and `sh:targetClass` declarations from recursive
   `owl:imports` when requesting instances from `classInstanceProvider`
   ([#77](https://github.com/ULB-Darmstadt/shacl-form/issues/77)).
