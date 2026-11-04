@@ -28,7 +28,7 @@ form.addEventListener('query', event => {
 })
 ```
 
-The event is emitted after the form initializes and whenever a criterion changes. Text input is debounced by 300 ms. It bubbles through the DOM and crosses the component's shadow boundary.
+The event is emitted after the form initializes and whenever a criterion changes. Text input is applied on a committed change (Enter, suggestion selection, or leaving the field), rather than while typing. The event bubbles through the DOM and crosses the component's shadow boundary.
 
 ## The query object
 
@@ -85,6 +85,18 @@ Language input produces a language-tagged RDF literal. `sh:languageIn` supplies 
 Outside query mode, `getQuery()` still returns the root metadata when available but always returns an empty `criteria` array.
 
 ## Facets and field availability
+
+Text filters show the facet provider's `buckets` as native autocomplete suggestions,
+including their labels. Users can keep a partial or unmatched search string, or
+choose a suggestion to insert its full RDF value. Text fields continue to use
+`contains`; merely showing suggestions does not select a value or add a criterion.
+Typing filters the suggestions locally without emitting a query or requesting new
+facets. Choosing a suggestion applies the text filter immediately and removes
+focus from the input to close the native suggestion popup. No additional Enter is
+needed. Free text is applied on Enter or when leaving
+the field. A subsequent native change event for an already applied selection does
+not emit another query.
+Refreshed suggestions preserve the current input and cursor position.
 
 A facet provider is optional. Without one, all shape-derived fields remain visible and query events still work. Register a provider to populate choices and ranges and hide filters that cannot match:
 

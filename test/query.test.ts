@@ -1,10 +1,12 @@
-import { expect } from '@open-wc/testing'
+import { expect, waitUntil } from '@open-wc/testing'
+import { sendKeys } from '@web/test-runner-commands'
 import { DataFactory } from 'n3'
 import { ShaclForm } from '../src/form'
 import type { ShaclProperty } from '../src/property'
 import { isRangeQueryField, Query, QueryEditor, QueryFacetProvider } from '../src/query'
 import { awaitFormLoaded, bind } from './util'
 import { RokitInput, RokitSelect, RokitSlider } from '@ro-kit/ui-widgets'
+import { QueryTextInput } from '../src/query/text-input'
 
 const hasPath = (field: { path: (string | string[])[] }, predicate: string) => field.path[field.path.length - 1] === predicate
 
@@ -195,7 +197,7 @@ ex:deviceKindProperty sh:path ex:quantityKind ; sh:name "Device kind" .
         const title = Array.from(form.form.querySelectorAll('.query-editor')).find(editor => editor.textContent?.includes('Title'))!
         const kind = Array.from(form.form.querySelectorAll('.query-editor')).find(editor => editor.textContent?.includes('Kind'))!
 
-        expect(title.querySelectorAll('rokit-input.query-value')).to.have.length(1)
+        expect(title.querySelectorAll('.query-value')).to.have.length(1)
         expect(kind.querySelectorAll('rokit-select.query-choice')).to.have.length(1)
         expect(form.form.querySelectorAll('.query-add, .query-remove')).to.have.length(0)
         expect(kind.querySelector('li:nth-child(1)')?.textContent).to.equal('http://example.org/A')
@@ -283,6 +285,170 @@ ex:deviceKindProperty sh:path ex:quantityKind ; sh:name "Device kind" .
         title.value = 'test'
         title.dispatchEvent(new Event('change', { bubbles: true }))
         expect((await event).criteria[0].value?.value).to.equal('test')
+    })
+
+    it('suggests facet values for free text filters without requiring a selection', async () => {
+        await bind(form, shapes, 'http://example.org/Root')
+        const editor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => hasPath(editor.queryField, 'http://example.org/title'))!
+        const input = editor.querySelector<QueryTextInput>('.query-value')!
+        editor.setQueryFacet({
+            fieldId: editor.queryField.id,
+            count: 3,
+            buckets: [
+                { value: DataFactory.literal('TU Darmstadt'), label: 'TU Darmstadt', count: 2 },
+                { value: DataFactory.literal('Hochschule Darmstadt'), count: 1 },
+            ],
+        })
+        await input.updateComplete
+
+        const datalist = input.shadowRoot!.querySelector('datalist')!
+        expect(input.inputElement.list).to.equal(datalist)
+        expect(Array.from(datalist.options).map(option => option.value))
+            .to.deep.equal(['TU Darmstadt', 'Hochschule Darmstadt'])
+        expect(datalist.options[0].label).to.equal('TU Darmstadt')
+        expect(datalist.options[1].label).to.equal('Hochschule Darmstadt')
+        expect(form.getQuery().criteria).to.have.length(0)
+
+        input.value = 'dar'
+        await input.updateComplete
+        input.inputElement.focus()
+        input.inputElement.setSelectionRange(1, 2)
+        editor.setQueryFacet({
+            fieldId: editor.queryField.id,
+            count: 2,
+            buckets: [{ value: DataFactory.literal('TU Darmstadt'), label: 'TU Darmstadt', count: 2 }],
+        })
+        await input.updateComplete
+        expect(editor.querySelector('.query-value')).to.equal(input)
+        expect(input.shadowRoot!.activeElement).to.equal(input.inputElement)
+        expect(input.inputElement.selectionStart).to.equal(1)
+        expect(input.inputElement.value).to.equal('dar')
+        expect(input.inputElement.checkValidity()).to.be.true
+        expect(form.getQuery().criteria[0].operator).to.equal('contains')
+        expect(form.getQuery().criteria[0].value?.value).to.equal('dar')
+        expect(datalist.options).to.have.length(1)
+
+        input.inputElement.value = datalist.options[0].value
+        input.inputElement.dispatchEvent(new Event('change', { bubbles: true }))
+        expect(form.getQuery().criteria[0].value?.value).to.equal('TU Darmstadt')
+        expect(form.getQuery().criteria[0].operator).to.equal('contains')
+        editor.clearQueryCriteria?.()
+        expect(form.getQuery().criteria).to.have.length(0)
+    })
+
+    it('keeps typing local and applies free text on Enter or blur', async () => {
+        let requests = 0
+        form.setQueryFacetProvider({
+            getFacets: async ({ fields }) => {
+                requests++
+                return fields.map(field => ({
+                    fieldId: field.id,
+                    count: 1,
+                    buckets: [{ value: DataFactory.literal('TU Darmstadt'), label: 'TU Darmstadt', count: 1 }],
+                }))
+            },
+        })
+        await bind(form, shapes, 'http://example.org/Root')
+        const editor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => hasPath(editor.queryField, 'http://example.org/title'))!
+        const input = editor.querySelector<QueryTextInput>('.query-value')!
+        await input.updateComplete
+        const initialRequests = requests
+        const queries: Query[] = []
+        form.addEventListener('query', event => queries.push((event as CustomEvent<Query>).detail))
+
+        input.inputElement.focus()
+        await sendKeys({ type: 'dar' })
+        // Exceed the previous debounce interval: pausing while typing must not
+        // start a search or replace the suggestions underneath the open picker.
+        await new Promise(resolve => setTimeout(resolve, 400))
+        expect(input.value).to.equal('dar')
+        expect(queries).to.have.length(0)
+        expect(requests).to.equal(initialRequests)
+        expect(input.shadowRoot!.activeElement).to.equal(input.inputElement)
+
+        await sendKeys({ press: 'Enter' })
+        await waitUntil(() => queries.length === 1)
+        expect(queries[0].criteria[0].value?.value).to.equal('dar')
+        expect(queries[0].criteria[0].operator).to.equal('contains')
+        expect(requests).to.equal(initialRequests + 1)
+
+        await sendKeys({ type: 'mstadt' })
+        await new Promise(resolve => setTimeout(resolve, 400))
+        expect(queries).to.have.length(1)
+        input.inputElement.blur()
+        await waitUntil(() => queries.length === 2)
+        expect(queries[1].criteria[0].value?.value).to.equal('darmstadt')
+        expect(editor.querySelector('.query-value')).to.equal(input)
+    })
+
+    for (const eventType of ['plain input', 'text replacement']) {
+        it(`applies a suggestion immediately on ${eventType}, without committing ordinary typing`, async () => {
+            await bind(form, shapes, 'http://example.org/Root')
+            const editor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+                .find(editor => hasPath(editor.queryField, 'http://example.org/title'))!
+            const input = editor.querySelector<QueryTextInput>('.query-value')!
+            editor.setQueryFacet({
+                fieldId: editor.queryField.id,
+                count: 1,
+                buckets: [{ value: DataFactory.literal('TU Darmstadt'), label: 'TU Darmstadt', count: 1 }],
+            })
+            await input.updateComplete
+            input.inputElement.focus()
+            const queries: Query[] = []
+            form.addEventListener('query', event => queries.push((event as CustomEvent<Query>).detail))
+
+            input.inputElement.value = 'TU Darmstadt'
+            input.inputElement.dispatchEvent(new InputEvent('input', { inputType: 'insertText', bubbles: true }))
+            expect(queries).to.have.length(0)
+
+            input.inputElement.dispatchEvent(eventType === 'plain input'
+                ? new Event('input', { bubbles: true })
+                : new InputEvent('input', { inputType: 'insertReplacementText', bubbles: true }))
+            expect(queries).to.have.length(1)
+            expect(queries[0].criteria[0].value?.value).to.equal('TU Darmstadt')
+            expect(input.matches(':focus-within')).to.be.false
+            expect(input.value).to.equal('TU Darmstadt')
+
+            editor.setQueryFacet({
+                fieldId: editor.queryField.id,
+                count: 1,
+                buckets: [{ value: DataFactory.literal('TU Darmstadt'), count: 1 }],
+            })
+            await input.updateComplete
+            expect(input.matches(':focus-within')).to.be.false
+            expect(queries).to.have.length(1)
+
+            input.inputElement.dispatchEvent(new Event('change', { bubbles: true }))
+            expect(queries).to.have.length(1)
+
+            input.inputElement.focus()
+            expect(input.shadowRoot!.activeElement).to.equal(input.inputElement)
+            input.clear()
+            expect(queries).to.have.length(2)
+            expect(queries[1].criteria).to.have.length(0)
+        })
+    }
+
+    it('keeps suggestion labels separate from RDF values and clears stale suggestions', async () => {
+        await bind(form, shapes, 'http://example.org/Root')
+        const editor = Array.from(form.form.querySelectorAll<QueryEditor>('.query-editor'))
+            .find(editor => hasPath(editor.queryField, 'http://example.org/title'))!
+        const input = editor.querySelector<QueryTextInput>('.query-value')!
+        editor.setQueryFacet({
+            fieldId: editor.queryField.id,
+            count: 1,
+            buckets: [{ value: DataFactory.literal('TUDa'), label: 'TU Darmstadt', count: 1 }],
+        })
+        await input.updateComplete
+        const datalist = input.shadowRoot!.querySelector('datalist')!
+        expect(datalist.options[0].value).to.equal('TUDa')
+        expect(datalist.options[0].label).to.equal('TU Darmstadt')
+
+        editor.setQueryFacet({ fieldId: editor.queryField.id, count: 0 })
+        await input.updateComplete
+        expect(datalist.options).to.have.length(0)
     })
 
     it('applies an initial facet value once and emits the resulting query', async () => {
@@ -906,7 +1072,7 @@ ex:Person a sh:NodeShape ;
         expect(editor).to.not.be.undefined
         expect(editor.textContent).to.include('Owner')
         expect(editor.querySelector('rokit-select')).to.not.be.null
-        expect(editor.querySelector('rokit-input.query-value')).to.be.null
+        expect(editor.querySelector('.query-value')).to.be.null
         expect(form.form.querySelector('.query-structure')).to.be.null
         expect(editor.queryField.path).to.deep.equal(['http://example.org/owner'])
     })
@@ -944,7 +1110,7 @@ ex:Root a sh:NodeShape ;
 
         const editor = form.form.querySelector<QueryEditor>('.query-editor')!
         expect(editor.querySelector('rokit-select')).to.not.be.null
-        expect(editor.querySelector('rokit-input.query-value')).to.be.null
+        expect(editor.querySelector('.query-value')).to.be.null
         expect(editor.queryField.discrete).to.be.true
     })
 

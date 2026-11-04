@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.8.0] - 2026-11-04
+
+### Added
+
+- Show facet values and labels as native autocomplete suggestions in query-mode
+  text fields while allowing partial and unmatched search text.
+
+### Changed
+
+- Apply text filters on Enter or blur instead of during typing. Selecting a
+  suggestion applies the filter immediately and closes the suggestion popup.
+
+### Fixed
+
+- Preserve text, focus, and cursor position when autocomplete suggestions refresh.
+- Avoid duplicate query events when a native change event follows an already
+  applied suggestion selection.
+
 ## [3.7.5] - 2026-10-22
 
 ### Fixed

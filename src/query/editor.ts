@@ -6,6 +6,7 @@ import { isRangeQueryField, QueryEditor, QueryFacet, QueryField } from './index.
 import { ShaclPropertyTemplate } from '../property-template.js'
 import { createInputListEntries, findInstancesOf } from '../util.js'
 import { InputListEntry } from '../theme.js'
+import { QueryTextInput } from './text-input.js'
 
 type Choice = { term: Term; label: string; count?: number }
 
@@ -31,6 +32,10 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
     let choices = initialChoices(template)
     let lastUsableRangeBounds: [number, number] | undefined
     let selectionBounds: [number, number] | undefined
+    const getTextSuggestions = () => (facet?.buckets ?? []).map(bucket => ({
+        value: bucket.value.value,
+        label: bucket.label
+    }))
 
     const createChoiceRow = (selected = '') => {
         const row = document.createElement('div')
@@ -126,18 +131,12 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
     const createTextRow = () => {
         const row = document.createElement('div')
         row.classList.add('query-value-row')
-        const input = new RokitInput()
+        const input = new QueryTextInput()
         input.classList.add('editor', 'query-value')
         input.type = inputType(template)
         input.clearable = true
         input.dense = template.config.theme.dense
-        let debounceTimer: ReturnType<typeof setTimeout> | undefined
-        input.addEventListener('input', () => {
-            clearTimeout(debounceTimer)
-            debounceTimer = setTimeout(() => {
-                root.dispatchEvent(new Event('change', { bubbles: true }))
-            }, 300)
-        })
+        input.suggestions = getTextSuggestions()
         row.appendChild(input)
         if (template.datatype?.equals(RDF_OBJECT_LANG_STRING)) {
             const language = template.languageIn?.length
@@ -270,6 +269,9 @@ export function createQueryEditor(field: QueryField, template: ShaclPropertyTemp
             for (const input of controls.querySelectorAll<RokitInput>('.query-value')) {
                 input.value = ''
             }
+        }
+        for (const input of controls.querySelectorAll<QueryTextInput>('shacl-query-text-input')) {
+            input.suggestions = getTextSuggestions()
         }
         return false
     }
