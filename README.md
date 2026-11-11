@@ -83,7 +83,7 @@ Attribute | Description
 ---|---
 data-shapes | SHACL shape definitions (e.g. Turtle) used to generate the form
 data-shapes-url | When `data-shapes` is not set, load SHACL shapes from this URL
-data-shape-subject | Optional subject IRI for the root `sh:NodeShape`. If not set, the `<shacl-form>` first tries to resolve the root shape from `data-values-subject` and loaded data, preferring `dcterms:conformsTo`, then `rdf:type` / `sh:targetClass`, and finally falling back to the first node shape in the shapes graph
+data-shape-subject | Optional subject IRI for the root `sh:NodeShape`. If not set, `<shacl-form>` first tries to resolve the root shape from `data-values-subject` and loaded data, preferring `dcterms:conformsTo`, then `rdf:type` / `sh:targetClass`, and finally falling back to the most specific node shape in the shapes graph. Shapes referenced by other node shapes via constraints such as `sh:node`, `sh:qualifiedValueShape`, `sh:or`, or `owl:imports` are not considered roots; among the remaining root candidates, the shape referencing the most other node shapes is used
 data-values | RDF triples (e.g. Turtle) used to prefill the form
 data-values-url | When `data-values` is not set, load RDF triples from this URL
 data-values-subject | Subject (IRI or blank node id) for generated data. If not set, a blank node with a new UUID is created. If `data-values` or `data-values-url` is set, this id is used to find the root node in the data graph. When exactly one `dcterms:conformsTo` statement exists in the loaded data graph, its subject is used automatically. For the selected subject, a `dcterms:conformsTo` object that is a known `sh:NodeShape` is used as the root shape before falling back to `rdf:type` / `sh:targetClass`

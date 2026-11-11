@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-11-11
+
+### Changed
+
+- **Breaking:** When neither `data-shape-subject` nor a root shape from the
+  loaded data resolves the root shape, the form now chooses the most specific
+  node shape instead of the first node shape in the shapes graph. Shapes that
+  are referenced by other node shapes, for example via `sh:node`,
+  `sh:qualifiedValueShape`, `sh:or`, or `owl:imports`, are no longer considered
+  root candidates. If several candidates remain, the shape referencing the most
+  other node shapes is selected. The analysis includes anonymous node shapes,
+  references through named property shapes and RDF list nodes, and recursively
+  imported shape documents, including imports on ontology headers in the source
+  graph.
+
 ## [3.8.0] - 2026-11-04
 
 ### Added

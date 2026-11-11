@@ -2,8 +2,26 @@ import { ShaclNode } from './node.js'
 import type { ShaclProperty } from './property.js'
 import { Config } from './config.js'
 import { ClassInstanceProvider, RdfUrlResolver, ResourceLinkProvider, Plugin, listPlugins, registerPlugin } from './plugin.js'
-import { Store, NamedNode, DataFactory, BlankNode, Literal } from 'n3'
-import { DATA_GRAPH, DCTERMS_PREDICATE_CONFORMS_TO, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHACL_PREDICATE_MESSAGE, SHACL_PREDICATE_TARGET_CLASS, SHAPES_GRAPH } from './constants.js'
+import { Store, NamedNode, DataFactory, BlankNode, Literal, Quad } from 'n3'
+import {
+    DATA_GRAPH,
+    DCTERMS_PREDICATE_CONFORMS_TO,
+    OWL_PREDICATE_IMPORTS,
+    RDF_PREDICATE_FIRST,
+    RDF_PREDICATE_REST,
+    RDF_PREDICATE_TYPE,
+    SHACL_OBJECT_NODE_SHAPE,
+    SHACL_PREDICATE_AND,
+    SHACL_PREDICATE_MESSAGE,
+    SHACL_PREDICATE_NODE,
+    SHACL_PREDICATE_NOT,
+    SHACL_PREDICATE_OR,
+    SHACL_PREDICATE_PROPERTY,
+    SHACL_PREDICATE_QUALIFIED_VALUE_SHAPE,
+    SHACL_PREDICATE_TARGET_CLASS,
+    SHACL_PREDICATE_XONE,
+    SHAPES_GRAPH
+} from './constants.js'
 import { Editor, Theme } from './theme.js'
 import { serialize } from './serialize.js'
 import { RokitCollapsible, RokitSelect } from '@ro-kit/ui-widgets'
@@ -31,6 +49,19 @@ export interface ValidationReport {
     conforms: boolean
     results: unknown[]
 }
+
+const SHAPE_REFERENCE_PREDICATES = [
+    SHACL_PREDICATE_NODE,
+    SHACL_PREDICATE_QUALIFIED_VALUE_SHAPE,
+    SHACL_PREDICATE_PROPERTY,
+    SHACL_PREDICATE_OR,
+    SHACL_PREDICATE_AND,
+    SHACL_PREDICATE_XONE,
+    SHACL_PREDICATE_NOT,
+    OWL_PREDICATE_IMPORTS,
+    RDF_PREDICATE_FIRST,
+    RDF_PREDICATE_REST
+]
 
 export class ShaclForm extends HTMLElement {
     static get observedAttributes() {
@@ -651,7 +682,7 @@ export class ShaclForm extends HTMLElement {
         return messageElement
     }
 
-    private findRootShaclShapeSubject(): NamedNode | undefined {
+    private findRootShaclShapeSubject(): NamedNode | BlankNode | undefined {
         // if data-shape-subject is set, use that
         if (this.config.attributes.shapeSubject) {
             const rootShapeShaclSubject = DataFactory.namedNode(this.config.attributes.shapeSubject)
@@ -688,17 +719,125 @@ export class ShaclForm extends HTMLElement {
                     }
                 }
             }
-            // choose first of all defined root shapes
             const rootShapes = this.config.store.getQuads(null, RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, null)
             if (rootShapes.length == 0) {
                 console.warn('shapes graph does not contain any node shapes')
                 return
             }
+            const selectedRootShape = this.findMostSpecificRootShape(rootShapes)
+            if (selectedRootShape) {
+                return selectedRootShape
+            }
             if (rootShapes.length > 1) {
                 console.warn('shapes graph contains', rootShapes.length, 'node shapes. choosing first found which is', rootShapes[0].subject.value)
                 console.info('hint: set the node shape to use with element attribute "data-shape-subject"')
             }
-            return rootShapes[0].subject as NamedNode
+            return rootShapes[0].subject as NamedNode | BlankNode
+        }
+    }
+
+    private findMostSpecificRootShape(rootShapes: Quad[]): NamedNode | BlankNode | undefined {
+        const uniqueRootShapes = [...new Map(
+            rootShapes
+                .map(quad => quad.subject)
+                .filter((subject): subject is NamedNode | BlankNode => subject.termType === 'NamedNode' || subject.termType === 'BlankNode')
+                .map(subject => [subject.id, subject] as const)
+        ).values()]
+        if (uniqueRootShapes.length === 0) {
+            return
+        }
+        const shapeIds = new Set(uniqueRootShapes.map(shape => shape.id))
+        const references = new Map<string, Set<string>>()
+        for (const shape of uniqueRootShapes) {
+            references.set(shape.id, this.findReferencedNodeShapes(shape, shapeIds))
+        }
+        const referencedShapeIds = new Set<string>()
+        for (const referencedShapes of references.values()) {
+            for (const referencedShapeId of referencedShapes) {
+                referencedShapeIds.add(referencedShapeId)
+            }
+        }
+        const localShapeIds = new Set(this.config.store.getSubjects(RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, SHAPES_GRAPH).map(shape => shape.id))
+        if (localShapeIds.size > 0) {
+            // Imports on ontology headers are document dependencies, even when
+            // no node shape directly references the header. Keep local declarations.
+            const importedShapeIds = new Set<string>()
+            const visitedGraphs = new Set<string>()
+            for (const graph of this.config.store.getObjects(null, OWL_PREDICATE_IMPORTS, SHAPES_GRAPH)) {
+                if (graph.termType === 'NamedNode') {
+                    this.collectImportedNodeShapes(graph, importedShapeIds, visitedGraphs)
+                }
+            }
+            for (const shapeId of importedShapeIds) {
+                if (!localShapeIds.has(shapeId)) {
+                    referencedShapeIds.add(shapeId)
+                }
+            }
+        }
+        const unreferencedShapes = uniqueRootShapes.filter(shape => !referencedShapeIds.has(shape.id))
+        const candidates = unreferencedShapes.length > 0 ? unreferencedShapes : uniqueRootShapes
+        let selectedShape = candidates[0]
+        let selectedScore = references.get(selectedShape.id)?.size ?? 0
+        for (const candidate of candidates.slice(1)) {
+            const score = references.get(candidate.id)?.size ?? 0
+            if (score > selectedScore) {
+                selectedShape = candidate
+                selectedScore = score
+            }
+        }
+        if (rootShapes.length > 1) {
+            if (candidates.length > 1) {
+                console.warn('shapes graph contains', rootShapes.length, 'node shapes and', candidates.length, 'root candidates. choosing', selectedShape.value, 'which references the most other node shapes')
+            } else {
+                console.warn('shapes graph contains', rootShapes.length, 'node shapes. choosing root shape', selectedShape.value)
+            }
+            console.info('hint: set the node shape to use with element attribute "data-shape-subject"')
+        }
+        return selectedShape
+    }
+
+    private findReferencedNodeShapes(shape: NamedNode | BlankNode, shapeIds: Set<string>): Set<string> {
+        const references = new Set<string>()
+        this.collectReferencedNodeShapes(shape, shapeIds, references, new Set<string>())
+        references.delete(shape.id)
+        return references
+    }
+
+    private collectReferencedNodeShapes(subject: NamedNode | BlankNode, shapeIds: Set<string>, references: Set<string>, visited: Set<string>) {
+        if (visited.has(subject.id)) {
+            return
+        }
+        visited.add(subject.id)
+        for (const predicate of SHAPE_REFERENCE_PREDICATES) {
+            for (const object of this.config.store.getObjects(subject, predicate, null)) {
+                if (object.termType === 'NamedNode' || object.termType === 'BlankNode') {
+                    if (shapeIds.has(object.id)) {
+                        references.add(object.id)
+                    } else {
+                        // Property shapes and RDF list nodes can also have IRIs.
+                        this.collectReferencedNodeShapes(object, shapeIds, references, visited)
+                    }
+                    if (OWL_PREDICATE_IMPORTS.equals(predicate) && object.termType === 'NamedNode') {
+                        this.collectImportedNodeShapes(object, references, new Set<string>())
+                    }
+                }
+            }
+        }
+    }
+
+    private collectImportedNodeShapes(graph: NamedNode, references: Set<string>, visited: Set<string>) {
+        if (visited.has(graph.id)) {
+            return
+        }
+        visited.add(graph.id)
+        // Import URLs identify named graphs, not necessarily the shapes in them.
+        for (const shape of this.config.store.getSubjects(RDF_PREDICATE_TYPE, SHACL_OBJECT_NODE_SHAPE, graph)) {
+            references.add(shape.id)
+        }
+        for (const importedGraph of this.config.store.getObjects(null, OWL_PREDICATE_IMPORTS, graph)) {
+            if (importedGraph.termType === 'NamedNode') {
+                this.collectImportedNodeShapes(importedGraph, references, visited)
+            }
         }
     }
 
