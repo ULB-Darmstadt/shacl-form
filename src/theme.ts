@@ -14,6 +14,9 @@ export type Editor = HTMLElement & {
     disabled?: boolean
     validity?: ValidityState
     validationMessage?: string
+    updateComplete?: Promise<unknown>
+    // Refresh theme-specific errors after programmatic value changes.
+    syncValidity?: () => void
     rdfTerm?: Term
     rdfTermState?: {
         value: string

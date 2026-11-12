@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-11-12
+
+### Fixed
+
+- Wait for editor updates before validation and submission, preventing stale
+  required-field errors after choosing a geometry in the Leaflet dialog
+  ([#78](https://github.com/ULB-Darmstadt/shacl-form/issues/78)) or setting values
+  programmatically.
+- Refresh fractional-number validation messages after programmatic value changes,
+  clearing stale datatype errors when an invalid value is corrected while
+  preserving custom errors set by the application.
+- Prevent older validation runs from removing newer error markers when an editor
+  is replaced while its update is pending.
+
 ## [4.0.0] - 2026-11-11
 
 ### Changed

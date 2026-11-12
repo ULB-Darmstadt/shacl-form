@@ -496,10 +496,8 @@ describe('test value binding', () => {
         editor.inputElement.dispatchEvent(new Event('input', { bubbles: true }))
         expect(editor.validity.patternMismatch).to.be.true
 
-        const validation = form.validate(true)
+        await form.validate(true)
         expect(propertyInstance.classList.contains('valid')).to.be.false
-        expect(propertyInstance.classList.contains('invalid')).to.be.true
-        await validation
         expect(propertyInstance.classList.contains('invalid')).to.be.true
         expect(propertyInstance.querySelector<HTMLElement>('.validation-error')?.title.split('\n')).to.have.lengthOf(2)
     })

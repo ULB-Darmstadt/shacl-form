@@ -227,7 +227,7 @@ export class DefaultTheme extends Theme {
     }
 
     createNumberEditor(label: string, value: Term | null, required: boolean, template: ShaclPropertyTemplate): HTMLElement {
-        const editor = new RokitInput()
+        const editor: RokitInput & Editor = new RokitInput()
         const fractional = FRACTIONAL_DATATYPES.has(template.datatype?.value ?? '')
         // Native number inputs sanitize their value according to the browser locale.
         // In comma-based locales this can erase a dotted decimal before we can read it.
@@ -239,12 +239,18 @@ export class DefaultTheme extends Theme {
             editor.updateComplete.then(() => {
                 editor.inputElement.inputMode = 'decimal'
             })
-            editor.addEventListener('input', () => {
+            const datatypeMessage = 'Value does not have datatype <' + template.datatype?.value + '>'
+            editor.syncValidity = () => {
+                // Only clear or replace the error owned by this number editor.
+                if (editor.validity.customError && editor.validationMessage !== datatypeMessage) {
+                    return
+                }
                 editor.setCustomValidity(
-                    editor.validity.patternMismatch ? 'Value does not have datatype <' + template.datatype?.value + '>' : undefined,
+                    editor.validity.patternMismatch ? datatypeMessage : undefined,
                     editor.inputElement
                 )
-            })
+            }
+            editor.addEventListener('input', editor.syncValidity)
         }
         editor.clearable = true
         editor.dense = this.dense

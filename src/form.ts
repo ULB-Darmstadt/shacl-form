@@ -200,8 +200,9 @@ export class ShaclForm extends HTMLElement {
                             button.classList.add('submit-button')
                             const existingPart = button.getAttribute('part')
                             button.setAttribute('part', `${existingPart ? existingPart + ' ' : ''}submit-button`)
-                            button.addEventListener('click', (event) => {
+                            button.addEventListener('click', async (event) => {
                                 event.preventDefault()
+                                await this.prepareEditorsForValidation()
                                 // let browser check form validity first
                                 if (this.form.reportValidity()) {
                                     // now validate data graph
@@ -485,29 +486,41 @@ export class ShaclForm extends HTMLElement {
         this.queryController?.refreshFacets()
     }
 
+    private async prepareEditorsForValidation() {
+        await Promise.all(Array.from(this.form.querySelectorAll<Editor>('.editor'), async editor => {
+            await editor.updateComplete
+            editor.syncValidity?.()
+        }))
+    }
+
     /* Returns the validation report */
     public async validate(ignoreEmptyValues = false): Promise<ValidationReport> {
         this.assertNotQueryMode('validate')
         const validationGeneration = ++this.validationGeneration
-        for (const elem of this.form.querySelectorAll(':scope .validation-error')) {
-            elem.remove()
-        }
-        for (const elem of this.form.querySelectorAll<HTMLElement>(':scope .property-instance')) {
-            const editor = elem.querySelector(':scope > .editor') as Editor | null
-            const hasValue = Boolean(editor?.value)
-            const hasEditorValidityError = editor?.validity?.valid === false && (hasValue || !ignoreEmptyValues)
-            elem.classList.toggle('invalid', hasEditorValidityError)
-            if (hasValue && !hasEditorValidityError) {
-                elem.classList.add('valid')
-            } else {
-                elem.classList.remove('valid')
+        await this.prepareEditorsForValidation()
+        // An older run may finish waiting after a newer run has updated the UI.
+        // Still produce a report, but let only the latest run change markers.
+        if (validationGeneration === this.validationGeneration) {
+            for (const elem of this.form.querySelectorAll(':scope .validation-error')) {
+                elem.remove()
             }
-            if (hasEditorValidityError && editor?.validationMessage) {
-                this.appendValidationErrorDisplay(elem, editor.validationMessage)
+            for (const elem of this.form.querySelectorAll<HTMLElement>(':scope .property-instance')) {
+                const editor = elem.querySelector(':scope > .editor') as Editor | null
+                const hasValue = Boolean(editor?.value)
+                const hasEditorValidityError = editor?.validity?.valid === false && (hasValue || !ignoreEmptyValues)
+                elem.classList.toggle('invalid', hasEditorValidityError)
+                if (hasValue && !hasEditorValidityError) {
+                    elem.classList.add('valid')
+                } else {
+                    elem.classList.remove('valid')
+                }
+                if (hasEditorValidityError && editor?.validationMessage) {
+                    this.appendValidationErrorDisplay(elem, editor.validationMessage)
+                }
             }
-        }
-        for (const btn of this.form.querySelectorAll('.add-button-wrapper')) {
-            btn.classList.remove('invalid', 'validation-error')
+            for (const btn of this.form.querySelectorAll('.add-button-wrapper')) {
+                btn.classList.remove('invalid', 'validation-error')
+            }
         }
 
         if (!this.shape) {
@@ -516,9 +529,11 @@ export class ShaclForm extends HTMLElement {
         // if a add-button is required, then mark it as invalid and early out
         if (!ignoreEmptyValues) {
             const requiredAddButtons = this.form.querySelectorAll('.add-button-wrapper.required')
-            for (const btn of requiredAddButtons) {
-                btn.classList.add('invalid')
-                btn.after(this.createValidationErrorDisplay('Value is required', 'node'))
+            if (validationGeneration === this.validationGeneration) {
+                for (const btn of requiredAddButtons) {
+                    btn.classList.add('invalid')
+                    btn.after(this.createValidationErrorDisplay('Value is required', 'node'))
+                }
             }
             if (requiredAddButtons.length > 0) {
                 return { conforms: false, results: [] }
